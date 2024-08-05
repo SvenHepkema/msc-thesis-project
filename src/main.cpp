@@ -76,6 +76,9 @@ template <typename T> int run_verification(CLIArgs args) {
 int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
 
+#ifdef FAST_COMPILATION
+	return run_verification<int32_t>(args);
+#else
   if (args.use_signed) {
     switch (args.lane_width) {
     case 64: {
@@ -107,6 +110,7 @@ int main(int argc, char **argv) {
     }
     }
 	}
+#endif
 
     return 0;
   }

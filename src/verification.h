@@ -42,12 +42,13 @@ generate_column_with(const size_t count,
 }
 
 template <typename T>
-std::unique_ptr<T> generate_index_column(const size_t count, const T max) {
+std::unique_ptr<T> generate_index_column(const size_t count, const T max,
+                                         const T offset = (T) 0) {
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
   for (size_t i = 0; i < count; ++i) {
-    column_p[i] = i % max;
+    column_p[i] = offset + (i % max);
   }
 
   return column;
@@ -181,7 +182,7 @@ VerificationResult<T> verify_bitpacking(const size_t count,
   auto generate_data = use_random_data
       ? [](int32_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
     return data::generate_random_column(
-        count, (T) 0, utils::set_first_n_bits<T>(value_bit_width));
+        count, (T)0, utils::set_first_n_bits<T>(value_bit_width));
   }
   : [](int32_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_index_column(
@@ -203,19 +204,8 @@ VerificationResult<T> verify_bitpacking(const size_t count,
 
 template <typename T>
 VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
-  T temp_base = 0;
+  T temp_base = 125;
   T *temp_base_p = &temp_base;
-
-  auto generate_index_data = [](int32_t count,
-                                int32_t value_bit_width) -> std::unique_ptr<T> {
-    return data::generate_index_column(
-        count, utils::set_first_n_bits<T>(value_bit_width));
-  };
-  auto generate_random_data =[](int32_t count,
-                                int32_t value_bit_width) -> std::unique_ptr<T> {
-    return data::generate_random_column(
-        count, (T) 0, utils::set_first_n_bits<T>(value_bit_width));
-  };
 
   auto compress = [temp_base_p](T *in, T *out, int32_t count,
                                 int32_t value_bit_width) -> void {
@@ -226,9 +216,30 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
     scalar::unffor(in, out, temp_base_p, value_bit_width);
   };
 
-  return verify_all_value_bit_widths<T>(
-      count, use_random_data ? generate_random_data : generate_index_data,
-      compress, decompress);
+  if (use_random_data) {
+    auto generate_data =
+        [temp_base](int32_t count,
+                    int32_t value_bit_width) -> std::unique_ptr<T> {
+      return data::generate_random_column<T>(
+          count, temp_base,
+          utils::set_first_n_bits<T>(value_bit_width) +
+              (value_bit_width == sizeof(T) * 8 ? (T) 0 : temp_base));
+    };
+    return verify_all_value_bit_widths<T>(count, generate_data, compress,
+                                          decompress);
+  } else {
+    auto generate_data =
+        [temp_base](int32_t count,
+                    int32_t value_bit_width) -> std::unique_ptr<T> {
+      return data::generate_index_column<T>(
+          count,
+          utils::set_first_n_bits<T>(value_bit_width) +
+              (value_bit_width == sizeof(T) * 8 ? (T) 0 : temp_base),
+          temp_base);
+    };
+    return verify_all_value_bit_widths<T>(count, generate_data, compress,
+                                          decompress);
+  }
 }
 
 } // namespace verification

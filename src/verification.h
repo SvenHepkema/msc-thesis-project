@@ -8,7 +8,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "fastlanes.h"
+#include "cpu/fastlanes.h"
+#include "gpu/fastlanes-global.h"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H
@@ -198,11 +199,37 @@ VerificationResult<T> verify_bitpacking(const size_t count,
 
   auto compress = [](T *in, T *out, int32_t count,
                      int32_t value_bit_width) -> void {
-    scalar::bitpack(in, out, value_bit_width);
+    cpu::bitpack(in, out, value_bit_width);
   };
   auto decompress = [](T *in, T *out, int32_t count,
                        int32_t value_bit_width) -> void {
-    scalar::bitunpack(in, out, value_bit_width);
+    cpu::bitunpack(in, out, value_bit_width);
+  };
+
+  return verify_all_value_bit_widths<T>(count, generate_data, compress,
+                                        decompress);
+}
+
+template <typename T>
+VerificationResult<T> verify_gpu_bitpacking(const size_t count,
+                                        bool use_random_data) {
+  auto generate_data = use_random_data
+      ? [](int32_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+    return data::generate_random_column(
+        count, (T)0, utils::set_first_n_bits<T>(value_bit_width));
+  }
+  : [](int32_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+      return data::generate_index_column(
+          count, utils::set_first_n_bits<T>(value_bit_width));
+    };
+
+  auto compress = [](T *in, T *out, int32_t count,
+                     int32_t value_bit_width) -> void {
+    cpu::bitpack(in, out, value_bit_width);
+  };
+  auto decompress = [](T *in, T *out, int32_t count,
+                       int32_t value_bit_width) -> void {
+    gpu::bitunpack_with_function<T, T>(in, out, value_bit_width);
   };
 
   return verify_all_value_bit_widths<T>(count, generate_data, compress,
@@ -216,11 +243,11 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
 
   auto compress = [temp_base_p](T *in, T *out, int32_t count,
                                 int32_t value_bit_width) -> void {
-    scalar::ffor(in, out, temp_base_p, value_bit_width);
+    cpu::ffor(in, out, temp_base_p, value_bit_width);
   };
   auto decompress = [temp_base_p](T *in, T *out, int32_t count,
                                   int32_t value_bit_width) -> void {
-    scalar::unffor(in, out, temp_base_p, value_bit_width);
+    cpu::unffor(in, out, temp_base_p, value_bit_width);
   };
 
   if (use_random_data) {

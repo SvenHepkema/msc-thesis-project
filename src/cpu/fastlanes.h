@@ -57,7 +57,6 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   using unsigned_T = typename std::make_unsigned<T>::type;
   constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   constexpr int32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr int32_t VALUES_PER_LANE = utils::get_values_per_lane<T>();
   constexpr unsigned_T VALUE_MASK =
       utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
@@ -65,7 +64,6 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
       ((START_INDEX / N_LANES) * VALUE_BIT_WIDTH);
   constexpr int32_t INITIAL_BUFFER_OFFSET = PRECEDING_BITS % LANE_BIT_WIDTH;
   constexpr int32_t INITIAL_N_INPUT_LINE = PRECEDING_BITS / LANE_BIT_WIDTH;
-  constexpr int32_t END_INDEX = START_INDEX + (UNPACK_N_VALUES * N_LANES);
 
   for (int32_t lane{0}; lane < N_LANES; lane++) {
     unsigned_T line_buffer = 0U;
@@ -147,7 +145,7 @@ namespace cpu {
 
 template <typename T>
 void bitpack(const T *__restrict in, T *__restrict out,
-             const int32_t value_bit_width) {
+             [[maybe_unused]] const int32_t value_bit_width) {
 #ifdef VBW
   compression::bitpack<T, VBW>(in, out);
 #else
@@ -349,7 +347,7 @@ void bitpack(const T *__restrict in, T *__restrict out,
 }
 template <typename T>
 void bitunpack(const T *__restrict in, T *__restrict out,
-               const int32_t value_bit_width) {
+               [[maybe_unused]] const int32_t value_bit_width) {
 #ifdef VBW
   compression::bitunpack<T, VBW>(in, out);
 #else
@@ -552,7 +550,7 @@ void bitunpack(const T *__restrict in, T *__restrict out,
 
 template <typename T>
 void ffor(const T *__restrict in, T *__restrict out, const T *__restrict base_p,
-          const int32_t value_bit_width) {
+          [[maybe_unused]] const int32_t value_bit_width) {
 #ifdef VBW
   compression::ffor<T, VBW>(in, out, base_p);
 #else
@@ -754,7 +752,7 @@ void ffor(const T *__restrict in, T *__restrict out, const T *__restrict base_p,
 }
 template <typename T>
 void unffor(const T *__restrict in, T *__restrict out,
-            const T *__restrict base_p, const int32_t value_bit_width) {
+            const T *__restrict base_p, [[maybe_unused]] const int32_t value_bit_width) {
 #ifdef VBW
   compression::unffor<T, VBW>(in, out, base_p);
 #else

@@ -8,7 +8,7 @@ template <typename T_in, typename T_out, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
 __global__ void bitunpack_with_function_global(T_in *__restrict in,
                                                T_out *__restrict out,
-                                               uint16_t value_bit_width) {
+                                               int32_t value_bit_width) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T_in>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T_in>();
@@ -49,7 +49,7 @@ template <typename T_in, typename T_out, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
 __global__ void bitunpack_with_reader_global(T_in *__restrict in,
                                       T_out *__restrict out,
-                                      uint16_t value_bit_width) {
+                                      int32_t value_bit_width) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T_in>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T_in>();
@@ -92,7 +92,7 @@ __global__ void bitunpack_with_reader_global(T_in *__restrict in,
 
 template <typename T_in, typename T_out>
 void bitunpack_with_function(T_in *__restrict in, T_out *__restrict out,
-                             uint16_t value_bit_width) {
+                             int32_t value_bit_width) {
   bitunpack_with_function_global<T_in, T_out, 1,
                                  utils::get_values_per_lane<T_in>()>(
       in, out, value_bit_width);
@@ -100,7 +100,7 @@ void bitunpack_with_function(T_in *__restrict in, T_out *__restrict out,
 
 template <typename T_in, typename T_out>
 void bitunpack_with_reader(T_in *__restrict in, T_out *__restrict out,
-                             uint16_t value_bit_width) {
+                             int32_t value_bit_width) {
   bitunpack_with_reader_global<T_in, T_out, 1,
                                  utils::get_values_per_lane<T_in>()>(
       in, out, value_bit_width);

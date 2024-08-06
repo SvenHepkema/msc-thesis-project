@@ -24,7 +24,7 @@ template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
 template <typename T>
 std::unique_ptr<T> allocate_packed_column(const size_t count,
                                           const int32_t value_bit_width) {
-  size_t packed_count = count * value_bit_width / (sizeof(T) * 8);
+  size_t packed_count = count * static_cast<size_t>(value_bit_width) / (sizeof(T) * 8);
   return std::unique_ptr<T>(new T[packed_count]);
 }
 
@@ -120,9 +120,9 @@ Differences<T> count_differences(const T *__restrict original,
 template <typename T>
 Differences<T> verify_conversion(
     const size_t count, const int32_t value_bit_width,
-    const std::function<std::unique_ptr<T>(int32_t, int32_t)> generate_data,
-    const std::function<void(T *, T *, int32_t, int32_t)> compress,
-    const std::function<void(T *, T *, int32_t, int32_t)> decompress) {
+    const std::function<std::unique_ptr<T>(size_t, int32_t)> generate_data,
+    const std::function<void(T *, T *, size_t, int32_t)> compress,
+    const std::function<void(T *, T *, size_t, int32_t)> decompress) {
   int32_t max_bit_width = sizeof(T) * 8;
   auto compressed_column =
       data::allocate_packed_column<T>(count, value_bit_width);
@@ -130,7 +130,7 @@ Differences<T> verify_conversion(
   auto original = generate_data(count, value_bit_width);
 
   constexpr int LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
-  size_t compressed_vector_size =
+  int32_t compressed_vector_size =
       utils::get_compressed_vector_size<T>(value_bit_width);
   T *original_p = original.get(), *compressed_p = compressed_column.get();
   size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
@@ -156,9 +156,9 @@ Differences<T> verify_conversion(
 template <typename T>
 VerificationResult<T> verify_all_value_bit_widths(
     const size_t count,
-    const std::function<std::unique_ptr<T>(int32_t, int32_t)> generate_data,
-    const std::function<void(T *, T *, int32_t, int32_t)> compress,
-    const std::function<void(T *, T *, int32_t, int32_t)> decompress) {
+    const std::function<std::unique_ptr<T>(size_t, int32_t)> generate_data,
+    const std::function<void(T *, T *, size_t, int32_t)> compress,
+    const std::function<void(T *, T *, size_t, int32_t)> decompress) {
   auto value_bit_width_differences =
       std::vector<std::pair<int32_t, Differences<T>>>();
   Differences<T> result;
@@ -225,7 +225,7 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
 
   if (use_random_data) {
     auto generate_data =
-        [temp_base](int32_t count,
+        [temp_base](size_t count,
                     int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_random_column<T>(
           count, temp_base,
@@ -236,7 +236,7 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
                                           decompress);
   } else {
     auto generate_data =
-        [temp_base](int32_t count,
+        [temp_base](size_t count,
                     int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_index_column<T>(
           count,

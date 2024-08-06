@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <functional>
+#include <type_traits>
 
 #ifndef FASTLANES_H
 #define FASTLANES_H
@@ -20,14 +21,15 @@ template <typename T> constexpr T set_first_n_bits(const int32_t count) {
 template <typename T, unsigned LANE_BIT_WIDTH, unsigned VALUE_BIT_WIDTH,
           typename lambda_T>
 void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
+	using unsigned_T = typename std::make_unsigned<T>::type;
   constexpr uint64_t N_LANES = consts::REGISTER_WIDTH / LANE_BIT_WIDTH;
   constexpr uint64_t VALUES_PER_LANE = (consts::VALUES_PER_VECTOR / N_LANES);
   constexpr uint64_t LINES_PER_ENCODED_VECTOR =
       ((consts::VALUES_PER_VECTOR * VALUE_BIT_WIDTH) / consts::REGISTER_WIDTH);
-  constexpr T VALUE_MASK = utils::set_first_n_bits<T>(VALUE_BIT_WIDTH);
+  constexpr unsigned_T VALUE_MASK = utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
-  T buffer = 0;
-  T value;
+  unsigned_T buffer = 0;
+  unsigned_T value;
   int buffer_offset;
   for (int lane = 0; lane < N_LANES; lane++) {
     buffer_offset = 0;
@@ -58,12 +60,13 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
 template <typename T, unsigned LANE_BIT_WIDTH, unsigned VALUE_BIT_WIDTH,
           unsigned UNPACK_N_VALUES, unsigned START_INDEX, typename lambda_T>
 void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
+	using unsigned_T = typename std::make_unsigned<T>::type;
   constexpr uint64_t N_LANES = consts::REGISTER_WIDTH / LANE_BIT_WIDTH;
 
   constexpr uint64_t VALUES_PER_LANE = (consts::VALUES_PER_VECTOR / N_LANES);
   constexpr uint64_t LINES_PER_LANE =
       (VALUES_PER_LANE * VALUE_BIT_WIDTH) / LANE_BIT_WIDTH;
-  constexpr T VALUE_MASK = utils::set_first_n_bits<T>(VALUE_BIT_WIDTH);
+  constexpr unsigned_T VALUE_MASK = utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
   constexpr uint64_t PRECEDING_BITS =
       ((START_INDEX / N_LANES) * VALUE_BIT_WIDTH);
@@ -72,17 +75,17 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   constexpr uint64_t END_INDEX = START_INDEX + (UNPACK_N_VALUES * N_LANES);
 
   for (int lane = 0; lane < N_LANES; lane++) {
-    T line_buffer = 0U;
+    unsigned_T line_buffer = 0U;
     uint64_t buffer_offset = INITIAL_BUFFER_OFFSET;
     uint64_t n_input_line = INITIAL_N_INPUT_LINE;
-    T buffer_offset_mask;
+    unsigned_T buffer_offset_mask;
 
     line_buffer = *(in + n_input_line * N_LANES + lane);
     n_input_line++;
 
 #pragma clang loop unroll(full)
     for (int i = 0; i < UNPACK_N_VALUES; ++i) {
-      T value;
+      unsigned_T value;
 
       bool line_buffer_is_empty = buffer_offset == LANE_BIT_WIDTH;
       if (line_buffer_is_empty) {

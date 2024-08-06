@@ -14,7 +14,7 @@
 #define VERIFICATION_H
 
 namespace verification {
-constexpr int32_t LOG_N_MISTAKES = 10;
+constexpr int32_t LOG_N_MISTAKES = 5;
 namespace data {
 
 template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
@@ -43,7 +43,7 @@ generate_column_with(const size_t count,
 
 template <typename T>
 std::unique_ptr<T> generate_index_column(const size_t count, const T max,
-                                         const T offset = (T) 0) {
+                                         const T offset = (T)0) {
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
@@ -129,11 +129,13 @@ Differences<T> verify_conversion(
   auto decompressed_column = data::allocate_column<T>(count);
   auto original = generate_data(count, value_bit_width);
 
-  constexpr int LANE_BIT_WIDTH = sizeof(T) * 8;
+  constexpr int LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   size_t compressed_vector_size =
-      value_bit_width * consts::VALUES_PER_VECTOR / LANE_BIT_WIDTH;
+      utils::get_compressed_vector_size<T>(value_bit_width);
   T *original_p = original.get(), *compressed_p = compressed_column.get();
-  for (size_t i = 0; i < (count / consts::VALUES_PER_VECTOR); ++i) {
+  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
+
+  for (size_t i = 0; i < n_vecs; ++i) {
     compress(original_p, compressed_p, count, value_bit_width);
     original_p += consts::VALUES_PER_VECTOR;
     compressed_p += compressed_vector_size;
@@ -141,7 +143,7 @@ Differences<T> verify_conversion(
 
   compressed_p = compressed_column.get();
   T *decompressed_p = decompressed_column.get();
-  for (size_t i = 0; i < (count / consts::VALUES_PER_VECTOR); ++i) {
+  for (size_t i = 0; i < n_vecs; ++i) {
     decompress(compressed_p, decompressed_p, count, value_bit_width);
     compressed_p += compressed_vector_size;
     decompressed_p += consts::VALUES_PER_VECTOR;
@@ -162,8 +164,13 @@ VerificationResult<T> verify_all_value_bit_widths(
   Differences<T> result;
   int32_t max_bit_width = sizeof(T) * 8;
 
+#ifdef VBW
+  {
+    int32_t value_bit_width = VBW;
+#else
   for (int32_t value_bit_width = 1; value_bit_width <= max_bit_width;
        ++value_bit_width) {
+#endif
     result = verify_conversion(count, value_bit_width, generate_data, compress,
                                decompress);
 
@@ -223,7 +230,7 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
       return data::generate_random_column<T>(
           count, temp_base,
           utils::set_first_n_bits<T>(value_bit_width) +
-              (value_bit_width == sizeof(T) * 8 ? (T) 0 : temp_base));
+              (value_bit_width == sizeof(T) * 8 ? (T)0 : temp_base));
     };
     return verify_all_value_bit_widths<T>(count, generate_data, compress,
                                           decompress);
@@ -234,7 +241,7 @@ VerificationResult<T> verify_ffor(const size_t count, bool use_random_data) {
       return data::generate_index_column<T>(
           count,
           utils::set_first_n_bits<T>(value_bit_width) +
-              (value_bit_width == sizeof(T) * 8 ? (T) 0 : temp_base),
+              (value_bit_width == sizeof(T) * 8 ? (T)0 : temp_base),
           temp_base);
     };
     return verify_all_value_bit_widths<T>(count, generate_data, compress,

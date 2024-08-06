@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <type_traits>
 
@@ -14,19 +15,40 @@ constexpr uint32_t VALUES_PER_VECTOR = 1024;
 
 namespace utils { // internal functions
 
+
+template <typename T> constexpr T sizeof_in_bits() { return sizeof(T) * 8; }
+
 template <typename T> constexpr T set_first_n_bits(const int32_t count) {
-  return count < 64 ? ((1ULL << count) - 1) : ~0;
+  return count < sizeof_in_bits<T>() ? ((T{1} << count) - T{1}) : ~T{0};
 }
 
-template <typename T, unsigned LANE_BIT_WIDTH, unsigned VALUE_BIT_WIDTH,
-          typename lambda_T>
+template <typename T> constexpr T get_lane_bitwidth() {
+  return sizeof_in_bits<T>();
+}
+
+template <typename T> constexpr T get_n_lanes() {
+  return consts::REGISTER_WIDTH / get_lane_bitwidth<T>();
+}
+
+template <typename T> constexpr T get_values_per_lane() {
+  return consts::VALUES_PER_VECTOR / get_n_lanes<T>();
+}
+
+template <typename T>
+constexpr int32_t get_compressed_vector_size(int32_t value_bit_width) {
+  return (consts::VALUES_PER_VECTOR * value_bit_width) / sizeof_in_bits<T>();
+}
+
+template <typename T, unsigned VALUE_BIT_WIDTH, typename lambda_T>
 void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
-	using unsigned_T = typename std::make_unsigned<T>::type;
-  constexpr uint64_t N_LANES = consts::REGISTER_WIDTH / LANE_BIT_WIDTH;
-  constexpr uint64_t VALUES_PER_LANE = (consts::VALUES_PER_VECTOR / N_LANES);
+  using unsigned_T = typename std::make_unsigned<T>::type;
+  constexpr unsigned LANE_BIT_WIDTH = get_lane_bitwidth<T>();
+  constexpr uint64_t N_LANES = get_n_lanes<T>();
+  constexpr uint64_t VALUES_PER_LANE = get_values_per_lane<T>();
   constexpr uint64_t LINES_PER_ENCODED_VECTOR =
       ((consts::VALUES_PER_VECTOR * VALUE_BIT_WIDTH) / consts::REGISTER_WIDTH);
-  constexpr unsigned_T VALUE_MASK = utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
+  constexpr unsigned_T VALUE_MASK =
+      utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
   unsigned_T buffer = 0;
   unsigned_T value;
@@ -57,16 +79,15 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   }
 }
 
-template <typename T, unsigned LANE_BIT_WIDTH, unsigned VALUE_BIT_WIDTH,
-          unsigned UNPACK_N_VALUES, unsigned START_INDEX, typename lambda_T>
+template <typename T, unsigned VALUE_BIT_WIDTH, unsigned UNPACK_N_VALUES,
+          unsigned START_INDEX, typename lambda_T>
 void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
-	using unsigned_T = typename std::make_unsigned<T>::type;
-  constexpr uint64_t N_LANES = consts::REGISTER_WIDTH / LANE_BIT_WIDTH;
-
-  constexpr uint64_t VALUES_PER_LANE = (consts::VALUES_PER_VECTOR / N_LANES);
-  constexpr uint64_t LINES_PER_LANE =
-      (VALUES_PER_LANE * VALUE_BIT_WIDTH) / LANE_BIT_WIDTH;
-  constexpr unsigned_T VALUE_MASK = utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
+  using unsigned_T = typename std::make_unsigned<T>::type;
+  constexpr unsigned LANE_BIT_WIDTH = get_lane_bitwidth<T>();
+  constexpr uint64_t N_LANES = get_n_lanes<T>();
+  constexpr uint64_t VALUES_PER_LANE = get_values_per_lane<T>();
+  constexpr unsigned_T VALUE_MASK =
+      utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
   constexpr uint64_t PRECEDING_BITS =
       ((START_INDEX / N_LANES) * VALUE_BIT_WIDTH);
@@ -104,11 +125,13 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
         ++n_input_line;
         buffer_offset -= LANE_BIT_WIDTH;
 
-        buffer_offset_mask = ((1 << buffer_offset) - 1);
+        buffer_offset_mask = ((unsigned_T{1} << buffer_offset) - unsigned_T{1});
         value |= (line_buffer & buffer_offset_mask)
                  << (VALUE_BIT_WIDTH - buffer_offset);
       }
 
+      // if (VALUE_BIT_WIDTH == 63 && value == 0) printf("HHHHHHIT
+      // unpacklng\n");
       *(out + lane) = lambda(value);
 
       out += N_LANES;
@@ -120,31 +143,29 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
 template <typename T, unsigned VALUE_BIT_WIDTH>
 void bitpack(const T *__restrict in, T *__restrict out) {
   auto lambda = [](const T value) -> T { return value; };
-  constexpr unsigned LANE_BIT_WIDTH = sizeof(T) * 8;
-  utils::pack<T, LANE_BIT_WIDTH, VALUE_BIT_WIDTH>(in, out, lambda);
+  utils::pack<T, VALUE_BIT_WIDTH>(in, out, lambda);
 }
 
 template <typename T, unsigned VALUE_BIT_WIDTH>
 void bitunpack(const T *__restrict in, T *__restrict out) {
   auto lambda = [](const T value) -> T { return value; };
-  constexpr unsigned LANE_BIT_WIDTH = sizeof(T) * 8;
-  utils::unpack<T, LANE_BIT_WIDTH, VALUE_BIT_WIDTH, 32, 0>(in, out, lambda);
+  utils::unpack<T, VALUE_BIT_WIDTH, get_values_per_lane<T>(), 0>(in, out,
+                                                                 lambda);
 }
 
 template <typename T, unsigned VALUE_BIT_WIDTH>
 void ffor(const T *__restrict in, T *__restrict out,
           const T *__restrict base_p) {
   auto lambda = [base_p](const T value) -> T { return value - *(base_p); };
-  constexpr unsigned LANE_BIT_WIDTH = sizeof(T) * 8;
-  utils::pack<T, LANE_BIT_WIDTH, VALUE_BIT_WIDTH>(in, out, lambda);
+  utils::pack<T, VALUE_BIT_WIDTH>(in, out, lambda);
 }
 
 template <typename T, unsigned VALUE_BIT_WIDTH>
 void unffor(const T *__restrict in, T *__restrict out,
             const T *__restrict base_p) {
   auto lambda = [base_p](const T value) -> T { return value + *(base_p); };
-  constexpr unsigned LANE_BIT_WIDTH = sizeof(T) * 8;
-  utils::unpack<T, LANE_BIT_WIDTH, VALUE_BIT_WIDTH, 32, 0>(in, out, lambda);
+  utils::unpack<T, VALUE_BIT_WIDTH, get_values_per_lane<T>(), 0>(in, out,
+                                                                 lambda);
 }
 
 } // namespace utils
@@ -154,6 +175,9 @@ namespace scalar {
 template <typename T>
 void bitpack(const T *__restrict in, T *__restrict out,
              const int32_t value_bit_width) {
+#ifdef VBW
+  utils::bitpack<T, VBW>(in, out);
+#else
   switch (value_bit_width) {
   case 1:
     utils::bitpack<T, 1>(in, out);
@@ -348,10 +372,14 @@ void bitpack(const T *__restrict in, T *__restrict out,
     utils::bitpack<T, 64>(in, out);
     break;
   }
+#endif
 }
 template <typename T>
 void bitunpack(const T *__restrict in, T *__restrict out,
                const int32_t value_bit_width) {
+#ifdef VBW
+  utils::bitunpack<T, VBW>(in, out);
+#else
   switch (value_bit_width) {
   case 1:
     utils::bitunpack<T, 1>(in, out);
@@ -546,11 +574,15 @@ void bitunpack(const T *__restrict in, T *__restrict out,
     utils::bitunpack<T, 64>(in, out);
     break;
   }
+#endif
 }
 
 template <typename T>
 void ffor(const T *__restrict in, T *__restrict out, const T *__restrict base_p,
           const int32_t value_bit_width) {
+#ifdef VBW
+  utils::ffor<T, VBW>(in, out, base_p);
+#else
   switch (value_bit_width) {
   case 1:
     utils::ffor<T, 1>(in, out, base_p);
@@ -745,10 +777,14 @@ void ffor(const T *__restrict in, T *__restrict out, const T *__restrict base_p,
     utils::ffor<T, 64>(in, out, base_p);
     break;
   }
+#endif
 }
 template <typename T>
 void unffor(const T *__restrict in, T *__restrict out,
             const T *__restrict base_p, const int32_t value_bit_width) {
+#ifdef VBW
+  utils::unffor<T, VBW>(in, out, base_p);
+#else
   switch (value_bit_width) {
   case 1:
     utils::unffor<T, 1>(in, out, base_p);
@@ -943,6 +979,7 @@ void unffor(const T *__restrict in, T *__restrict out,
     utils::unffor<T, 64>(in, out, base_p);
     break;
   }
+#endif
 }
 } // namespace scalar
 

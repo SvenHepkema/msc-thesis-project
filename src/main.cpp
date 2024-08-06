@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
 
 #ifdef FAST_COMPILATION
-	return run_verification<int32_t>(args);
+	return run_verification<uint64_t>(args);
 #else
   if (args.use_signed) {
     switch (args.lane_width) {

@@ -246,7 +246,7 @@ VerificationResult<T> verify_gpu_bitpacking(const size_t a_count,
   };
   auto decompress_all = [](const T *in, T *out, const size_t count,
                            const int32_t value_bit_width) -> void {
-    gpu::bitunpack_with_function<T, T>(in, out, count, value_bit_width);
+    gpu::bitunpack_with_function<T>(in, out, count, value_bit_width);
   };
 
   return verify_all_value_bit_widths<T>(a_count, generate_data, compress_all,

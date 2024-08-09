@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <functional>
 #include <memory>
+#include <time.h>
 #include <random>
 #include <stdexcept>
 #include <vector>
@@ -25,21 +26,9 @@ template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
 template <typename T>
 std::unique_ptr<T> allocate_packed_column(const size_t count,
                                           const int32_t value_bit_width) {
-  size_t packed_count = count * static_cast<size_t>(value_bit_width) / (sizeof(T) * 8);
+  size_t packed_count =
+      count * static_cast<size_t>(value_bit_width) / (sizeof(T) * 8);
   return std::unique_ptr<T>(new T[packed_count]);
-}
-
-template <typename T>
-std::unique_ptr<T>
-generate_column_with(const size_t count,
-                     const std::function<T(const T)> lambda) {
-  auto column = allocate_column<T>(count);
-
-  for (size_t i = 0; i < count; ++i) {
-    column[i] = lambda(T{i});
-  }
-
-  return column;
 }
 
 template <typename T>
@@ -53,10 +42,6 @@ std::unique_ptr<T> generate_index_column(const size_t count, const T max,
   }
 
   return column;
-  /*
-return generate_column_with(
-count, [max](const T index) -> T { return index % max; });
-                  */
 }
 
 template <typename T>
@@ -65,22 +50,16 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
+	std::random_device random_device;
+	std::default_random_engine random_engine(random_device());
+	std::uniform_int_distribution<T> uniform_dist(min, max);
+	auto generate_random_number = std::bind(uniform_dist, random_engine);
+
   for (size_t i = 0; i < count; ++i) {
-    column_p[i] = min + (rand() % (max - min));
+    column_p[i] = generate_random_number();
   }
 
   return column;
-  /*
-std::random_device random_device;
-std::default_random_engine random_engine(random_device());
-std::uniform_int_distribution<T> uniform_dist(min, max);
-auto generate_random_number = std::bind(uniform_dist, random_engine);
-
-return generate_column_with(count,
-                        [generate_random_number](const T index) -> T {
-                          return generate_random_number();
-                        });
-                                                                                                                  */
 }
 
 } // namespace data
@@ -92,8 +71,7 @@ template <typename T> struct Difference {
 
   void log() {
     fprintf(stderr, "[%ld] %ld != %ld\n", static_cast<int64_t>(index),
-static_cast<int64_t>(original),
-static_cast<int64_t>(other));
+            static_cast<int64_t>(original), static_cast<int64_t>(other));
   }
 };
 
@@ -188,11 +166,11 @@ VerificationResult<T> verify_bitpacking(const size_t a_count,
                                         bool use_random_data) {
   auto generate_data = use_random_data
       ? [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-    return data::generate_random_column(
+    return data::generate_random_column<T>(
         count, T{0}, utils::set_first_n_bits<T>(value_bit_width));
   }
   : [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-      return data::generate_index_column(
+      return data::generate_index_column<T>(
           count, utils::set_first_n_bits<T>(value_bit_width));
     };
 
@@ -211,7 +189,7 @@ VerificationResult<T> verify_bitpacking(const size_t a_count,
 
 template <typename T>
 VerificationResult<T> verify_gpu_bitpacking(const size_t a_count,
-                                        bool use_random_data) {
+                                            bool use_random_data) {
   auto generate_data = use_random_data
       ? [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
     return data::generate_random_column(

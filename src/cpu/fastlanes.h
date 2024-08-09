@@ -16,7 +16,7 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   constexpr int32_t N_LANES = utils::get_n_lanes<T>();
   constexpr int32_t VALUES_PER_LANE = utils::get_values_per_lane<T>();
-  constexpr unsigned_T VALUE_MASK =
+  unsigned_T VALUE_MASK =
       utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
   unsigned_T buffer = 0;
@@ -57,7 +57,7 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   using unsigned_T = typename std::make_unsigned<T>::type;
   constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   constexpr int32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr unsigned_T VALUE_MASK =
+  unsigned_T VALUE_MASK =
       utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
 
   constexpr int32_t PRECEDING_BITS =

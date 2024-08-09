@@ -47,7 +47,7 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
         }
       }
     }
-    out -= N_LANES * VALUES_PER_LANE;
+    out -= N_LANES * VALUE_BIT_WIDTH;
   }
 }
 

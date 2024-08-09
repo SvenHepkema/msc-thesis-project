@@ -1,12 +1,13 @@
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <memory>
-#include <time.h>
 #include <random>
 #include <stdexcept>
+#include <time.h>
 #include <vector>
 
 #include "cpu/fastlanes.h"
@@ -50,10 +51,10 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
-	std::random_device random_device;
-	std::default_random_engine random_engine(random_device());
-	std::uniform_int_distribution<T> uniform_dist(min, max);
-	auto generate_random_number = std::bind(uniform_dist, random_engine);
+  std::random_device random_device;
+  std::default_random_engine random_engine(random_device());
+  std::uniform_int_distribution<T> uniform_dist(min, max);
+  auto generate_random_number = std::bind(uniform_dist, random_engine);
 
   for (size_t i = 0; i < count; ++i) {
     column_p[i] = generate_random_number();
@@ -63,6 +64,13 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
 }
 
 } // namespace data
+
+template <typename T>
+using CompressAllVectorsLambda =
+    std::function<void(const T *, T *, const size_t, const int32_t)>;
+template <typename T>
+using CompressVectorLambda =
+    std::function<void(const T *, T *, const int32_t)>;
 
 template <typename T> struct Difference {
   size_t index;
@@ -98,34 +106,49 @@ Differences<T> count_differences(const T *__restrict original,
 }
 
 template <typename T>
+void compress_all_vectors(const T *in, T *out, const size_t count,
+                          const int32_t value_bit_width,
+                          const CompressVectorLambda<T> compress) {
+  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
+  int32_t compressed_vector_size =
+      utils::get_compressed_vector_size<T>(value_bit_width);
+
+  for (size_t i = 0; i < n_vecs; ++i) {
+    compress(in, out, value_bit_width);
+    in += consts::VALUES_PER_VECTOR;
+    out += compressed_vector_size;
+  }
+}
+
+template <typename T>
+void decompress_all_vectors(const T *in, T *out, const size_t count,
+                            const int32_t value_bit_width,
+                            const CompressVectorLambda<T> decompress) {
+  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
+  int32_t compressed_vector_size =
+      utils::get_compressed_vector_size<T>(value_bit_width);
+
+  for (size_t i = 0; i < n_vecs; ++i) {
+    decompress(in, out, value_bit_width);
+    in += compressed_vector_size;
+    out += consts::VALUES_PER_VECTOR;
+  }
+}
+
+template <typename T>
 Differences<T> verify_conversion(
     const size_t count, const int32_t value_bit_width,
     const std::function<std::unique_ptr<T>(size_t, int32_t)> generate_data,
-    const std::function<void(T *, T *, size_t, int32_t)> compress,
-    const std::function<void(T *, T *, size_t, int32_t)> decompress) {
+    const CompressAllVectorsLambda<T> compress,
+    const CompressAllVectorsLambda<T> decompress) {
   auto compressed_column =
       data::allocate_packed_column<T>(count, value_bit_width);
   auto decompressed_column = data::allocate_column<T>(count);
   auto original = generate_data(count, value_bit_width);
 
-  int32_t compressed_vector_size =
-      utils::get_compressed_vector_size<T>(value_bit_width);
-  T *original_p = original.get(), *compressed_p = compressed_column.get();
-  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
-
-  for (size_t i = 0; i < n_vecs; ++i) {
-    compress(original_p, compressed_p, count, value_bit_width);
-    original_p += consts::VALUES_PER_VECTOR;
-    compressed_p += compressed_vector_size;
-  }
-
-  compressed_p = compressed_column.get();
-  T *decompressed_p = decompressed_column.get();
-  for (size_t i = 0; i < n_vecs; ++i) {
-    decompress(compressed_p, decompressed_p, count, value_bit_width);
-    compressed_p += compressed_vector_size;
-    decompressed_p += consts::VALUES_PER_VECTOR;
-  }
+  compress(original.get(), compressed_column.get(), count, value_bit_width);
+  decompress(compressed_column.get(), decompressed_column.get(), count,
+             value_bit_width);
 
   return count_differences(original.get(), decompressed_column.get(), count,
                            LOG_N_MISTAKES);
@@ -135,8 +158,8 @@ template <typename T>
 VerificationResult<T> verify_all_value_bit_widths(
     const size_t count,
     const std::function<std::unique_ptr<T>(size_t, int32_t)> generate_data,
-    const std::function<void(T *, T *, size_t, int32_t)> compress,
-    const std::function<void(T *, T *, size_t, int32_t)> decompress) {
+    const CompressAllVectorsLambda<T> compress,
+    const CompressAllVectorsLambda<T> decompress) {
   auto value_bit_width_differences =
       std::vector<std::pair<int32_t, Differences<T>>>();
   Differences<T> result;
@@ -174,43 +197,60 @@ VerificationResult<T> verify_bitpacking(const size_t a_count,
           count, utils::set_first_n_bits<T>(value_bit_width));
     };
 
-  auto compress = [](T *in, T *out, size_t count,
-                     int32_t value_bit_width) -> void {
-    cpu::bitpack(in, out, value_bit_width);
-  };
-  auto decompress = [](T *in, T *out, size_t count,
-                       int32_t value_bit_width) -> void {
-    cpu::bitunpack(in, out, value_bit_width);
+  auto compress = [](const T *in, T *out,
+                     const int32_t value_bit_width) -> void {
+    cpu::bitpack<T>(in, out, value_bit_width);
   };
 
-  return verify_all_value_bit_widths<T>(a_count, generate_data, compress,
-                                        decompress);
+  auto decompress = [](const T *in, T *out,
+                       const int32_t value_bit_width) -> void {
+    cpu::bitunpack<T>(in, out, value_bit_width);
+  };
+
+  auto compress_all = [compress](const T *in, T *out, const size_t count,
+                                 const int32_t value_bit_width) -> void {
+    compress_all_vectors<T>(in, out, count, value_bit_width, compress);
+  };
+  auto decompress_all = [decompress](const T *in, T *out, const size_t count,
+                                     const int32_t value_bit_width) -> void {
+    decompress_all_vectors<T>(in, out, count, value_bit_width, decompress);
+  };
+
+  return verify_all_value_bit_widths<T>(a_count, generate_data, compress_all,
+                                        decompress_all);
 }
 
 template <typename T>
 VerificationResult<T> verify_gpu_bitpacking(const size_t a_count,
                                             bool use_random_data) {
   auto generate_data = use_random_data
-      ? [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+      ? [](const size_t count,
+           const int32_t value_bit_width) -> std::unique_ptr<T> {
     return data::generate_random_column(
         count, T{0}, utils::set_first_n_bits<T>(value_bit_width));
   }
-  : [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+  : [](const size_t count,
+       const int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_index_column(
           count, utils::set_first_n_bits<T>(value_bit_width));
     };
 
-  auto compress = [](T *in, T *out, size_t count,
-                     int32_t value_bit_width) -> void {
-    cpu::bitpack(in, out, value_bit_width);
-  };
-  auto decompress = [](T *in, T *out, size_t count,
-                       int32_t value_bit_width) -> void {
-    gpu::bitunpack_with_function<T, T>(in, out, value_bit_width);
+  auto compress = [](const T *in, T *out,
+                     const int32_t value_bit_width) -> void {
+    cpu::bitpack<T>(in, out, value_bit_width);
   };
 
-  return verify_all_value_bit_widths<T>(a_count, generate_data, compress,
-                                        decompress);
+  auto compress_all = [compress](const T *in, T *out, const size_t count,
+                                 const int32_t value_bit_width) -> void {
+    compress_all_vectors<T>(in, out, count, value_bit_width, compress);
+  };
+  auto decompress_all = [](const T *in, T *out, const size_t count,
+                           const int32_t value_bit_width) -> void {
+    gpu::bitunpack_with_function<T, T>(in, out, count, value_bit_width);
+  };
+
+  return verify_all_value_bit_widths<T>(a_count, generate_data, compress_all,
+                                        decompress_all);
 }
 
 template <typename T>
@@ -218,38 +258,47 @@ VerificationResult<T> verify_ffor(const size_t a_count, bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
-  auto compress = [temp_base_p](T *in, T *out, size_t count,
-                                int32_t value_bit_width) -> void {
+  auto compress = [temp_base_p](const T *in, T *out,
+                                const int32_t value_bit_width) -> void {
     cpu::ffor(in, out, temp_base_p, value_bit_width);
   };
-  auto decompress = [temp_base_p](T *in, T *out, size_t count,
-                                  int32_t value_bit_width) -> void {
+  auto decompress = [temp_base_p](const T *in, T *out,
+                                  const int32_t value_bit_width) -> void {
     cpu::unffor(in, out, temp_base_p, value_bit_width);
+  };
+
+  auto compress_all = [compress](const T *in, T *out, const size_t count,
+                                 const int32_t value_bit_width) -> void {
+    compress_all_vectors<T>(in, out, count, value_bit_width, compress);
+  };
+  auto decompress_all = [decompress](const T *in, T *out, const size_t count,
+                                     const int32_t value_bit_width) -> void {
+    decompress_all_vectors<T>(in, out, count, value_bit_width, decompress);
   };
 
   if (use_random_data) {
     auto generate_data =
-        [temp_base](size_t count,
-                    int32_t value_bit_width) -> std::unique_ptr<T> {
+        [temp_base](const size_t count,
+                    const int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_random_column<T>(
           count, temp_base,
           utils::set_first_n_bits<T>(value_bit_width) +
               (value_bit_width == sizeof(T) * 8 ? T{0} : temp_base));
     };
-    return verify_all_value_bit_widths<T>(a_count, generate_data, compress,
-                                          decompress);
+    return verify_all_value_bit_widths<T>(a_count, generate_data, compress_all,
+                                          decompress_all);
   } else {
     auto generate_data =
-        [temp_base](size_t count,
-                    int32_t value_bit_width) -> std::unique_ptr<T> {
+        [temp_base](const size_t count,
+                    const int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_index_column<T>(
           count,
           utils::set_first_n_bits<T>(value_bit_width) +
               (value_bit_width == sizeof(T) * 8 ? T{0} : temp_base),
           temp_base);
     };
-    return verify_all_value_bit_widths<T>(a_count, generate_data, compress,
-                                          decompress);
+    return verify_all_value_bit_widths<T>(a_count, generate_data, compress_all,
+                                          decompress_all);
   }
 }
 

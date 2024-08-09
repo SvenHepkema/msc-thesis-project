@@ -11,7 +11,7 @@ template <typename T> constexpr int32_t sizeof_in_bits() {
 }
 
 template <typename T> constexpr T set_first_n_bits(const int32_t count) {
-  return (count < sizeof_in_bits<T>() ? static_cast<T>((int64_t{1} << int64_t{count}) - int64_t{1})
+  return (count < sizeof_in_bits<T>() ? static_cast<T>((T{1} << int32_t{count}) - T{1})
                                       : static_cast<T>(~T{0}));
 }
 

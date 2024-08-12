@@ -315,6 +315,7 @@ VerificationResult<T> verify_ffor(const size_t a_count, bool use_random_data) {
     cpu::unffor(in, out, temp_base_p, value_bit_width);
   };
 
+
   return verify_all_value_bit_widths<T>(
       a_count, data::generate_ffor_data<T>(use_random_data, temp_base),
       apply_compression_to_all<T>(compress),

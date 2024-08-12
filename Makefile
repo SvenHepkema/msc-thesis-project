@@ -11,9 +11,12 @@ COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
 
 
+CPU_OBJ := $(patsubst src/cpu/%.cpp, obj/cpu-%.o, $(wildcard src/cpu/*.cpp))
 AZIM_OBJ := $(patsubst src/azim/%.cpp, obj/azim-%.o, $(wildcard src/azim/*.cpp))
 
 # OBJ Files
+obj/cpu-%.o: src/cpu/%.cpp
+	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
 
 obj/azim-%.o: src/azim/%.cpp
 	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
@@ -23,7 +26,7 @@ obj/gpu.o: src/gpu/fastlanes-global.cu
 
 # Executables
 
-SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ)
+SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ) $(CPU_OBJ)
 
 fast: $(SOURCE_FILES)
 	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)

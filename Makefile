@@ -4,7 +4,7 @@ CLANG_FLAGS = -std=c++17 -g $(INC) $(LIB) $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
-DATA_TYPE=int
+DATA_TYPE=uint32_t
 VALUE_BIT_WIDTH=32
 
 COMPUTE_CAPABILITY = 61

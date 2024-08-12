@@ -38,6 +38,12 @@ get_verifier(CLIArgs args) {
            const bool use_random_data) -> verification::VerificationResult<T> {
           return verification::verify_bitpacking<T>(count, use_random_data);
         };
+  } else if (args.compression_type == "azim_bp") {
+    return
+        [](const size_t count,
+           const bool use_random_data) -> verification::VerificationResult<T> {
+          return verification::verify_azim_bitpacking<T>(count, use_random_data);
+        };
   } else if (args.compression_type == "gpu_bp") {
     return
         [](const size_t count,

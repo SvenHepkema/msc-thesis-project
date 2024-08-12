@@ -22,7 +22,7 @@ constexpr int32_t LOG_N_MISTAKES = 5;
 namespace data {
 
 template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
-  return std::unique_ptr<T>(new T[count]);
+  return std::unique_ptr<T>(new T(count));
 }
 
 template <typename T>
@@ -30,7 +30,7 @@ std::unique_ptr<T> allocate_packed_column(const size_t count,
                                           const int32_t value_bit_width) {
   size_t packed_count =
       count * static_cast<size_t>(value_bit_width) / (sizeof(T) * 8);
-  return std::unique_ptr<T>(new T[packed_count]);
+  return std::unique_ptr<T>(new T(packed_count));
 }
 
 template <typename T>
@@ -243,85 +243,6 @@ verify_all_value_bit_widths(const size_t count,
   return value_bit_width_differences;
 }
 
-namespace verifiers {
-
-template <typename T>
-VerificationResult<T> verify_bitpacking(const size_t a_count,
-                                        bool use_random_data) {
-  auto compress = [](const T *in, T *out,
-                     const int32_t value_bit_width) -> void {
-    cpu::bitpack<T>(in, out, value_bit_width);
-  };
-
-  auto decompress = [](const T *in, T *out,
-                       const int32_t value_bit_width) -> void {
-    cpu::bitunpack<T>(in, out, value_bit_width);
-  };
-
-  return verify_all_value_bit_widths<T>(
-      a_count, data::generate_bp_data<T>(use_random_data),
-      apply_compression_to_all<T>(compress),
-      apply_decompression_to_all<T>(decompress));
-}
-
-template <typename T>
-VerificationResult<T> verify_azim_bitpacking(const size_t a_count,
-                                             bool use_random_data) {
-  auto compress = [](const T *in, T *out,
-                     const int32_t value_bit_width) -> void {
-    azim::pack(in, out, static_cast<uint8_t>(value_bit_width));
-  };
-
-  auto decompress = [](const T *in, T *out,
-                       const int32_t value_bit_width) -> void {
-    azim::unpack(in, out, static_cast<uint8_t>(value_bit_width));
-  };
-
-  return verify_all_value_bit_widths<T>(
-      a_count, data::generate_bp_data<T>(use_random_data),
-      apply_compression_to_all<T>(compress),
-      apply_decompression_to_all<T>(decompress));
-}
-
-template <typename T>
-VerificationResult<T> verify_gpu_bitpacking(const size_t a_count,
-                                            bool use_random_data) {
-  auto compress = [](const T *in, T *out,
-                     const int32_t value_bit_width) -> void {
-    cpu::bitpack<T>(in, out, value_bit_width);
-  };
-
-  auto decompress_all = [](const T *in, T *out, const size_t count,
-                           const int32_t value_bit_width) -> void {
-    gpu::bitunpack_with_function<T>(in, out, count, value_bit_width);
-  };
-
-  return verify_all_value_bit_widths<T>(
-      a_count, data::generate_bp_data<T>(use_random_data),
-      apply_compression_to_all<T>(compress), decompress_all);
-}
-
-template <typename T>
-VerificationResult<T> verify_ffor(const size_t a_count, bool use_random_data) {
-  T temp_base = 125;
-  T *temp_base_p = &temp_base;
-
-  auto compress = [temp_base_p](const T *in, T *out,
-                                const int32_t value_bit_width) -> void {
-    cpu::ffor(in, out, temp_base_p, value_bit_width);
-  };
-  auto decompress = [temp_base_p](const T *in, T *out,
-                                  const int32_t value_bit_width) -> void {
-    cpu::unffor(in, out, temp_base_p, value_bit_width);
-  };
-
-
-  return verify_all_value_bit_widths<T>(
-      a_count, data::generate_ffor_data<T>(use_random_data, temp_base),
-      apply_compression_to_all<T>(compress),
-      apply_decompression_to_all<T>(decompress));
-}
-} // namespace verifiers
 
 } // namespace verification
 

@@ -4,8 +4,8 @@ CLANG_FLAGS = -std=c++17 -g $(INC) $(LIB) $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
-DATA_TYPE=uint32_t
-VALUE_BIT_WIDTH=32
+DATA_TYPE=uint64_t
+VALUE_BIT_WIDTH=63
 
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr

@@ -12,15 +12,16 @@ namespace compression {
 
 template <typename T, int32_t VALUE_BIT_WIDTH, typename lambda_T>
 void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
-  using unsigned_T = typename std::make_unsigned<T>::type;
+  static_assert(std::is_unsigned<T>::value,
+                "Packing function only supports unsigned types. Cast signed "
+                "arrays to unsigned equivalent.");
   constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   constexpr int32_t N_LANES = utils::get_n_lanes<T>();
   constexpr int32_t VALUES_PER_LANE = utils::get_values_per_lane<T>();
-  constexpr unsigned_T VALUE_MASK =
-      utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
+  constexpr T VALUE_MASK = utils::set_first_n_bits<T>(VALUE_BIT_WIDTH);
 
-  unsigned_T buffer = 0;
-  unsigned_T value;
+  T buffer = 0;
+  T value;
 
   uint32_t buffer_offset;
   for (int32_t lane{0}; lane < N_LANES; lane++) {
@@ -29,8 +30,7 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
 #pragma clang loop unroll(full)
     for (int32_t n_value{0}; n_value < VALUES_PER_LANE; n_value++) {
       value =
-          static_cast<unsigned_T>(lambda(*(in + N_LANES * n_value + lane))) &
-          VALUE_MASK;
+          static_cast<T>(lambda(*(in + N_LANES * n_value + lane))) & VALUE_MASK;
 
       buffer |= value << buffer_offset;
       buffer_offset += VALUE_BIT_WIDTH;
@@ -54,11 +54,12 @@ void pack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
 template <typename T, int32_t VALUE_BIT_WIDTH, int32_t UNPACK_N_VALUES,
           int32_t START_INDEX, typename lambda_T>
 void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
-  using unsigned_T = typename std::make_unsigned<T>::type;
+  static_assert(std::is_unsigned<T>::value,
+                "Packing function only supports unsigned types. Cast signed "
+                "arrays to unsigned equivalent.");
   constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T>();
   constexpr int32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr unsigned_T VALUE_MASK =
-      utils::set_first_n_bits<unsigned_T>(VALUE_BIT_WIDTH);
+  constexpr T VALUE_MASK = utils::set_first_n_bits<T>(VALUE_BIT_WIDTH);
 
   constexpr int32_t PRECEDING_BITS =
       ((START_INDEX / N_LANES) * VALUE_BIT_WIDTH);
@@ -66,23 +67,21 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   constexpr int32_t INITIAL_N_INPUT_LINE = PRECEDING_BITS / LANE_BIT_WIDTH;
 
   for (int32_t lane{0}; lane < N_LANES; lane++) {
-    unsigned_T line_buffer = 0U;
+    T line_buffer = 0U;
     uint32_t buffer_offset = INITIAL_BUFFER_OFFSET;
     uint32_t n_input_line = INITIAL_N_INPUT_LINE;
-    unsigned_T buffer_offset_mask;
+    T buffer_offset_mask;
 
-    line_buffer =
-        static_cast<unsigned_T>(*(in + n_input_line * N_LANES + lane));
+    line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
     n_input_line++;
 
 #pragma clang loop unroll(full)
     for (int32_t i{0}; i < UNPACK_N_VALUES; ++i) {
-      unsigned_T value;
+      T value;
 
       bool line_buffer_is_empty = buffer_offset == LANE_BIT_WIDTH;
       if (line_buffer_is_empty) {
-        line_buffer =
-            static_cast<unsigned_T>(*(in + n_input_line * N_LANES + lane));
+        line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
         ++n_input_line;
         buffer_offset -= LANE_BIT_WIDTH;
       }
@@ -92,13 +91,12 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
 
       bool value_continues_on_next_line = buffer_offset > LANE_BIT_WIDTH;
       if (value_continues_on_next_line) {
-        line_buffer =
-            static_cast<unsigned_T>(*(in + n_input_line * N_LANES + lane));
+        line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
 
         ++n_input_line;
         buffer_offset -= LANE_BIT_WIDTH;
 
-        buffer_offset_mask = static_cast<unsigned_T>((1 << buffer_offset) - 1);
+        buffer_offset_mask = static_cast<T>((1 << buffer_offset) - 1);
         value |= (line_buffer & buffer_offset_mask)
                  << (VALUE_BIT_WIDTH - buffer_offset);
       }
@@ -120,8 +118,8 @@ void bitpack(const T *__restrict in, T *__restrict out) {
 template <typename T, unsigned VALUE_BIT_WIDTH>
 void bitunpack(const T *__restrict in, T *__restrict out) {
   auto lambda = [](const T value) -> T { return value; };
-  compression::unpack<T, VALUE_BIT_WIDTH, utils::get_values_per_lane<T>(), 0>(in, out,
-                                                                 lambda);
+  compression::unpack<T, VALUE_BIT_WIDTH, utils::get_values_per_lane<T>(), 0>(
+      in, out, lambda);
 }
 
 template <typename T, unsigned VALUE_BIT_WIDTH>
@@ -135,8 +133,8 @@ template <typename T, unsigned VALUE_BIT_WIDTH>
 void unffor(const T *__restrict in, T *__restrict out,
             const T *__restrict base_p) {
   auto lambda = [base_p](const T value) -> T { return value + *(base_p); };
-  compression::unpack<T, VALUE_BIT_WIDTH, utils::get_values_per_lane<T>(), 0>(in, out,
-                                                                 lambda);
+  compression::unpack<T, VALUE_BIT_WIDTH, utils::get_values_per_lane<T>(), 0>(
+      in, out, lambda);
 }
 
 } // namespace compression
@@ -752,7 +750,8 @@ void ffor(const T *__restrict in, T *__restrict out, const T *__restrict base_p,
 }
 template <typename T>
 void unffor(const T *__restrict in, T *__restrict out,
-            const T *__restrict base_p, [[maybe_unused]] const int32_t value_bit_width) {
+            const T *__restrict base_p,
+            [[maybe_unused]] const int32_t value_bit_width) {
 #ifdef VBW
   compression::unffor<T, VBW>(in, out, base_p);
 #else

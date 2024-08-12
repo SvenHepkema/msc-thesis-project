@@ -10,11 +10,10 @@ struct CLIArgs {
   int32_t lane_width;
   std::string compression_type;
   bool use_random_data;
-  bool use_signed;
   bool print_debug;
 
   CLIArgs(int argc, char **argv) {
-    if (argc != 7) {
+    if (argc != 6) {
       throw std::invalid_argument("Not the required amount of arguments.");
     }
     int32_t argcounter = 0;
@@ -24,7 +23,6 @@ struct CLIArgs {
     lane_width = std::atoi(argv[++argcounter]);
     compression_type = argv[++argcounter];
     use_random_data = std::atoi(argv[++argcounter]);
-    use_signed = std::atoi(argv[++argcounter]);
     print_debug = std::atoi(argv[++argcounter]);
   }
 };
@@ -39,11 +37,10 @@ get_verifier(CLIArgs args) {
           return verification::verify_bitpacking<T>(count, use_random_data);
         };
   } else if (args.compression_type == "azim_bp") {
-    return
-        [](const size_t count,
-           const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verify_azim_bitpacking<T>(count, use_random_data);
-        };
+    return [](const size_t count, const bool use_random_data)
+               -> verification::VerificationResult<T> {
+      return verification::verify_azim_bitpacking<T>(count, use_random_data);
+    };
   } else if (args.compression_type == "gpu_bp") {
     return
         [](const size_t count,
@@ -93,36 +90,19 @@ int main(int argc, char **argv) {
 #ifdef DATA_TYPE
   return run_verification<DATA_TYPE>(args);
 #else
-  if (args.use_signed) {
-    switch (args.lane_width) {
-    case 64: {
-      return run_verification<int64_t>(args);
-    }
-    case 32: {
-      return run_verification<int32_t>(args);
-    }
-    case 16: {
-      return run_verification<int16_t>(args);
-    }
-    case 8: {
-      return run_verification<int8_t>(args);
-    }
-    }
-  } else {
-    switch (args.lane_width) {
-    case 64: {
-      return run_verification<uint64_t>(args);
-    }
-    case 32: {
-      return run_verification<uint32_t>(args);
-    }
-    case 16: {
-      return run_verification<uint16_t>(args);
-    }
-    case 8: {
-      return run_verification<uint8_t>(args);
-    }
-    }
+  switch (args.lane_width) {
+  case 64: {
+    return run_verification<uint64_t>(args);
+  }
+  case 32: {
+    return run_verification<uint32_t>(args);
+  }
+  case 16: {
+    return run_verification<uint16_t>(args);
+  }
+  case 8: {
+    return run_verification<uint8_t>(args);
+  }
   }
 #endif
 }

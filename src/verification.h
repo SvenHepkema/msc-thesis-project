@@ -242,21 +242,14 @@ VerificationResult<T> verify_bitpacking(const size_t a_count,
 template <typename T>
 VerificationResult<T> verify_azim_bitpacking(const size_t a_count,
                                              bool use_random_data) {
-
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
-    using unsigned_T = typename std::make_unsigned<T>::type;
-    azim::pack(reinterpret_cast<const unsigned_T *>(in),
-               reinterpret_cast<unsigned_T *>(out),
-               static_cast<uint8_t>(value_bit_width));
+    azim::pack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   auto decompress = [](const T *in, T *out,
                        const int32_t value_bit_width) -> void {
-    using unsigned_T = typename std::make_unsigned<T>::type;
-    azim::unpack(reinterpret_cast<const unsigned_T *>(in),
-                 reinterpret_cast<unsigned_T *>(out),
-                 static_cast<uint8_t>(value_bit_width));
+    azim::unpack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   return verify_all_value_bit_widths<T>(
@@ -291,8 +284,8 @@ VerificationResult<T> verify_gpu_bitpacking(const size_t a_count,
   };
 
   return verify_all_value_bit_widths<T>(
-      a_count, generate_data, verifyutils::apply_compression_to_all<T>(compress),
-      decompress_all);
+      a_count, generate_data,
+      verifyutils::apply_compression_to_all<T>(compress), decompress_all);
 }
 
 template <typename T>
@@ -319,7 +312,8 @@ VerificationResult<T> verify_ffor(const size_t a_count, bool use_random_data) {
               (value_bit_width == sizeof(T) * 8 ? T{0} : temp_base));
     };
     return verify_all_value_bit_widths<T>(
-        a_count, generate_data, verifyutils::apply_compression_to_all<T>(compress),
+        a_count, generate_data,
+        verifyutils::apply_compression_to_all<T>(compress),
         verifyutils::apply_decompression_to_all<T>(decompress));
   } else {
     auto generate_data =
@@ -332,7 +326,8 @@ VerificationResult<T> verify_ffor(const size_t a_count, bool use_random_data) {
           temp_base);
     };
     return verify_all_value_bit_widths<T>(
-        a_count, generate_data, verifyutils::apply_compression_to_all<T>(compress),
+        a_count, generate_data,
+        verifyutils::apply_compression_to_all<T>(compress),
         verifyutils::apply_decompression_to_all<T>(decompress));
   }
 }

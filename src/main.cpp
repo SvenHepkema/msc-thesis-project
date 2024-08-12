@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "verification.h"
+#include "verifiers.h"
 
 struct CLIArgs {
   size_t count;
@@ -27,40 +28,9 @@ struct CLIArgs {
   }
 };
 
-template <typename T>
-std::function<verification::VerificationResult<T>(const size_t, const bool)>
-get_verifier(CLIArgs args) {
-  if (args.compression_type == "bp") {
-    return
-        [](const size_t count,
-           const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verifiers::verify_bitpacking<T>(count, use_random_data);
-        };
-  } else if (args.compression_type == "azim_bp") {
-    return [](const size_t count, const bool use_random_data)
-               -> verification::VerificationResult<T> {
-      return verification::verifiers::verify_azim_bitpacking<T>(count, use_random_data);
-    };
-  } else if (args.compression_type == "gpu_bp") {
-    return
-        [](const size_t count,
-           const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verifiers::verify_gpu_bitpacking<T>(count, use_random_data);
-        };
-  } else if (args.compression_type == "ffor") {
-    return
-        [](const size_t count,
-           const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verifiers::verify_ffor<T>(count, use_random_data);
-        };
-  } else {
-    throw std::invalid_argument("This compression type is not supported");
-  }
-}
-
 template <typename T> int run_verification(CLIArgs args) {
-  verification::VerificationResult<T> results =
-      get_verifier<T>(args)(args.count, args.use_random_data);
+  verification::VerificationResult<T> results = verifiers::get_verifier<T>(
+      args.compression_type)(args.count, args.use_random_data);
 
   if (results.size() == 0) {
     if (args.print_debug) {

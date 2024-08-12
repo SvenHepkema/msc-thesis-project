@@ -34,24 +34,24 @@ get_verifier(CLIArgs args) {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verify_bitpacking<T>(count, use_random_data);
+          return verification::verifiers::verify_bitpacking<T>(count, use_random_data);
         };
   } else if (args.compression_type == "azim_bp") {
     return [](const size_t count, const bool use_random_data)
                -> verification::VerificationResult<T> {
-      return verification::verify_azim_bitpacking<T>(count, use_random_data);
+      return verification::verifiers::verify_azim_bitpacking<T>(count, use_random_data);
     };
   } else if (args.compression_type == "gpu_bp") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verify_gpu_bitpacking<T>(count, use_random_data);
+          return verification::verifiers::verify_gpu_bitpacking<T>(count, use_random_data);
         };
   } else if (args.compression_type == "ffor") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verification::verify_ffor<T>(count, use_random_data);
+          return verification::verifiers::verify_ffor<T>(count, use_random_data);
         };
   } else {
     throw std::invalid_argument("This compression type is not supported");

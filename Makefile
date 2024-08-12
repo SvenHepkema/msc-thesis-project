@@ -1,28 +1,40 @@
 INC := -I $(CUDA_LIBRARY_PATH)/include -I.
 LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand 
 CLANG_FLAGS = -std=c++17 -g $(INC) $(LIB) $(WARNINGS)
-WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat -Wno-padded
+WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
-DATA_TYPE=int8_t
-VALUE_BIT_WIDTH=3
+DATA_TYPE=int
+VALUE_BIT_WIDTH=32
 
 COMPUTE_CAPABILITY = 61
-CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage -opt-info inline  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB)
+CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
+
+
+AZIM_OBJ := $(patsubst src/azim/%.cpp, obj/azim-%.o, $(wildcard src/azim/*.cpp))
+
+# OBJ Files
+
+obj/azim-%.o: src/azim/%.cpp
+	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
 
 obj/gpu.o: src/gpu/fastlanes-global.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
-fast: src/main.cpp obj/gpu.o
+# Executables
+
+SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ)
+
+fast: $(SOURCE_FILES)
 	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
-executable: src/main.cpp obj/gpu.o
+executable: $(SOURCE_FILES)
 	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS)
 
-ub-sanitizer: src/main.cpp obj/gpu.o
+ub-sanitizer: $(SOURCE_FILES)
 	clang++ $^ -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
-address-sanitizer: src/main.cpp obj/gpu.o
+address-sanitizer: $(SOURCE_FILES)
 	clang++ $^ -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 clean:

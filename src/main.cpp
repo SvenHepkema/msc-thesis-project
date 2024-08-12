@@ -28,7 +28,7 @@ struct CLIArgs {
   }
 };
 
-template <typename T> int run_verification(CLIArgs args) {
+template <typename T> int32_t run_verification(CLIArgs args) {
   verification::VerificationResult<T> results = verifiers::get_verifier<T>(
       args.compression_type)(args.count, args.use_random_data);
 
@@ -51,7 +51,7 @@ template <typename T> int run_verification(CLIArgs args) {
             int32_t{sizeof(T)} * 8);
   }
 
-  return 1;
+  return static_cast<int32_t>(results.size());
 }
 
 int main(int argc, char **argv) {

@@ -22,15 +22,15 @@ constexpr int32_t LOG_N_MISTAKES = 5;
 namespace data {
 
 template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
-  return std::unique_ptr<T>(new T(count));
+  return std::unique_ptr<T>(new T[count]);
 }
 
 template <typename T>
 std::unique_ptr<T> allocate_packed_column(const size_t count,
                                           const int32_t value_bit_width) {
-  size_t packed_count =
+  const size_t packed_count =
       count * static_cast<size_t>(value_bit_width) / (sizeof(T) * 8);
-  return std::unique_ptr<T>(new T(packed_count));
+  return allocate_column<T>(packed_count);
 }
 
 template <typename T>

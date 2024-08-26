@@ -1,6 +1,7 @@
 INC := -I $(CUDA_LIBRARY_PATH)/include -I.
 LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand 
-CLANG_FLAGS = -std=c++17 -g $(INC) $(LIB) $(WARNINGS)
+CUDA_OBJ_FLAGS = $(INC) $(LIB) 
+CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
@@ -29,16 +30,16 @@ obj/gpu.o: src/gpu/fastlanes-global.cu
 SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ) $(CPU_OBJ)
 
 fast: $(SOURCE_FILES)
-	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 executable: $(SOURCE_FILES)
-	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS)
+	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
 
 ub-sanitizer: $(SOURCE_FILES)
-	clang++ $^ -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $^ -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 address-sanitizer: $(SOURCE_FILES)
-	clang++ $^ -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $^ -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 clean:
 	rm -f bin/*

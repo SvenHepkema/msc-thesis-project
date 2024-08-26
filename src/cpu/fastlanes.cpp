@@ -64,42 +64,39 @@ void unpack(const T *__restrict in, T *__restrict out, lambda_T lambda) {
   constexpr int32_t INITIAL_BUFFER_OFFSET = PRECEDING_BITS % LANE_BIT_WIDTH;
   constexpr int32_t INITIAL_N_INPUT_LINE = PRECEDING_BITS / LANE_BIT_WIDTH;
 
-  for (int32_t lane{0}; lane < N_LANES; lane++) {
+  for (int32_t lane{0}; lane < N_LANES; ++lane) {
     T line_buffer = 0U;
-    uint32_t buffer_offset = INITIAL_BUFFER_OFFSET;
-    uint32_t n_input_line = INITIAL_N_INPUT_LINE;
-    T buffer_offset_mask;
+    int32_t buffer_offset = INITIAL_BUFFER_OFFSET;
+    int32_t n_input_line = INITIAL_N_INPUT_LINE;
 
-    line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
-    n_input_line++;
+    line_buffer = *(in + n_input_line * N_LANES + lane);
+    ++n_input_line;
 
 #pragma clang loop unroll(full)
     for (int32_t i{0}; i < UNPACK_N_VALUES; ++i) {
-      T value;
-
       bool line_buffer_is_empty = buffer_offset == LANE_BIT_WIDTH;
       if (line_buffer_is_empty) {
-        line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
+        line_buffer = *(in + n_input_line * N_LANES + lane);
         ++n_input_line;
         buffer_offset -= LANE_BIT_WIDTH;
       }
 
-      value = (line_buffer & (VALUE_MASK << buffer_offset)) >> buffer_offset;
+      T value = (line_buffer & (VALUE_MASK << buffer_offset)) >> buffer_offset;
       buffer_offset += VALUE_BIT_WIDTH;
 
       bool value_continues_on_next_line = buffer_offset > LANE_BIT_WIDTH;
       if (value_continues_on_next_line) {
-        line_buffer = static_cast<T>(*(in + n_input_line * N_LANES + lane));
-
+        line_buffer = *(in + n_input_line * N_LANES + lane);
         ++n_input_line;
         buffer_offset -= LANE_BIT_WIDTH;
 
-        buffer_offset_mask = static_cast<T>((1 << buffer_offset) - 1);
+        T buffer_offset_mask =
+            static_cast<T>(T{1} << static_cast<T>(buffer_offset)) - T{1};
         value |= (line_buffer & buffer_offset_mask)
                  << (VALUE_BIT_WIDTH - buffer_offset);
       }
 
-      *(out + lane) = lambda(static_cast<T>(value));
+      *(out + lane) = lambda(value);
 
       out += N_LANES;
     }
@@ -950,61 +947,59 @@ void unffor(const T *__restrict in, T *__restrict out,
 #endif
 }
 
-
 } // namespace cpu
 
-template 
-void cpu::bitpack(const uint8_t *__restrict in, uint8_t *__restrict out,
-             [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::bitunpack(const uint8_t *__restrict in, uint8_t *__restrict out,
-               [[maybe_unused]] const int32_t value_bit_width);
-template 
-void cpu::ffor(const uint8_t *__restrict in, uint8_t *__restrict out, const uint8_t *__restrict base_p,
-          [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::unffor(const uint8_t *__restrict in, uint8_t *__restrict out,
-            const uint8_t *__restrict base_p,
-            [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitpack(const uint8_t *__restrict in,
+                           uint8_t *__restrict out,
+                           [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitunpack(const uint8_t *__restrict in,
+                             uint8_t *__restrict out,
+                             [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::ffor(const uint8_t *__restrict in, uint8_t *__restrict out,
+                        const uint8_t *__restrict base_p,
+                        [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::unffor(const uint8_t *__restrict in, uint8_t *__restrict out,
+                          const uint8_t *__restrict base_p,
+                          [[maybe_unused]] const int32_t value_bit_width);
 
-template 
-void cpu::bitpack(const uint16_t *__restrict in, uint16_t *__restrict out,
-             [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::bitunpack(const uint16_t *__restrict in, uint16_t *__restrict out,
-               [[maybe_unused]] const int32_t value_bit_width);
-template 
-void cpu::ffor(const uint16_t *__restrict in, uint16_t *__restrict out, const uint16_t *__restrict base_p,
-          [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::unffor(const uint16_t *__restrict in, uint16_t *__restrict out,
-            const uint16_t *__restrict base_p,
-            [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitpack(const uint16_t *__restrict in,
+                           uint16_t *__restrict out,
+                           [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitunpack(const uint16_t *__restrict in,
+                             uint16_t *__restrict out,
+                             [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::ffor(const uint16_t *__restrict in, uint16_t *__restrict out,
+                        const uint16_t *__restrict base_p,
+                        [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::unffor(const uint16_t *__restrict in,
+                          uint16_t *__restrict out,
+                          const uint16_t *__restrict base_p,
+                          [[maybe_unused]] const int32_t value_bit_width);
 
-template 
-void cpu::bitpack(const uint32_t *__restrict in, uint32_t *__restrict out,
-             [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::bitunpack(const uint32_t *__restrict in, uint32_t *__restrict out,
-               [[maybe_unused]] const int32_t value_bit_width);
-template 
-void cpu::ffor(const uint32_t *__restrict in, uint32_t *__restrict out, const uint32_t *__restrict base_p,
-          [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::unffor(const uint32_t *__restrict in, uint32_t *__restrict out,
-            const uint32_t *__restrict base_p,
-            [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitpack(const uint32_t *__restrict in,
+                           uint32_t *__restrict out,
+                           [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitunpack(const uint32_t *__restrict in,
+                             uint32_t *__restrict out,
+                             [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::ffor(const uint32_t *__restrict in, uint32_t *__restrict out,
+                        const uint32_t *__restrict base_p,
+                        [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::unffor(const uint32_t *__restrict in,
+                          uint32_t *__restrict out,
+                          const uint32_t *__restrict base_p,
+                          [[maybe_unused]] const int32_t value_bit_width);
 
-template 
-void cpu::bitpack(const uint64_t *__restrict in, uint64_t *__restrict out,
-             [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::bitunpack(const uint64_t *__restrict in, uint64_t *__restrict out,
-               [[maybe_unused]] const int32_t value_bit_width);
-template 
-void cpu::ffor(const uint64_t *__restrict in, uint64_t *__restrict out, const uint64_t *__restrict base_p,
-          [[maybe_unused]] const int32_t value_bit_width);
-template
-void cpu::unffor(const uint64_t *__restrict in, uint64_t *__restrict out,
-            const uint64_t *__restrict base_p,
-            [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitpack(const uint64_t *__restrict in,
+                           uint64_t *__restrict out,
+                           [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::bitunpack(const uint64_t *__restrict in,
+                             uint64_t *__restrict out,
+                             [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::ffor(const uint64_t *__restrict in, uint64_t *__restrict out,
+                        const uint64_t *__restrict base_p,
+                        [[maybe_unused]] const int32_t value_bit_width);
+template void cpu::unffor(const uint64_t *__restrict in,
+                          uint64_t *__restrict out,
+                          const uint64_t *__restrict base_p,
+                          [[maybe_unused]] const int32_t value_bit_width);

@@ -12,7 +12,7 @@
 
 #include "azim/compression.hpp"
 #include "cpu/fastlanes.h"
-#include "gpu/fastlanes-global.h"
+#include "gpu/gpu-bindings-fastlanes.h"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H

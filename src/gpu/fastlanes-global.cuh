@@ -1,4 +1,4 @@
-#include "fastlanes-global.h"
+#include "gpu-bindings-fastlanes.h"
 #include "fastlanes.cuh"
 
 #include "../consts.h"
@@ -21,26 +21,15 @@ __global__ void bitunpack_with_function_global(const T_in *__restrict in,
   uint32_t vector_offset = (n_vectors_per_block * block_index + vector_index) *
                            utils::get_compressed_vector_size<T_in>(value_bit_width);
 
-  T_out registers[UNPACK_N_VALUES * UNPACK_N_VECTORS];
-
   in += vector_offset;
   out += (block_index * n_vectors_per_block + vector_index) *
              consts::VALUES_PER_VECTOR +
          lane;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unpack_vector<T_in, T_out, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-                 UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
-
-#pragma unroll
-    for (int va = 0; va < UNPACK_N_VALUES; ++va) {
-#pragma unroll
-      for (int ve = 0; ve < UNPACK_N_VECTORS; ++ve) {
-        *(out + ve * consts::VALUES_PER_VECTOR) =
-            registers[ve * UNPACK_N_VALUES + va];
-      }
-      out += N_LANES;
-    }
+    unpack_vector<T_in, T_out, UnpackingType::VectorArray, UNPACK_N_VECTORS,
+                 UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
+		out += UNPACK_N_VALUES * N_LANES;
   }
 }
 
@@ -61,30 +50,20 @@ __global__ void bitunpack_with_reader_global(const T_in *__restrict in,
   uint32_t vector_offset = (n_vectors_per_block * block_index + vector_index) *
                            utils::get_compressed_vector_size<T_in>(value_bit_width);
 
-  T_out registers[UNPACK_N_VALUES * UNPACK_N_VECTORS];
-
   in += vector_offset;
   out += (block_index * n_vectors_per_block + vector_index) *
              consts::VALUES_PER_VECTOR +
          lane;
 
   auto scanner =
-      MultiVecScanner<T_in, UnpackingType::LaneArray, UNPACK_N_VECTORS,
+      MultiVecScanner<T_in, UnpackingType::VectorArray, UNPACK_N_VECTORS,
                       UNPACK_N_VALUES>(in, value_bit_width, lane);
 
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    scanner.unpack_next(registers);
+    scanner.unpack_next(out);
 
-#pragma unroll
-    for (int va = 0; va < UNPACK_N_VALUES; ++va) {
-#pragma unroll
-      for (int ve = 0; ve < UNPACK_N_VECTORS; ++ve) {
-        *(out + ve * consts::VALUES_PER_VECTOR) =
-            registers[ve * UNPACK_N_VALUES + va];
-      }
-      out += N_LANES;
-    }
+		out += UNPACK_N_VALUES * N_LANES;
   }
 }
 

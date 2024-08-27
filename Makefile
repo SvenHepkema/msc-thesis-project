@@ -5,8 +5,8 @@ CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
-DATA_TYPE=uint64_t
-VALUE_BIT_WIDTH=63
+DATA_TYPE=uint32_t
+VALUE_BIT_WIDTH=32
 
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
@@ -22,24 +22,25 @@ obj/cpu-%.o: src/cpu/%.cpp
 obj/azim-%.o: src/azim/%.cpp
 	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
 
-obj/gpu.o: src/gpu/fastlanes-global.cu
+obj/gpu.o: src/gpu/gpu-bindings-fastlanes.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables
 
+HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
 SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ) $(CPU_OBJ)
 
-fast: $(SOURCE_FILES)
-	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+fast: $(SOURCE_FILES) $(HEADER_FILES)
+	clang++ $(SOURCE_FILES) -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
-executable: $(SOURCE_FILES)
-	clang++ $^ -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
+executable: $(SOURCE_FILES) $(HEADER_FILES)
+	clang++ $(SOURCE_FILES) -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
 
-ub-sanitizer: $(SOURCE_FILES)
-	clang++ $^ -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+ub-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
+	clang++ $(SOURCE_FILES) -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
-address-sanitizer: $(SOURCE_FILES)
-	clang++ $^ -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+address-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
+	clang++ $(SOURCE_FILES) -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 clean:
 	rm -f bin/*

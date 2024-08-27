@@ -1,5 +1,5 @@
-#include "gpu-bindings-fastlanes.h"
 #include "fastlanes.cuh"
+#include "gpu-bindings-fastlanes.h"
 
 #include "../consts.h"
 #include "../utils.h"
@@ -18,26 +18,24 @@ __global__ void bitunpack_with_function_global(const T_in *__restrict in,
   const int32_t block_index = blockIdx.x;
 
   constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-  uint32_t vector_offset = (n_vectors_per_block * block_index + vector_index) *
-                           utils::get_compressed_vector_size<T_in>(value_bit_width);
 
-  in += vector_offset;
+  in += (n_vectors_per_block * block_index + vector_index) *
+        utils::get_compressed_vector_size<T_in>(value_bit_width);
   out += (block_index * n_vectors_per_block + vector_index) *
-             consts::VALUES_PER_VECTOR +
-         lane;
+         consts::VALUES_PER_VECTOR;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     unpack_vector<T_in, T_out, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                 UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
-		out += UNPACK_N_VALUES * N_LANES;
+                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
+    out += UNPACK_N_VALUES * N_LANES;
   }
 }
 
 template <typename T_in, typename T_out, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
 __global__ void bitunpack_with_reader_global(const T_in *__restrict in,
-                                      T_out *__restrict out,
-                                      int32_t value_bit_width) {
+                                             T_out *__restrict out,
+                                             int32_t value_bit_width) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T_in>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T_in>();
@@ -47,23 +45,20 @@ __global__ void bitunpack_with_reader_global(const T_in *__restrict in,
   const int32_t block_index = blockIdx.x;
 
   constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-  uint32_t vector_offset = (n_vectors_per_block * block_index + vector_index) *
-                           utils::get_compressed_vector_size<T_in>(value_bit_width);
 
-  in += vector_offset;
+  in += (n_vectors_per_block * block_index + vector_index) *
+        utils::get_compressed_vector_size<T_in>(value_bit_width);
   out += (block_index * n_vectors_per_block + vector_index) *
-             consts::VALUES_PER_VECTOR +
-         lane;
+         consts::VALUES_PER_VECTOR;
 
   auto scanner =
       MultiVecScanner<T_in, UnpackingType::VectorArray, UNPACK_N_VECTORS,
                       UNPACK_N_VALUES>(in, value_bit_width, lane);
 
-
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     scanner.unpack_next(out);
 
-		out += UNPACK_N_VALUES * N_LANES;
+    out += UNPACK_N_VALUES * N_LANES;
   }
 }
 
@@ -77,9 +72,8 @@ void bitunpack_with_function(T_in *__restrict in, T_out *__restrict out,
 
 template <typename T_in, typename T_out>
 void bitunpack_with_reader(T_in *__restrict in, T_out *__restrict out,
-                             int32_t value_bit_width) {
+                           int32_t value_bit_width) {
   bitunpack_with_reader_global<T_in, T_out, 1,
-                                 utils::get_values_per_lane<T_in>()>(
+                               utils::get_values_per_lane<T_in>()>(
       in, out, value_bit_width);
 }
-

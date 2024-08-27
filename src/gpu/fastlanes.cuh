@@ -75,7 +75,7 @@ __device__ void unpack_vector(const T_in *__restrict a_in,
       ++n_input_line;
       buffer_offset -= LANE_BIT_WIDTH;
 
-      buffer_offset_mask = ((1 << buffer_offset) - 1);
+      buffer_offset_mask = ((1 << static_cast<unsigned_T_in>(buffer_offset)) - 1);
 #pragma unroll
       for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
         value[v] |= (line_buffer[v] & buffer_offset_mask)

@@ -40,7 +40,7 @@ std::unique_ptr<T> generate_index_column(const size_t count, const T max,
   T *column_p = column.get();
 
   for (size_t i = 0; i < count; ++i) {
-    column_p[i] = offset + (static_cast<T>(i) % max);
+    column_p[i] = static_cast<T>(i % (size_t{max} - size_t{offset})) + offset;
   }
 
   return column;
@@ -85,22 +85,24 @@ DataGenerationLambda<T> generate_bp_data(const bool use_random_data) {
 
 template <typename T>
 DataGenerationLambda<T> generate_ffor_data(const bool use_random_data, T base) {
+  auto get_max_value = [](const int32_t value_bit_width, T l_base) -> T {
+    return utils::set_first_n_bits<T>(value_bit_width) +
+           (value_bit_width == sizeof(T) * 8 ? T{0} : l_base);
+  };
+
   if (use_random_data) {
-    return [base](const size_t count,
-                  const int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [base, get_max_value](
+               const size_t count,
+               const int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_random_column<T>(
-          count, base,
-          utils::set_first_n_bits<T>(value_bit_width) +
-              (value_bit_width == sizeof(T) * 8 ? T{0} : base));
+          count, base, get_max_value(value_bit_width, base));
     };
   } else {
-    return [base](const size_t count,
-                  const int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [base, get_max_value](
+               const size_t count,
+               const int32_t value_bit_width) -> std::unique_ptr<T> {
       return data::generate_index_column<T>(
-          count,
-          utils::set_first_n_bits<T>(value_bit_width) +
-              (value_bit_width == sizeof(T) * 8 ? T{0} : base),
-          base);
+          count, get_max_value(value_bit_width, base), base);
     };
   }
 }
@@ -167,8 +169,9 @@ template <typename T> struct Difference {
   T other;
 
   void log() {
-    fprintf(stderr, "[%ld] %ld != %ld\n", static_cast<int64_t>(index),
-            static_cast<int64_t>(original), static_cast<int64_t>(other));
+    fprintf(stderr, "[%ld] correct: %ld, unpacked: %ld\n",
+            static_cast<int64_t>(index), static_cast<int64_t>(original),
+            static_cast<int64_t>(other));
   }
 };
 
@@ -242,7 +245,6 @@ verify_all_value_bit_widths(const size_t count,
 
   return value_bit_width_differences;
 }
-
 
 } // namespace verification
 

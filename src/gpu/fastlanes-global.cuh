@@ -23,7 +23,7 @@ __global__ void bitunpack_global(const T *__restrict in, T *__restrict out,
          consts::VALUES_PER_VECTOR;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unpack_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
+    bitunpack_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
                   UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
     out += UNPACK_N_VALUES * N_LANES;
   }

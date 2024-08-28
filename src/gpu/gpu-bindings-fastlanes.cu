@@ -15,26 +15,16 @@ void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
   const auto encoded_size = (count * static_cast<size_t>(value_bit_width)) / 8;
   const auto decoded_size = count * sizeof(T);
 
-  T *device_in = nullptr;
-  CUDA_SAFE_CALL(
-      cudaMalloc(reinterpret_cast<void **>(&device_in), encoded_size));
-  CUDA_SAFE_CALL(
-      cudaMemcpy(device_in, in, encoded_size, cudaMemcpyHostToDevice));
-
-  T *device_out = nullptr;
-  CUDA_SAFE_CALL(
-      cudaMalloc(reinterpret_cast<void **>(&device_out), decoded_size));
+  GPUArray<T> device_in(encoded_size, in);
+  GPUArray<T> device_out(decoded_size);
 
   bitunpack_global<T, 1, utils::get_values_per_lane<T>()>
-      <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in, device_out,
+      <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in.get_pointer(),
+                                              device_out.get_pointer(),
                                               value_bit_width);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
-  CUDA_SAFE_CALL(
-      cudaMemcpy(out, device_out, decoded_size, cudaMemcpyDeviceToHost));
-
-  CUDA_SAFE_CALL(cudaFree(device_in));
-  CUDA_SAFE_CALL(cudaFree(device_out));
+  device_out.copy_to_host(out);
 }
 template <typename T>
 void unffor(const T *__restrict in, T *__restrict out, const size_t count,
@@ -44,37 +34,19 @@ void unffor(const T *__restrict in, T *__restrict out, const size_t count,
   const auto encoded_size = (count * static_cast<size_t>(value_bit_width)) / 8;
   const auto decoded_size = count * sizeof(T);
 
-	const auto base_size = sizeof(T);
-  T *device_base_p = nullptr;
-  CUDA_SAFE_CALL(
-      cudaMalloc(reinterpret_cast<void **>(&device_base_p), base_size));
-  CUDA_SAFE_CALL(
-      cudaMemcpy(device_base_p, base_p, base_size, cudaMemcpyHostToDevice));
-
-  T *device_in = nullptr;
-  CUDA_SAFE_CALL(
-      cudaMalloc(reinterpret_cast<void **>(&device_in), encoded_size));
-  CUDA_SAFE_CALL(
-      cudaMemcpy(device_in, in, encoded_size, cudaMemcpyHostToDevice));
-
-  T *device_out = nullptr;
-  CUDA_SAFE_CALL(
-      cudaMalloc(reinterpret_cast<void **>(&device_out), decoded_size));
+  GPUArray<T> device_in(encoded_size, in);
+  GPUArray<T> device_out(decoded_size);
+  GPUArray<T> device_base_p(sizeof(T), base_p);
 
   unffor_global<T, 1, utils::get_values_per_lane<T>()>
-      <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in, device_out,
-                                              value_bit_width, device_base_p);
+      <<<n_blocks, utils::get_n_lanes<T>()>>>(
+          device_in.get_pointer(), device_out.get_pointer(),
+          value_bit_width, device_base_p.get_pointer());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
-  CUDA_SAFE_CALL(
-      cudaMemcpy(out, device_out, decoded_size, cudaMemcpyDeviceToHost));
-
-  CUDA_SAFE_CALL(cudaFree(device_in));
-  CUDA_SAFE_CALL(cudaFree(device_out));
-  CUDA_SAFE_CALL(cudaFree(device_base_p));
+  device_out.copy_to_host(out);
 }
 
-	
 } // namespace gpu
 
 template void gpu::bitunpack<uint8_t>(const uint8_t *__restrict in,

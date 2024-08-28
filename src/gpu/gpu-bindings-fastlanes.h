@@ -6,36 +6,20 @@
 
 namespace gpu {
 template <typename T>
-void bitunpack_with_function(const T *__restrict in, T *__restrict out,
+void bitunpack(const T *__restrict in, T *__restrict out,
                              const size_t count, const int32_t value_bit_width);
-template <typename T>
-void bitunpack_with_reader(const T *__restrict in, T *__restrict out,
-                           const size_t count, const int32_t value_bit_width);
-} // namespace gpu
+}
 
-extern template void gpu::bitunpack_with_function<uint8_t>(
+extern template void gpu::bitunpack<uint8_t>(
     const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void
-gpu::bitunpack_with_reader<uint8_t>(const uint8_t *__restrict in,
-                                    uint8_t *__restrict out, const size_t count,
-                                    const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_function<uint16_t>(
+extern template void gpu::bitunpack<uint16_t>(
     const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_reader<uint16_t>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_function<uint32_t>(
+extern template void gpu::bitunpack<uint32_t>(
     const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_reader<uint32_t>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_function<uint64_t>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void gpu::bitunpack_with_reader<uint64_t>(
+extern template void gpu::bitunpack<uint64_t>(
     const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 #endif // GPU_FASTLANES_H

@@ -1,7 +1,7 @@
 #include "compression.hpp"
 #include "cstdint"
 
-namespace azim {
+namespace fastlanes {
 static void unffor_0bw_8ow_8crw_1uf(const uint8_t *__restrict a_in_p,
                                     uint8_t *__restrict a_out_p,
                                     const uint8_t *__restrict a_base_p) {

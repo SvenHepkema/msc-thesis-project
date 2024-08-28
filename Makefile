@@ -13,13 +13,13 @@ CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE
 
 
 CPU_OBJ := $(patsubst src/cpu/%.cpp, obj/cpu-%.o, $(wildcard src/cpu/*.cpp))
-AZIM_OBJ := $(patsubst src/azim/%.cpp, obj/azim-%.o, $(wildcard src/azim/*.cpp))
+AZIM_OBJ := $(patsubst src/fastlanes/%.cpp, obj/fastlanes-%.o, $(wildcard src/fastlanes/*.cpp))
 
 # OBJ Files
 obj/cpu-%.o: src/cpu/%.cpp
 	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
 
-obj/azim-%.o: src/azim/%.cpp
+obj/fastlanes-%.o: src/fastlanes/%.cpp
 	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
 
 obj/gpu.o: src/gpu/gpu-bindings-fastlanes.cu

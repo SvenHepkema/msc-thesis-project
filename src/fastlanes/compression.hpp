@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace azim {
+namespace fastlanes {
 
 void pack(const uint64_t *__restrict in, uint64_t *__restrict out, uint8_t bw);
 void pack(const uint32_t *__restrict in, uint32_t *__restrict out, uint8_t bw);
@@ -36,6 +36,6 @@ void unffor(const uint16_t *__restrict in, uint16_t *__restrict out, uint8_t bw,
 void unffor(const uint8_t *__restrict in, uint8_t *__restrict out, uint8_t bw,
             const uint8_t *__restrict a_base_p);
 
-} // namespace azim
+} // namespace fastlanes
 
 #endif

@@ -1,7 +1,7 @@
 #include "compression.hpp"
 #include <cstdint>
 
-namespace azim {
+namespace fastlanes {
 static void unpack_0bw_8ow_8crw_1uf(const uint8_t *__restrict a_in_p,
                                     uint8_t *__restrict a_out_p) {
   [[maybe_unused]] auto out = reinterpret_cast<uint8_t *>(a_out_p);
@@ -17638,4 +17638,4 @@ void unpack(const uint64_t *__restrict a_in_p, uint64_t *__restrict a_out_p,
     break;
   }
 }
-}; // namespace azim
+}; // namespace fastlanes

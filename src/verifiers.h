@@ -24,15 +24,15 @@ verification::VerificationResult<T> verify_bitpacking(const size_t a_count,
 
 template <typename T>
 verification::VerificationResult<T>
-verify_azim_bitpacking(const size_t a_count, bool use_random_data) {
+verify_fastlanes_bitpacking(const size_t a_count, bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
-    azim::pack(in, out, static_cast<uint8_t>(value_bit_width));
+    fastlanes::pack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   auto decompress = [](const T *in, T *out,
                        const int32_t value_bit_width) -> void {
-    azim::unpack(in, out, static_cast<uint8_t>(value_bit_width));
+    fastlanes::unpack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -43,7 +43,7 @@ verify_azim_bitpacking(const size_t a_count, bool use_random_data) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_bitpacking_against_azim(const size_t a_count, bool use_random_data) {
+verify_bitpacking_against_fastlanes(const size_t a_count, bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
     cpu::bitpack<T>(in, out, static_cast<uint8_t>(value_bit_width));
@@ -51,7 +51,7 @@ verify_bitpacking_against_azim(const size_t a_count, bool use_random_data) {
 
   auto decompress = [](const T *in, T *out,
                        const int32_t value_bit_width) -> void {
-    azim::unpack(in, out, static_cast<uint8_t>(value_bit_width));
+    fastlanes::unpack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -62,10 +62,10 @@ verify_bitpacking_against_azim(const size_t a_count, bool use_random_data) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_bitunpacking_against_azim(const size_t a_count, bool use_random_data) {
+verify_bitunpacking_against_fastlanes(const size_t a_count, bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
-    azim::pack(in, out, static_cast<uint8_t>(value_bit_width));
+    fastlanes::pack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   auto decompress = [](const T *in, T *out,
@@ -120,18 +120,18 @@ verification::VerificationResult<T> verify_ffor(const size_t a_count,
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_azim_ffor(const size_t a_count,
+verification::VerificationResult<T> verify_fastlanes_ffor(const size_t a_count,
                                                      bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    azim::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
-    azim::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fastlanes::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -143,7 +143,7 @@ verification::VerificationResult<T> verify_azim_ffor(const size_t a_count,
 
 template <typename T>
 verification::VerificationResult<T>
-verify_ffor_against_azim(const size_t a_count, bool use_random_data) {
+verify_ffor_against_fastlanes(const size_t a_count, bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
@@ -153,7 +153,7 @@ verify_ffor_against_azim(const size_t a_count, bool use_random_data) {
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
-    azim::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fastlanes::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -165,13 +165,13 @@ verify_ffor_against_azim(const size_t a_count, bool use_random_data) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_unffor_against_azim(const size_t a_count, bool use_random_data) {
+verify_unffor_against_fastlanes(const size_t a_count, bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    azim::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
@@ -193,7 +193,7 @@ verify_gpu_unffor(const size_t a_count, bool use_random_data) {
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    azim::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   auto decompress_all = [temp_base_p](const T *in, T *out, const size_t count,
@@ -215,23 +215,23 @@ get_verifier(const std::string name) {
            const bool use_random_data) -> verification::VerificationResult<T> {
           return verify_bitpacking<T>(count, use_random_data);
         };
-  } else if (name == "azimbp") {
+  } else if (name == "flsbp") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_azim_bitpacking<T>(count, use_random_data);
+          return verify_fastlanes_bitpacking<T>(count, use_random_data);
         };
-  } else if (name == "bp_azimubp") {
+  } else if (name == "bp_fastlanesubp") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_bitpacking_against_azim<T>(count, use_random_data);
+          return verify_bitpacking_against_fastlanes<T>(count, use_random_data);
         };
-  } else if (name == "azimbp_ubp") {
+  } else if (name == "flsbp_ubp") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_bitunpacking_against_azim<T>(count, use_random_data);
+          return verify_bitunpacking_against_fastlanes<T>(count, use_random_data);
         };
   } else if (name == "gpu_bp") {
     return
@@ -245,23 +245,23 @@ get_verifier(const std::string name) {
            const bool use_random_data) -> verification::VerificationResult<T> {
           return verify_ffor<T>(count, use_random_data);
         };
-  } else if (name == "azimffor") {
+  } else if (name == "flsffor") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_azim_ffor<T>(count, use_random_data);
+          return verify_fastlanes_ffor<T>(count, use_random_data);
         };
-  } else if (name == "ffor_azimunffor") {
+  } else if (name == "ffor_fastlanesunffor") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_ffor_against_azim<T>(count, use_random_data);
+          return verify_ffor_against_fastlanes<T>(count, use_random_data);
         };
-  } else if (name == "azimffor_unffor") {
+  } else if (name == "flsffor_unffor") {
     return
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_unffor_against_azim<T>(count, use_random_data);
+          return verify_unffor_against_fastlanes<T>(count, use_random_data);
         };
   } else if (name == "gpu_unffor") {
     return

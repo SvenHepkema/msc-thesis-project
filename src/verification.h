@@ -10,7 +10,7 @@
 #include <time.h>
 #include <vector>
 
-#include "azim/compression.hpp"
+#include "fastlanes/compression.hpp"
 #include "cpu/fastlanes.h"
 #include "gpu/gpu-bindings-fastlanes.h"
 

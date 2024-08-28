@@ -169,9 +169,9 @@ template <typename T> struct Difference {
   T other;
 
   void log() {
-    fprintf(stderr, "[%ld] correct: %ld, unpacked: %ld\n",
-            static_cast<int64_t>(index), static_cast<int64_t>(original),
-            static_cast<int64_t>(other));
+    fprintf(stderr, "[%lu] correct: %lu, unpacked: %lu\n",
+            static_cast<uint64_t>(index), static_cast<uint64_t>(original),
+            static_cast<uint64_t>(other));
   }
 };
 

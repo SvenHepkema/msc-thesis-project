@@ -94,8 +94,20 @@ template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
 __device__ void
 bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
               const uint16_t value_bit_width, const uint16_t start_index) {
-	auto lambda = [=] (T value) -> T {
+	auto lambda = [=] (const T value) -> T {
 		return value;
+	};
+	unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index, lambda);
+}
+
+template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
+__device__ void
+unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
+              const uint16_t value_bit_width, const uint16_t start_index, const T*__restrict a_base_p) {
+	T base = *a_base_p;
+	auto lambda = [base] (const T value) -> T {
+		return value + base;
 	};
 	unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index, lambda);
 }

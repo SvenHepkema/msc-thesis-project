@@ -33,8 +33,8 @@ unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
   in += lane;
 
 #pragma unroll
-  for (int i = 0; i < UNPACK_N_VECTORS; ++i) {
-    line_buffer[i] = *(in + n_input_line * N_LANES + i * encoded_vector_offset);
+  for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+    line_buffer[v] = *(in + n_input_line * N_LANES + v * encoded_vector_offset);
   }
   out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
   n_input_line++;
@@ -56,8 +56,8 @@ unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
 
 #pragma unroll
     for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
-      value[v] = (line_buffer[v] & (value_mask << T{buffer_offset})) >>
-                 T{buffer_offset};
+      value[v] =
+          (line_buffer[v] & (value_mask << buffer_offset)) >> buffer_offset;
     }
     buffer_offset += value_bit_width;
 
@@ -71,7 +71,7 @@ unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
       ++n_input_line;
       buffer_offset -= LANE_BIT_WIDTH;
 
-      buffer_offset_mask = ((1 << static_cast<T>(buffer_offset)) - 1);
+      buffer_offset_mask = (T{1} << static_cast<T>(buffer_offset)) - T{1};
 #pragma unroll
       for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
         value[v] |= (line_buffer[v] & buffer_offset_mask)
@@ -80,8 +80,8 @@ unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
     }
 
 #pragma unroll
-    for (int i = 0; i < UNPACK_N_VECTORS; ++i) {
-      *(out + i * UNPACK_N_VALUES) = value[i];
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+      *(out + v * UNPACK_N_VALUES) = value[v];
     }
     out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
   }

@@ -25,11 +25,11 @@ void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
       cudaMalloc(reinterpret_cast<void **>(&device_out), decoded_size));
 
   if (!use_reader) {
-    bitunpack_with_function_global<T, T, 1, utils::get_values_per_lane<T>()>
+    bitunpack_with_function_global<T, 1, utils::get_values_per_lane<T>()>
         <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in, device_out,
                                                 value_bit_width);
   } else {
-    bitunpack_with_reader_global<T, T, 1, utils::get_values_per_lane<T>()>
+    bitunpack_with_reader_global<T, 1, utils::get_values_per_lane<T>()>
         <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in, device_out,
                                                 value_bit_width);
   }
@@ -53,35 +53,6 @@ void gpu::bitunpack_with_reader(const T *__restrict in, T *__restrict out,
   bitunpack(in, out, count, value_bit_width, true);
 }
 
-template void
-gpu::bitunpack_with_function<int8_t>(const int8_t *__restrict in,
-                                     int8_t *__restrict out, const size_t count,
-                                     const int32_t value_bit_width);
-template void gpu::bitunpack_with_reader<int8_t>(const int8_t *__restrict in,
-                                                 int8_t *__restrict out,
-                                                 const size_t count,
-                                                 const int32_t value_bit_width);
-template void gpu::bitunpack_with_function<int16_t>(
-    const int16_t *__restrict in, int16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-template void
-gpu::bitunpack_with_reader<int16_t>(const int16_t *__restrict in,
-                                    int16_t *__restrict out, const size_t count,
-                                    const int32_t value_bit_width);
-template void gpu::bitunpack_with_function<int32_t>(
-    const int32_t *__restrict in, int32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-template void
-gpu::bitunpack_with_reader<int32_t>(const int32_t *__restrict in,
-                                    int32_t *__restrict out, const size_t count,
-                                    const int32_t value_bit_width);
-template void gpu::bitunpack_with_function<int64_t>(
-    const int64_t *__restrict in, int64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-template void
-gpu::bitunpack_with_reader<int64_t>(const int64_t *__restrict in,
-                                    int64_t *__restrict out, const size_t count,
-                                    const int32_t value_bit_width);
 template void gpu::bitunpack_with_function<uint8_t>(
     const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
     const int32_t value_bit_width);

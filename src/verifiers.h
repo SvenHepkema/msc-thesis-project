@@ -202,7 +202,7 @@ verify_gpu_unffor(const size_t a_count, bool use_random_data) {
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, verification::data::generate_bp_data<T>(use_random_data),
+      a_count, verification::data::generate_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 

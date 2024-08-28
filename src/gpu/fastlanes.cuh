@@ -9,13 +9,14 @@
 
 enum UnpackingType { LaneArray, VectorArray };
 
-// Forcinline is correct as this function should not be called directly 
+// Forcinline is correct as this function should not be called directly
 // by the user, but by the unbitpack and unffor functions.
 template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename lambda_T>
-__forceinline__ __device__ void
+__device__ void
 unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index, lambda_T lambda) {
+              const uint16_t value_bit_width, const uint16_t start_index,
+              lambda_T lambda) {
   static_assert(std::is_unsigned<T>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -83,7 +84,7 @@ unpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
 
 #pragma unroll
     for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
-      *(out + v * UNPACK_N_VALUES) = value[v];
+      *(out + v * UNPACK_N_VALUES) = lambda(value[v]);
     }
     out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
   }
@@ -93,23 +94,22 @@ template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 __device__ void
 bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index) {
-	auto lambda = [=] (const T value) -> T {
-		return value;
-	};
-	unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index, lambda);
+                 const uint16_t value_bit_width, const uint16_t start_index) {
+  auto lambda = [=](const T value) -> T { return value; };
+  unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
 }
 
 template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 __device__ void
 unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index, const T*__restrict a_base_p) {
-	T base = *a_base_p;
-	auto lambda = [base] (const T value) -> T {
-		return value + base;
-	};
-	unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index, lambda);
+              const uint16_t value_bit_width, const uint16_t start_index,
+              const T *__restrict a_base_p) {
+  T base = *a_base_p;
+  auto lambda = [base](const T value) -> T { return value + base; };
+  unpack_vector<T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
 }
 
 #endif // FASTLANES_CUH

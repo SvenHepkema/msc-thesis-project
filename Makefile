@@ -15,6 +15,7 @@ CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  
 
 CPU_OBJ := $(patsubst src/cpu/%.cpp, obj/cpu-%.o, $(wildcard src/cpu/*.cpp))
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
+ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))
 
 # OBJ Files
 obj/cpu-%.o: src/cpu/%.cpp
@@ -23,13 +24,16 @@ obj/cpu-%.o: src/cpu/%.cpp
 obj/fls-%.o: src/fls/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
+obj/alp-%.o: src/alp/%.cpp
+	clang++ $^  -c -o $@ $(CLANG_FLAGS)
+
 obj/gpu.o: src/gpu/gpu-bindings-fls.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables
 
 HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
-SOURCE_FILES=src/main.cpp obj/gpu.o $(FLS_OBJ) $(CPU_OBJ) 
+SOURCE_FILES=src/main.cpp obj/gpu.o $(FLS_OBJ) $(CPU_OBJ) $(ALP_OBJ)
 
 fast: $(SOURCE_FILES) $(HEADER_FILES)
 	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)

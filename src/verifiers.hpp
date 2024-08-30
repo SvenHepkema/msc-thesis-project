@@ -1,4 +1,5 @@
 #include "verification.hpp"
+#include "alp/alp-bindings.hpp"
 #include <cstdint>
 
 namespace verifiers {
@@ -205,6 +206,55 @@ verify_gpu_unffor(const size_t a_count, bool use_random_data) {
       a_count, verification::data::generate_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
+
+template <typename T>
+verification::VerificationResult<T>
+verify_falp(const size_t a_count, bool use_random_data) {
+	alp::AlpCompressionData* alp_data;
+	// TODO: Allocate all the necessary arrays in the alp_data structure
+
+  auto compress_all = [alp_data](const T *in, T *out, const size_t count,
+                           const int32_t value_bit_width) -> void {
+		alp::int_encode(in, count, alp_data);
+  };
+
+  auto decompress_all = [alp_data](const T *in, T *out, const size_t count,
+                           const int32_t value_bit_width) -> void {
+		alp::int_decode(out, count, alp_data);
+  };
+
+	// TODO: Use other kind of verification function
+  return verification::verify_all_value_bit_widths<T>(
+      a_count, 
+			verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
+      compress_all, decompress_all);
+}
+
+/*
+template <typename T>
+verification::VerificationResult<T>
+verify_falp(const size_t a_count, bool use_random_data) {
+	void* alp_data;
+
+  auto compress = [alp_data](const T *in, T *out,
+                                const int32_t value_bit_width) -> void {
+		alp::int_encode(alp_data);
+  };
+
+	// By generating data that has 0 exceptions, the patching step should be 
+	// omissable. This is important to be able to test the GPU falp implementation
+	// in isolation.
+  auto decompress_all = [alp_data](const T *in, T *out, const size_t count,
+                           const int32_t value_bit_width) -> void {
+		alp::falp();
+  };
+
+  return verification::verify_all_value_bit_widths<T>(
+      a_count, 
+			verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
+      verification::apply_compression_to_all<T>(compress), decompress_all);
+}
+*/
 
 template <typename T>
 std::function<verification::VerificationResult<T>(const size_t, const bool)>

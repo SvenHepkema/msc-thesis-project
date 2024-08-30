@@ -9,9 +9,10 @@
 #include <stdexcept>
 #include <time.h>
 #include <vector>
+#include <type_traits>
 
-#include "fls/compression.hpp"
 #include "cpu/fls.hpp"
+#include "fls/compression.hpp"
 #include "gpu/gpu-bindings-fls.hpp"
 
 #ifndef VERIFICATION_H
@@ -64,6 +65,20 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   return column;
 }
 
+template <typename T, typename U>
+std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
+                               const size_t count) {
+  auto casted_column = allocate_column<U>(count);
+  T *column_p = column.get();
+  T *casted_column_p = casted_column.get();
+
+  for (size_t i = 0; i < count; ++i) {
+    casted_column_p[i] = static_cast<U>(column_p[i]);
+  }
+
+  return casted_column;
+}
+
 template <typename T>
 using DataGenerationLambda =
     std::function<std::unique_ptr<T>(const size_t, const int32_t)>;
@@ -105,6 +120,32 @@ DataGenerationLambda<T> generate_ffor_data(const bool use_random_data, T base) {
           count, get_max_value(value_bit_width, base), base);
     };
   }
+}
+
+template <typename T>
+DataGenerationLambda<T>
+generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
+	throw std::logic_error("Generating falp data for this datatype is not possible.");
+}
+
+template<>
+DataGenerationLambda<double>
+generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
+  return [](size_t count,
+            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<double> {
+    return data::cast_column<uint64_t, double>(
+        data::generate_random_column<uint64_t>(count, uint64_t{0}, uint64_t{1}), count);
+  };
+}
+
+template<>
+DataGenerationLambda<float>
+generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
+  return [](size_t count,
+            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<float> {
+    return data::cast_column<uint32_t, float>(
+        data::generate_random_column<uint32_t>(count, uint32_t{0}, uint32_t{1}), count);
+  };
 }
 
 } // namespace data
@@ -195,6 +236,25 @@ Differences<T> count_differences(const T *__restrict original,
   }
 
   return differences;
+}
+
+template <typename T>
+Differences<T>
+verify_conversion(const size_t count, const int32_t value_bit_width,
+                  const data::DataGenerationLambda<T> generate_data,
+                  const CompressAllVectorsLambda<T> compress,
+                  const CompressAllVectorsLambda<T> decompress) {
+  auto compressed_column =
+      data::allocate_packed_column<T>(count, value_bit_width);
+  auto decompressed_column = data::allocate_column<T>(count);
+  auto original = generate_data(count, value_bit_width);
+
+  compress(original.get(), compressed_column.get(), count, value_bit_width);
+  decompress(compressed_column.get(), decompressed_column.get(), count,
+             value_bit_width);
+
+  return count_differences(original.get(), decompressed_column.get(), count,
+                           LOG_N_MISTAKES);
 }
 
 template <typename T>

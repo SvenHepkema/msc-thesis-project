@@ -1,8 +1,8 @@
 #include "fls.cuh"
 #include "gpu-bindings-fls.hpp"
 
-#include "../consts.h"
-#include "../utils.h"
+#include "../consts.hpp"
+#include "../utils.hpp"
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack_global(const T *__restrict in, T *__restrict out,

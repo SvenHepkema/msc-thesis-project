@@ -3,8 +3,8 @@
 #include <cstdio>
 #include <stdexcept>
 
-#include "verification.h"
-#include "verifiers.h"
+#include "verification.hpp"
+#include "verifiers.hpp"
 
 struct CLIArgs {
   size_t count;

@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "consts.h"
+#include "consts.hpp"
 
 #ifndef FASTLANES_UTILS_H
 #define FASTLANES_UTILS_H

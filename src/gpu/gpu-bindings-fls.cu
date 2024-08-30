@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../consts.h"
+#include "../consts.hpp"
 #include "fls-global.cuh"
 #include "gpu-bindings-fls.hpp"
 #include "gpu-utils.cuh"

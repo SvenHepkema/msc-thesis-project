@@ -3,7 +3,7 @@
 #include <functional>
 #include <type_traits>
 
-#include "../utils.h"
+#include "../utils.hpp"
 
 #ifndef CPU_FLS_HPP
 #define CPU_FLS_HPP

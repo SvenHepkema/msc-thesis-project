@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "../utils.h"
+#include "../utils.hpp"
 
 #ifndef FLS_CUH
 #define FLS_CUH

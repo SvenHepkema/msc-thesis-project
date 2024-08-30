@@ -4,8 +4,8 @@
 
 #include "../utils.h"
 
-#ifndef FASTLANES_CUH
-#define FASTLANES_CUH
+#ifndef FLS_CUH
+#define FLS_CUH
 
 enum UnpackingType { LaneArray, VectorArray };
 
@@ -112,4 +112,4 @@ unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
       in, out, lane, value_bit_width, start_index, lambda);
 }
 
-#endif // FASTLANES_CUH
+#endif // FLS_CUH

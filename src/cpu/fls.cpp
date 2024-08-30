@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "../utils.h"
-#include "fastlanes.h"
+#include "fls.hpp"
 
 namespace compression {
 

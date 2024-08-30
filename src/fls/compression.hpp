@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace fastlanes {
+namespace fls {
 
 void pack(const uint64_t *__restrict in, uint64_t *__restrict out, uint8_t bw);
 void pack(const uint32_t *__restrict in, uint32_t *__restrict out, uint8_t bw);

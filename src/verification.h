@@ -10,9 +10,9 @@
 #include <time.h>
 #include <vector>
 
-#include "fastlanes/compression.hpp"
-#include "cpu/fastlanes.h"
-#include "gpu/gpu-bindings-fastlanes.h"
+#include "fls/compression.hpp"
+#include "cpu/fls.hpp"
+#include "gpu/gpu-bindings-fls.hpp"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H

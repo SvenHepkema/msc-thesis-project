@@ -5,8 +5,8 @@
 
 #include "../utils.h"
 
-#ifndef CPU_FASTLANES_H
-#define CPU_FASTLANES_H
+#ifndef CPU_FLS_HPP
+#define CPU_FLS_HPP
 
 namespace cpu {
 
@@ -80,4 +80,4 @@ void cpu::unffor(const uint64_t *__restrict in, uint64_t *__restrict out,
             const uint64_t *__restrict base_p,
             [[maybe_unused]] const int32_t value_bit_width);
 
-#endif // CPU_FASTLANES_H
+#endif // CPU_FLS_HPP

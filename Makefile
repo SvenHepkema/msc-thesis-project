@@ -1,7 +1,8 @@
 INC := -I $(CUDA_LIBRARY_PATH)/include -I.
 LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand 
 CUDA_OBJ_FLAGS = $(INC) $(LIB) 
-CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
+OPTIMIZATION_LEVEL = -O3
+CLANG_FLAGS = -std=c++17 $(OPTIMIZATION_LEVEL) -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
 
 # For the fast compilations:
@@ -9,38 +10,38 @@ DATA_TYPE=uint32_t
 VALUE_BIT_WIDTH=32
 
 COMPUTE_CAPABILITY = 61
-CUDA_FLAGS = -ccbin /usr/bin/clang++-14 -O3 --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
+CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
 
 
 CPU_OBJ := $(patsubst src/cpu/%.cpp, obj/cpu-%.o, $(wildcard src/cpu/*.cpp))
-AZIM_OBJ := $(patsubst src/fastlanes/%.cpp, obj/fastlanes-%.o, $(wildcard src/fastlanes/*.cpp))
+FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 
 # OBJ Files
 obj/cpu-%.o: src/cpu/%.cpp
-	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
+	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/fastlanes-%.o: src/fastlanes/%.cpp
-	clang++ $^ -O3 -c -o $@ $(CLANG_FLAGS)
+obj/fls-%.o: src/fls/%.cpp
+	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/gpu.o: src/gpu/gpu-bindings-fastlanes.cu
+obj/gpu.o: src/gpu/gpu-bindings-fls.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables
 
 HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
-SOURCE_FILES=src/main.cpp obj/gpu.o $(AZIM_OBJ) $(CPU_OBJ)
+SOURCE_FILES=src/main.cpp obj/gpu.o $(FLS_OBJ) $(CPU_OBJ) 
 
 fast: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 executable: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -O3 -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
+	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
 
 ub-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -fsanitize=undefined -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $(SOURCE_FILES) -fsanitize=undefined  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 address-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -fsanitize=address -O3 -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $(SOURCE_FILES) -fsanitize=address  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
 
 clean:
 	rm -f bin/*

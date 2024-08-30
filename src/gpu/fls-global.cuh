@@ -1,5 +1,5 @@
-#include "fastlanes.cuh"
-#include "gpu-bindings-fastlanes.h"
+#include "fls.cuh"
+#include "gpu-bindings-fls.hpp"
 
 #include "../consts.h"
 #include "../utils.h"

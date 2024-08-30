@@ -1,7 +1,7 @@
 #include "compression.hpp"
 #include <cstdint>
 
-namespace fastlanes
+namespace fls
 {
 void static ffor_0bit_8ow(const uint8_t *__restrict in, uint8_t *__restrict out, const uint8_t *__restrict a_base_p)
 {

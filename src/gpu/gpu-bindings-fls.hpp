@@ -1,8 +1,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#ifndef GPU_FASTLANES_H
-#define GPU_FASTLANES_H
+#ifndef GPU_FLS_HPP
+#define GPU_FLS_HPP
 
 namespace gpu {
 template <typename T>
@@ -49,4 +49,4 @@ extern template void gpu::unffor<uint64_t>(const uint64_t *__restrict in,
                                            const size_t count,
                                            const int32_t value_bit_width,
                                            const uint64_t *__restrict base_p);
-#endif // GPU_FASTLANES_H
+#endif // GPU_FLS_HPP

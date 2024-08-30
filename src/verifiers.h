@@ -27,12 +27,12 @@ verification::VerificationResult<T>
 verify_fastlanes_bitpacking(const size_t a_count, bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
-    fastlanes::pack(in, out, static_cast<uint8_t>(value_bit_width));
+    fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   auto decompress = [](const T *in, T *out,
                        const int32_t value_bit_width) -> void {
-    fastlanes::unpack(in, out, static_cast<uint8_t>(value_bit_width));
+    fls::unpack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -51,7 +51,7 @@ verify_bitpacking_against_fastlanes(const size_t a_count, bool use_random_data) 
 
   auto decompress = [](const T *in, T *out,
                        const int32_t value_bit_width) -> void {
-    fastlanes::unpack(in, out, static_cast<uint8_t>(value_bit_width));
+    fls::unpack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -65,7 +65,7 @@ verification::VerificationResult<T>
 verify_bitunpacking_against_fastlanes(const size_t a_count, bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
-    fastlanes::pack(in, out, static_cast<uint8_t>(value_bit_width));
+    fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
   };
 
   auto decompress = [](const T *in, T *out,
@@ -127,11 +127,11 @@ verification::VerificationResult<T> verify_fastlanes_ffor(const size_t a_count,
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
-    fastlanes::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fls::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -153,7 +153,7 @@ verify_ffor_against_fastlanes(const size_t a_count, bool use_random_data) {
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
-    fastlanes::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fls::unffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   return verification::verify_all_value_bit_widths<T>(
@@ -171,7 +171,7 @@ verify_unffor_against_fastlanes(const size_t a_count, bool use_random_data) {
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
   auto decompress = [temp_base_p](const T *in, T *out,
                                   const int32_t value_bit_width) -> void {
@@ -193,7 +193,7 @@ verify_gpu_unffor(const size_t a_count, bool use_random_data) {
 
   auto compress = [temp_base_p](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-    fastlanes::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
+    fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
   };
 
   auto decompress_all = [temp_base_p](const T *in, T *out, const size_t count,

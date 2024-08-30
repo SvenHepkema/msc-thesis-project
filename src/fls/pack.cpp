@@ -1,7 +1,7 @@
 #include "compression.hpp"
 #include <cstdint>
 
-namespace fastlanes {
+namespace fls {
 void static pack_0bit_8ow(const uint8_t *__restrict in,
                           uint8_t *__restrict out) {}
 void static pack_1bit_8ow(const uint8_t *__restrict in,

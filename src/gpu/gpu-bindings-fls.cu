@@ -2,8 +2,8 @@
 #include <cstdint>
 
 #include "../consts.h"
-#include "fastlanes-global.cuh"
-#include "gpu-bindings-fastlanes.h"
+#include "fls-global.cuh"
+#include "gpu-bindings-fls.hpp"
 #include "gpu-utils.cuh"
 
 namespace gpu {

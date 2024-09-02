@@ -8,8 +8,8 @@
 #include <random>
 #include <stdexcept>
 #include <time.h>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 #include "cpu/fls.hpp"
 #include "fls/compression.hpp"
@@ -125,26 +125,15 @@ DataGenerationLambda<T> generate_ffor_data(const bool use_random_data, T base) {
 template <typename T>
 DataGenerationLambda<T>
 generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
-	throw std::logic_error("Generating falp data for this datatype is not possible.");
-}
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "T should be float or double");
+  using INT_T =
+      typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
 
-template<>
-DataGenerationLambda<double>
-generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
-  return [](size_t count,
-            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<double> {
-    return data::cast_column<uint64_t, double>(
-        data::generate_random_column<uint64_t>(count, uint64_t{0}, uint64_t{1}), count);
-  };
-}
-
-template<>
-DataGenerationLambda<float>
-generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
-  return [](size_t count,
-            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<float> {
-    return data::cast_column<uint32_t, float>(
-        data::generate_random_column<uint32_t>(count, uint32_t{0}, uint32_t{1}), count);
+  return [](size_t count, [[maybe_unused]] int32_t value_bit_width)
+             -> std::unique_ptr<double> {
+    return data::cast_column<INT_T, T>(
+        data::generate_random_column<INT_T>(count, INT_T{0}, INT_T{1}), count);
   };
 }
 

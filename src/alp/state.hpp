@@ -1,9 +1,9 @@
 #ifndef ALP_STATE_HPP
 #define ALP_STATE_HPP
 
-#include "alp/common.hpp"
-#include "alp/config.hpp"
-#include "alp/constants.hpp"
+#include "./common.hpp"
+#include "./config.hpp"
+#include "./constants.hpp"
 #include <cstdint>
 #include <unordered_map>
 

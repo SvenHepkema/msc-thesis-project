@@ -1,11 +1,11 @@
 #ifndef ALP_ENCODE_HPP
 #define ALP_ENCODE_HPP
 
-#include "alp/config.hpp"
-#include "alp/constants.hpp"
-#include "alp/decode.hpp"
-#include "alp/sampler.hpp"
-#include "alp/state.hpp"
+#include "./config.hpp"
+#include "./constants.hpp"
+#include "./decode.hpp"
+#include "./sampler.hpp"
+#include "./state.hpp"
 #include "common.hpp"
 #include <cfloat>
 #include <cmath>

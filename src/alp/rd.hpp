@@ -1,10 +1,10 @@
 #ifndef ALP_CUTTER_HPP
 #define ALP_CUTTER_HPP
 
-#include "alp/common.hpp"
-#include "alp/constants.hpp"
-#include "alp/encode.hpp"
-#include "alp/sampler.hpp"
+#include "./common.hpp"
+#include "./constants.hpp"
+#include "./encode.hpp"
+#include "./sampler.hpp"
 #include <algorithm>
 
 namespace alp {

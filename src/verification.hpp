@@ -70,7 +70,7 @@ std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
                                const size_t count) {
   auto casted_column = allocate_column<U>(count);
   T *column_p = column.get();
-  T *casted_column_p = casted_column.get();
+  U *casted_column_p = casted_column.get();
 
   for (size_t i = 0; i < count; ++i) {
     casted_column_p[i] = static_cast<U>(column_p[i]);
@@ -236,25 +236,6 @@ Differences<T> count_differences(const T *__restrict original,
   }
 
   return differences;
-}
-
-template <typename T>
-Differences<T>
-verify_conversion(const size_t count, const int32_t value_bit_width,
-                  const data::DataGenerationLambda<T> generate_data,
-                  const CompressAllVectorsLambda<T> compress,
-                  const CompressAllVectorsLambda<T> decompress) {
-  auto compressed_column =
-      data::allocate_packed_column<T>(count, value_bit_width);
-  auto decompressed_column = data::allocate_column<T>(count);
-  auto original = generate_data(count, value_bit_width);
-
-  compress(original.get(), compressed_column.get(), count, value_bit_width);
-  decompress(compressed_column.get(), decompressed_column.get(), count,
-             value_bit_width);
-
-  return count_differences(original.get(), decompressed_column.get(), count,
-                           LOG_N_MISTAKES);
 }
 
 template <typename T>

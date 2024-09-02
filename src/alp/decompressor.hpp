@@ -1,10 +1,10 @@
 #ifndef ALP_DECOMPRESSOR_HPP
 #define ALP_DECOMPRESSOR_HPP
 
-#include "alp/decode.hpp"
-#include "alp/storer.hpp"
-#include "alp/utils.hpp"
-#include "fastlanes/unffor.hpp"
+#include "./decode.hpp"
+#include "./storer.hpp"
+#include "./utils.hpp"
+#include "../fls/compression.hpp"
 
 namespace alp {
 
@@ -84,8 +84,8 @@ struct AlpDecompressor {
 
 	void decompress_vector(T* out) {
 		if (stt.scheme == SCHEME::ALP_RD) {
-			unffor::unffor(right_parts_encoded, right_parts, stt.right_bit_width, &right_for_base);
-			unffor::unffor(left_parts_encoded, left_parts, stt.left_bit_width, &stt.left_for_base);
+			fls::unffor(right_parts_encoded, right_parts, stt.right_bit_width, &right_for_base);
+			fls::unffor(left_parts_encoded, left_parts, stt.left_bit_width, &stt.left_for_base);
 			AlpRD<T>::decode((out + out_offset),
 			                 right_parts,
 			                 left_parts,
@@ -94,7 +94,7 @@ struct AlpDecompressor {
 			                 &stt.exceptions_count,
 			                 stt);
 		} else {
-			unffor::unffor(alp_encoded_array, encoded_integers, stt.bit_width, &stt.for_base);
+			fls::unffor(alp_encoded_array, encoded_integers, stt.bit_width, &stt.for_base);
 			AlpDecode<T>::decode(encoded_integers, stt.fac, stt.exp, (out + out_offset));
 			AlpDecode<T>::patch_exceptions((out + out_offset), exceptions, exceptions_position, &stt.exceptions_count);
 		}

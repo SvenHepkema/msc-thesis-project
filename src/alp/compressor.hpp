@@ -1,12 +1,12 @@
 #ifndef ALP_COMPRESSOR_HPP
 #define ALP_COMPRESSOR_HPP
 
-#include "alp/encode.hpp"
-#include "alp/rd.hpp"
-#include "alp/state.hpp"
-#include "alp/storer.hpp"
-#include "alp/utils.hpp"
-#include "fastlanes/ffor.hpp"
+#include "./encode.hpp"
+#include "./rd.hpp"
+#include "./state.hpp"
+#include "./storer.hpp"
+#include "./utils.hpp"
+#include "../fls/compression.hpp"
 
 namespace alp {
 
@@ -60,15 +60,15 @@ struct AlpCompressor {
 		AlpEncode<T>::encode(
 		    input_vector, exceptions, exceptions_position, &stt.exceptions_count, encoded_integers, stt);
 		AlpEncode<T>::analyze_ffor(encoded_integers, stt.bit_width, &stt.for_base);
-		ffor::ffor(encoded_integers, alp_encoded_array, stt.bit_width, &stt.for_base);
+		fls::ffor(encoded_integers, alp_encoded_array, stt.bit_width, &stt.for_base);
 		alp_bp_size = AlpApiUtils<T>::get_size_after_bitpacking(stt.bit_width);
 	}
 
 	void compress_rd_vector() {
 		AlpRD<T>::encode(
 		    input_vector, exceptions_rd, exceptions_position, &stt.exceptions_count, right_parts, left_parts, stt);
-		ffor::ffor(right_parts, right_parts_encoded, stt.right_bit_width, &right_for_base);
-		ffor::ffor(left_parts, left_parts_encoded, stt.left_bit_width, &stt.left_for_base);
+		fls::ffor(right_parts, right_parts_encoded, stt.right_bit_width, &right_for_base);
+		fls::ffor(left_parts, left_parts_encoded, stt.left_bit_width, &stt.left_for_base);
 	}
 
 	void compress(T* values, size_t values_count, uint8_t* out) {

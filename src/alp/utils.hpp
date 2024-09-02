@@ -1,8 +1,8 @@
 #ifndef ALP_UTILS_HPP
 #define ALP_UTILS_HPP
 
-#include "alp/config.hpp"
-#include "alp/encode.hpp"
+#include "./config.hpp"
+#include "./encode.hpp"
 #include <cmath>
 #include <random>
 

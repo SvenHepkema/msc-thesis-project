@@ -1,7 +1,7 @@
 #ifndef ALP_CONSTANTS_HPP
 #define ALP_CONSTANTS_HPP
 
-#include "alp/config.hpp"
+#include "./config.hpp"
 #include <cstdint>
 #include <vector>
 

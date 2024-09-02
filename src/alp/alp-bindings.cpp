@@ -1,6 +1,7 @@
 #include <stdexcept>
 
 #include "alp-bindings.hpp"
+#include "../fls/compression.hpp"
 #include "decode.hpp"
 #include "encode.hpp"
 #include "falp.hpp"
@@ -17,7 +18,7 @@ void int_encode(const double *input_array, const size_t count,
       data->exceptions_count_array, data->encoded_array, data->state);
   alp::AlpEncode<double>::analyze_ffor(data->encoded_array, data->bit_width,
                                        data->ffor_base_array);
-  ffor::ffor(data->encoded_array, data->ffor_array, data->bit_width,
+  fls::ffor(data->encoded_array, data->ffor_array, data->bit_width,
              data->ffor_base_array);
 }
 

@@ -1,6 +1,12 @@
 #include <cstddef>
 #include <cstdint>
 
+// WARNING The original ALP repo contains code that triggers warnings if all
+// warnings are turned off. To make sure these warnings do not show up when the
+// alp directory itself is not recompiled, I added this pragma to show it as a
+// system header. So be carefult, warnings from the alp/* files do not show up
+// when compiling
+#pragma clang system_header
 #include "state.hpp"
 
 #ifndef ALP_BINDINGS_HPP

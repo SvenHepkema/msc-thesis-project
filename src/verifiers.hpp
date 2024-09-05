@@ -18,7 +18,7 @@ verification::VerificationResult<T> verify_bitpacking(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, datageneration::generate_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -37,7 +37,7 @@ verify_fastlanes_bitpacking(const size_t a_count, bool use_random_data) {
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, datageneration::generate_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -57,7 +57,7 @@ verify_bitpacking_against_fastlanes(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, datageneration::generate_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -77,7 +77,7 @@ verify_bitunpacking_against_fastlanes(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, datageneration::generate_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -96,7 +96,7 @@ verify_gpu_bitpacking(const size_t a_count, bool use_random_data) {
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, datageneration::generate_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 
@@ -117,7 +117,7 @@ verification::VerificationResult<T> verify_ffor(const size_t a_count,
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-      datageneration::generate_ffor_data<T>(use_random_data, temp_base),
+      data::lambda::get_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -139,7 +139,7 @@ verify_fastlanes_ffor(const size_t a_count, bool use_random_data) {
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-      datageneration::generate_ffor_data<T>(use_random_data, temp_base),
+      data::lambda::get_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -161,7 +161,7 @@ verify_ffor_against_fastlanes(const size_t a_count, bool use_random_data) {
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-      datageneration::generate_ffor_data<T>(use_random_data, temp_base),
+      data::lambda::get_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -183,7 +183,7 @@ verify_unffor_against_fastlanes(const size_t a_count, bool use_random_data) {
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-      datageneration::generate_ffor_data<T>(use_random_data, temp_base),
+      data::lambda::get_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
@@ -206,7 +206,7 @@ verification::VerificationResult<T> verify_gpu_unffor(const size_t a_count,
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-      datageneration::generate_ffor_data<T>(use_random_data, temp_base),
+      data::lambda::get_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 
@@ -214,7 +214,6 @@ template <typename T>
 verification::VerificationResult<T> verify_alp(const size_t a_count,
                                                bool use_random_data) {
   alp::AlpCompressionData<T> *alp_data_p = nullptr;
-  // TODO: Allocate all the necessary arrays in the alp_data structure
 
   auto compress_all =
       [&alp_data_p](const T *in, [[maybe_unused]] T *out, const size_t count,
@@ -231,20 +230,13 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
     delete alp_data_p;
   };
 
-  auto value_bit_width_differences =
-      std::vector<std::pair<int32_t, verification::Differences<T>>>();
-
-  auto result = verification::verify_conversion<T>(
-      a_count, 0,
-      datageneration::generate_falp_no_exceptions_data<T>(use_random_data),
-      compress_all, decompress_all);
-
-  if (result.size() != 0) {
-    value_bit_width_differences.push_back(
-        std::pair<int32_t, verification::Differences<T>>(0, result));
-  }
-
-  return value_bit_width_differences;
+  return verification::verify_all_value_bit_widths<T>(
+      a_count,
+      data::lambda::get_alp_data<T>(use_random_data),
+      compress_all,
+      decompress_all,
+			40); // After ~47 value bit width alp usually chooses to encode with RD
+					 // for safety we choose a max value bit width of 40
 }
 
 /*

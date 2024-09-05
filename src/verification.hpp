@@ -113,12 +113,12 @@ Differences<T> count_differences(const T *__restrict original,
 template <typename T>
 Differences<T>
 verify_conversion(const size_t count, const int32_t value_bit_width,
-                  const datageneration::DataGenerationLambda<T> generate_data,
+                  const data::lambda::DataGenerationLambda<T> generate_data,
                   const CompressAllVectorsLambda<T> compress,
                   const CompressAllVectorsLambda<T> decompress) {
   auto compressed_column =
-      datageneration::allocate_packed_column<T>(count, value_bit_width);
-  auto decompressed_column = datageneration::allocate_column<T>(count);
+      data::generation::allocate_packed_column<T>(count, value_bit_width);
+  auto decompressed_column = data::generation::allocate_column<T>(count);
   auto original = generate_data(count, value_bit_width);
 
   compress(original.get(), compressed_column.get(), count, value_bit_width);
@@ -132,19 +132,20 @@ verify_conversion(const size_t count, const int32_t value_bit_width,
 template <typename T>
 VerificationResult<T>
 verify_all_value_bit_widths(const size_t count,
-                            const datageneration::DataGenerationLambda<T> generate_data,
+                            const data::lambda::DataGenerationLambda<T> generate_data,
                             const CompressAllVectorsLambda<T> compress,
-                            const CompressAllVectorsLambda<T> decompress) {
+                            const CompressAllVectorsLambda<T> decompress,
+														const int32_t max_bit_width=0) {
   auto value_bit_width_differences =
       std::vector<std::pair<int32_t, Differences<T>>>();
   Differences<T> result;
-  [[maybe_unused]] int32_t max_bit_width = sizeof(T) * 8;
+  int32_t max_value_bit_width = max_bit_width == 0 ? sizeof(T) * 8 : max_bit_width;
 
 #ifdef VBW
   {
     int32_t value_bit_width = VBW;
 #else
-  for (int32_t value_bit_width = 1; value_bit_width <= max_bit_width;
+  for (int32_t value_bit_width = 1; value_bit_width <= max_value_bit_width;
        ++value_bit_width) {
 #endif
     result = verify_conversion(count, value_bit_width, generate_data, compress,

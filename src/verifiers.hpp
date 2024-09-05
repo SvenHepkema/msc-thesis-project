@@ -1,5 +1,5 @@
-#include "verification.hpp"
 #include "alp/alp-bindings.hpp"
+#include "verification.hpp"
 #include <cstdint>
 
 namespace verifiers {
@@ -44,7 +44,8 @@ verify_fastlanes_bitpacking(const size_t a_count, bool use_random_data) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_bitpacking_against_fastlanes(const size_t a_count, bool use_random_data) {
+verify_bitpacking_against_fastlanes(const size_t a_count,
+                                    bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
     cpu::bitpack<T>(in, out, static_cast<uint8_t>(value_bit_width));
@@ -63,7 +64,8 @@ verify_bitpacking_against_fastlanes(const size_t a_count, bool use_random_data) 
 
 template <typename T>
 verification::VerificationResult<T>
-verify_bitunpacking_against_fastlanes(const size_t a_count, bool use_random_data) {
+verify_bitunpacking_against_fastlanes(const size_t a_count,
+                                      bool use_random_data) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
     fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
@@ -121,8 +123,8 @@ verification::VerificationResult<T> verify_ffor(const size_t a_count,
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_fastlanes_ffor(const size_t a_count,
-                                                     bool use_random_data) {
+verification::VerificationResult<T>
+verify_fastlanes_ffor(const size_t a_count, bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
@@ -187,8 +189,8 @@ verify_unffor_against_fastlanes(const size_t a_count, bool use_random_data) {
 }
 
 template <typename T>
-verification::VerificationResult<T>
-verify_gpu_unffor(const size_t a_count, bool use_random_data) {
+verification::VerificationResult<T> verify_gpu_unffor(const size_t a_count,
+                                                      bool use_random_data) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
@@ -198,67 +200,83 @@ verify_gpu_unffor(const size_t a_count, bool use_random_data) {
   };
 
   auto decompress_all = [temp_base_p](const T *in, T *out, const size_t count,
-                           const int32_t value_bit_width) -> void {
+                                      const int32_t value_bit_width) -> void {
     gpu::unffor<T>(in, out, count, value_bit_width, temp_base_p);
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, verification::data::generate_ffor_data<T>(use_random_data, temp_base),
+      a_count,
+      verification::data::generate_ffor_data<T>(use_random_data, temp_base),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 
 template <typename T>
-verification::VerificationResult<T>
-verify_falp(const size_t a_count, bool use_random_data) {
-	alp::AlpCompressionData* alp_data;
-	// TODO: Allocate all the necessary arrays in the alp_data structure
+verification::VerificationResult<T> verify_alp(const size_t a_count,
+                                               bool use_random_data) {
+  alp::AlpCompressionData<T> *alp_data_p = nullptr;
+  // TODO: Allocate all the necessary arrays in the alp_data structure
 
-  auto compress_all = [alp_data](const T *in, T *out, const size_t count,
-                           const int32_t value_bit_width) -> void {
-		alp::int_encode(in, count, alp_data);
+  auto compress_all =
+      [&alp_data_p](const T *in, [[maybe_unused]] T *out, const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    alp_data_p = new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(in, count, alp_data_p);
   };
 
-  auto decompress_all = [alp_data](const T *in, T *out, const size_t count,
-                           const int32_t value_bit_width) -> void {
-		alp::int_decode(out, count, alp_data);
+  auto decompress_all =
+      [&alp_data_p]([[maybe_unused]] const T *in, T *out,
+                    [[maybe_unused]] const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    alp::int_decode<T>(out, alp_data_p);
+    delete alp_data_p;
   };
 
-	// TODO: Use other kind of verification function
-  return verification::verify_all_value_bit_widths<T>(
-      a_count, 
-			verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
+  auto value_bit_width_differences =
+      std::vector<std::pair<int32_t, verification::Differences<T>>>();
+
+  auto result = verification::verify_conversion<T>(
+      a_count, 0,
+      verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
       compress_all, decompress_all);
+
+  if (result.size() != 0) {
+    value_bit_width_differences.push_back(
+        std::pair<int32_t, verification::Differences<T>>(0, result));
+  }
+
+  return value_bit_width_differences;
 }
 
 /*
 template <typename T>
 verification::VerificationResult<T>
 verify_falp(const size_t a_count, bool use_random_data) {
-	void* alp_data;
+        void* alp_data;
 
   auto compress = [alp_data](const T *in, T *out,
                                 const int32_t value_bit_width) -> void {
-		alp::int_encode(alp_data);
+                alp::int_encode(alp_data);
   };
 
-	// By generating data that has 0 exceptions, the patching step should be 
-	// omissable. This is important to be able to test the GPU falp implementation
-	// in isolation.
+        // By generating data that has 0 exceptions, the patching step should be
+        // omissable. This is important to be able to test the GPU falp
+implementation
+        // in isolation.
   auto decompress_all = [alp_data](const T *in, T *out, const size_t count,
                            const int32_t value_bit_width) -> void {
-		alp::falp();
+                alp::falp();
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, 
-			verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
+      a_count,
+                        verification::data::generate_falp_no_exceptions_data<T>(use_random_data),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 */
 
 template <typename T>
 std::function<verification::VerificationResult<T>(const size_t, const bool)>
-get_verifier(const std::string name) {
+get_fls_verifier(const std::string name) {
   if (name == "bp") {
     return
         [](const size_t count,
@@ -278,11 +296,10 @@ get_verifier(const std::string name) {
           return verify_bitpacking_against_fastlanes<T>(count, use_random_data);
         };
   } else if (name == "flsbp_ubp") {
-    return
-        [](const size_t count,
-           const bool use_random_data) -> verification::VerificationResult<T> {
-          return verify_bitunpacking_against_fastlanes<T>(count, use_random_data);
-        };
+    return [](const size_t count, const bool use_random_data)
+               -> verification::VerificationResult<T> {
+      return verify_bitunpacking_against_fastlanes<T>(count, use_random_data);
+    };
   } else if (name == "gpu_bp") {
     return
         [](const size_t count,
@@ -320,7 +337,23 @@ get_verifier(const std::string name) {
           return verify_gpu_unffor<T>(count, use_random_data);
         };
   } else {
-    throw std::invalid_argument("This compression type is not supported");
+    throw std::invalid_argument(
+        "The verifier was not found for this compression type");
+  }
+}
+
+template <typename T>
+std::function<verification::VerificationResult<T>(const size_t, const bool)>
+get_alp_verifier(const std::string name) {
+  if (name == "alp") {
+    return
+        [](const size_t count,
+           const bool use_random_data) -> verification::VerificationResult<T> {
+          return verify_alp<T>(count, use_random_data);
+        };
+  } else {
+    throw std::invalid_argument(
+        "The verifier was not found for this compression type");
   }
 }
 } // namespace verifiers

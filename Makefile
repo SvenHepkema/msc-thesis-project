@@ -3,7 +3,7 @@ LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand
 CUDA_OBJ_FLAGS = $(INC) $(LIB) 
 OPTIMIZATION_LEVEL = -O3
 CLANG_FLAGS = -std=c++17 $(OPTIMIZATION_LEVEL) -g $(WARNINGS)
-WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded
+WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-float-equal
 
 # For the fast compilations:
 DATA_TYPE=uint32_t

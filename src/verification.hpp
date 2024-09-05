@@ -131,7 +131,7 @@ generate_falp_no_exceptions_data([[maybe_unused]] const bool use_random_data) {
       typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
 
   return [](size_t count, [[maybe_unused]] int32_t value_bit_width)
-             -> std::unique_ptr<double> {
+             -> std::unique_ptr<T> {
     return data::cast_column<INT_T, T>(
         data::generate_random_column<INT_T>(count, INT_T{0}, INT_T{1}), count);
   };

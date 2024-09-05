@@ -1,43 +1,92 @@
+#include <cstdint>
+#include <cstdio>
 #include <stdexcept>
 
-#include "alp-bindings.hpp"
 #include "../fls/compression.hpp"
+#include "../utils.hpp"
+#include "alp-bindings.hpp"
 #include "decode.hpp"
 #include "encode.hpp"
 #include "falp.hpp"
 #include "rd.hpp"
+#include "state.hpp"
 
 namespace alp {
 
-void int_encode(const double *input_array, const size_t count,
-                AlpCompressionData *data) {
-  alp::AlpEncode<double>::init(input_array, data->rowgroup_offset, count,
-                               data->sample_array, data->state);
-  alp::AlpEncode<double>::encode(
-      input_array, data->exceptions_array, data->exceptions_position_array,
-      data->exceptions_count_array, data->encoded_array, data->state);
-  alp::AlpEncode<double>::analyze_ffor(data->encoded_array, data->bit_width,
-                                       data->ffor_base_array);
-  fls::ffor(data->encoded_array, data->ffor_array, data->bit_width,
-             data->ffor_base_array);
+template <typename T>
+void int_encode(const T *input_array, const size_t count,
+                AlpCompressionData<T> *data) {
+  using INT_T =
+      typename std::conditional<sizeof(T) == 4, int32_t, int64_t>::type;
+  using UINT_T =
+      typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
+
+  const size_t n_vecs = utils::get_n_vecs_from_size(count);
+
+  T *sample_array = new double[count];
+  state alpstate;
+  alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
+                          sample_array, alpstate);
+  delete[] sample_array;
+
+  INT_T *encoded_array = new INT_T[count];
+
+  for (size_t i{0}; i < n_vecs; i++) {
+    alp::AlpEncode<T>::encode(input_array, data->exceptions.exceptions,
+                              data->exceptions.positions,
+                              data->exceptions.counts, encoded_array, alpstate);
+		
+		data->exponents[i] = alpstate.exp;
+		data->factors[i] = alpstate.fac;
+
+    alp::AlpEncode<T>::analyze_ffor(
+        encoded_array, data->bit_widths[i],
+        reinterpret_cast<INT_T *>(&data->ffor_bases[i]));
+
+    fls::ffor(reinterpret_cast<UINT_T *>(encoded_array), data->ffor_array,
+              data->bit_widths[i], &data->ffor_bases[i]);
+
+    encoded_array += consts::VALUES_PER_VECTOR;
+    data->exceptions.add_offset(consts::VALUES_PER_VECTOR);
+    data->ffor_array += consts::VALUES_PER_VECTOR;
+    input_array += consts::VALUES_PER_VECTOR;
+  }
+
+  data->exceptions.add_offset(-static_cast<int64_t>(consts::VALUES_PER_VECTOR * n_vecs));
+  data->ffor_array -= consts::VALUES_PER_VECTOR * n_vecs;
+  encoded_array -= consts::VALUES_PER_VECTOR * n_vecs;
+  delete[] encoded_array;
 }
 
-void int_decode(double *output_array, AlpCompressionData *data) {
-  generated::falp::fallback::scalar::falp(
-      reinterpret_cast<uint64_t *>(data->ffor_array), output_array,
-      data->bit_width, reinterpret_cast<uint64_t *>(data->ffor_base_array),
-      data->state.fac, data->state.exp);
-  alp::AlpDecode<double>::patch_exceptions(output_array, data->exceptions_array,
-                                           data->exceptions_position_array,
-                                           data->exceptions_count_array);
+template <typename T>
+void int_decode(T *output_array, AlpCompressionData<T> *data) {
+  const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
+
+  for (size_t i{0}; i < n_vecs; i++) {
+    generated::falp::fallback::scalar::falp(
+        data->ffor_array, output_array, data->bit_widths[i],
+        &data->ffor_bases[i], data->factors[i], data->exponents[i]);
+
+		output_array += consts::VALUES_PER_VECTOR;
+		data->ffor_array += consts::VALUES_PER_VECTOR;
+    /* INFO Currently left out as (patching) exceptions is not yet supported
+alp::AlpDecode<T>::patch_exceptions(
+output_array, data->exceptions.exceptions, data->exceptions.positions,
+data->exceptions.counts);
+    */
+  }
+
+	data->ffor_array -= consts::VALUES_PER_VECTOR * n_vecs;
 }
-
-void rd_encode() { throw std::logic_error("Not implemented yet"); }
-
-void rd_decode() { throw std::logic_error("Not implemented yet"); }
-
-void encode() { throw std::logic_error("Not implemented yet"); }
-
-void decode() { throw std::logic_error("Not implemented yet"); }
 
 } // namespace alp
+
+// template
+// void alp::int_encode(float *output_array, alp::AlpCompressionData<float>
+// *data); template void alp::int_decode(float *output_array,
+// alp::AlpCompressionData<float> *data);
+template void alp::int_encode<double>(const double *input_array,
+                                      const size_t count,
+                                      alp::AlpCompressionData<double> *data);
+template void alp::int_decode<double>(double *output_array,
+                                      alp::AlpCompressionData<double> *data);

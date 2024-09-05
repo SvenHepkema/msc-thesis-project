@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstddef>
 #include "consts.hpp"
 
 #ifndef FASTLANES_UTILS_H
@@ -30,6 +31,10 @@ template <typename T> constexpr int32_t get_values_per_lane() {
 template <typename T>
 constexpr int32_t get_compressed_vector_size(int32_t value_bit_width) {
   return (consts::VALUES_PER_VECTOR * value_bit_width) / sizeof_in_bits<T>();
+}
+
+constexpr size_t get_n_vecs_from_size(const size_t size) {
+	return (size + consts::VALUES_PER_VECTOR - 1) / consts::VALUES_PER_VECTOR;
 }
 
 } // namespace utils

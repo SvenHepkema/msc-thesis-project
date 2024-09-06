@@ -20,30 +20,30 @@
 
 template <typename T> class GPUArray {
 private:
-  size_t size;
+  size_t count;
   T *device_p = nullptr;
 
   void allocate() {
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void **>(&device_p), size));
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void **>(&device_p), count * sizeof(T)));
   }
 
 public:
-  GPUArray(const size_t a_size) {
-    size = a_size;
+  GPUArray(const size_t a_count) {
+    count = a_count;
     allocate();
   }
 
-  GPUArray(const size_t a_size, const T *host_p) {
-    size = a_size;
+  GPUArray(const size_t a_count, const T *host_p) {
+    count = a_count;
     allocate();
-    CUDA_SAFE_CALL(cudaMemcpy(device_p, host_p, size, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(device_p, host_p, count * sizeof(T), cudaMemcpyHostToDevice));
   }
 
   void copy_to_host(T *host_p) {
-    CUDA_SAFE_CALL(cudaMemcpy(host_p, device_p, size, cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(cudaMemcpy(host_p, device_p, count * sizeof(T), cudaMemcpyDeviceToHost));
   }
 
-  T *get_pointer() { return device_p; }
+  T *get() { return device_p; }
 
   ~GPUArray() {
     if (device_p != nullptr) {
@@ -51,5 +51,6 @@ public:
     }
   }
 };
+
 
 #endif // GPU_UTILS_H

@@ -4,6 +4,9 @@
 #include "../consts.hpp"
 #include "../utils.hpp"
 
+#ifndef FLS_GLOBAL_CUH
+#define FLS_GLOBAL_CUH
+
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack_global(const T *__restrict in, T *__restrict out,
                                  int32_t value_bit_width) {
@@ -53,3 +56,5 @@ __global__ void unffor_global(const T *__restrict in, T *__restrict out,
     out += UNPACK_N_VALUES * N_LANES;
   }
 }
+
+#endif // FLS_GLOBAL_CUH

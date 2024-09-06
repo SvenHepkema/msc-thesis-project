@@ -1,6 +1,12 @@
-#include "alp/alp-bindings.hpp"
-#include "verification.hpp"
 #include <cstdint>
+
+#include "verification.hpp"
+
+#include "cpu/fls.hpp"
+#include "fls/compression.hpp"
+#include "alp/alp-bindings.hpp"
+#include "gpu/gpu-bindings-fls.hpp"
+#include "gpu/gpu-bindings-alp.hpp"
 
 namespace verifiers {
 
@@ -239,32 +245,34 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
 					 // for safety we choose a max value bit width of 40
 }
 
-/*
 template <typename T>
-verification::VerificationResult<T>
-verify_falp(const size_t a_count, bool use_random_data) {
-        void* alp_data;
+verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
+                                               bool use_random_data) {
+  alp::AlpCompressionData<T> *alp_data_p = nullptr;
 
-  auto compress = [alp_data](const T *in, T *out,
-                                const int32_t value_bit_width) -> void {
-                alp::int_encode(alp_data);
+  auto compress_all =
+      [&alp_data_p](const T *in, [[maybe_unused]] T *out, const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    alp_data_p = new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(in, count, alp_data_p);
   };
 
-        // By generating data that has 0 exceptions, the patching step should be
-        // omissable. This is important to be able to test the GPU falp
-implementation
-        // in isolation.
-  auto decompress_all = [alp_data](const T *in, T *out, const size_t count,
-                           const int32_t value_bit_width) -> void {
-                alp::falp();
+  auto decompress_all =
+      [&alp_data_p]([[maybe_unused]] const T *in, T *out,
+                    [[maybe_unused]] const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    gpu::alp<T>(out, alp_data_p);
+    delete alp_data_p;
   };
 
   return verification::verify_all_value_bit_widths<T>(
       a_count,
-                        datageneration::generate_falp_no_exceptions_data<T>(use_random_data),
-      verification::apply_compression_to_all<T>(compress), decompress_all);
+      data::lambda::get_alp_data<T>(use_random_data),
+      compress_all,
+      decompress_all,
+			40); // After ~47 value bit width alp usually chooses to encode with RD
+					 // for safety we choose a max value bit width of 40
 }
-*/
 
 template <typename T>
 std::function<verification::VerificationResult<T>(const size_t, const bool)>
@@ -342,6 +350,12 @@ get_alp_verifier(const std::string name) {
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
           return verify_alp<T>(count, use_random_data);
+        };
+	} else if (name == "gpu_alp") {
+    return
+        [](const size_t count,
+           const bool use_random_data) -> verification::VerificationResult<T> {
+          return verify_gpu_alp<T>(count, use_random_data);
         };
   } else {
     throw std::invalid_argument(

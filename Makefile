@@ -27,13 +27,16 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/gpu.o: src/gpu/gpu-bindings-fls.cu
+obj/gpu-fls.o: src/gpu/gpu-bindings-fls.cu
+	nvcc $(CUDA_FLAGS) -c -o $@ $<
+
+obj/gpu-alp.o: src/gpu/gpu-bindings-alp.cu obj/gpu-fls.o
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables
 
 HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
-SOURCE_FILES=src/main.cpp obj/gpu.o $(FLS_OBJ) $(CPU_OBJ) $(ALP_OBJ)
+SOURCE_FILES=src/main.cpp obj/gpu-fls.o obj/gpu-alp.o $(FLS_OBJ) $(CPU_OBJ) $(ALP_OBJ)
 
 fast: $(SOURCE_FILES) $(HEADER_FILES)
 	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)

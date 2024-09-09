@@ -15,6 +15,12 @@
 
 namespace alp {
 
+template<typename T>
+struct AlpVecExceptions {
+  T *exceptions;
+  uint16_t *positions;
+  uint16_t *count;
+};
 
 template<typename T>
 struct AlpExceptions {
@@ -23,16 +29,19 @@ struct AlpExceptions {
   uint16_t *positions;
 
 	AlpExceptions<T>(const size_t size) {
+		const size_t n_vecs = utils::get_n_vecs_from_size(size);
 		// TODO: This should not allocate the maximum number of exceptions
 		exceptions = new double[size];
 		positions = new uint16_t[size];
-		counts = new uint16_t[size];
+		counts = new uint16_t[n_vecs];
 	}
 
-	void add_offset(const int64_t offset) {
-		exceptions += offset;
-		positions += offset;
-		counts += offset;
+	AlpVecExceptions<T> get_exceptions_for_vec(const int64_t vec_index) {
+		return AlpVecExceptions<T> {
+			exceptions + vec_index * 1024,
+			positions + vec_index * 1024,
+			counts + vec_index,
+		};
 	}
 
 	~AlpExceptions<T>() { 

@@ -88,6 +88,9 @@ void int_encode(const T *input_array, const size_t count,
 template<typename T>
 void int_decode(T *output_array, AlpCompressionData<T> *data);
 
+template<typename T>
+void patch_exceptions(T *output_array, AlpCompressionData<T> *data);
+
 /*
 // falp step
 // void falp();
@@ -110,9 +113,5 @@ void decode();
 
 } // namespace alp
 	
-//extern template
-//void alp::int_decode(float *output_array, alp::AlpCompressionData<float> *data);
-extern template
-void alp::int_decode<double>(double *output_array, alp::AlpCompressionData<double> *data);
 
 #endif // ALP_BINDINGS_HPP

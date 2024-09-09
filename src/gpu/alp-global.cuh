@@ -9,7 +9,7 @@
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
-__global__ void alp_global(double *out, AlpData<T> data) {
+__global__ void alp_global(double *out, AlpColumn<T> data) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
@@ -25,7 +25,7 @@ __global__ void alp_global(double *out, AlpData<T> data) {
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     alp_vector<UINT_T, T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                     UNPACK_N_VALUES>(out, data, vector_index, lane, i);
+                     UNPACK_N_VALUES>(out, data, block_index, lane, i);
     out += UNPACK_N_VALUES * N_LANES;
   }
 }

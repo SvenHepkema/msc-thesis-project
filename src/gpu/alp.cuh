@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdio>
 #include <type_traits>
 
 #include "../alp/constants.hpp"
@@ -7,7 +8,7 @@
 #ifndef ALP_CUH
 #define ALP_CUH
 
-template <typename T> struct AlpData {
+template <typename T> struct AlpColumn {
   using UINT_T =
       typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
   UINT_T *ffor_array;
@@ -45,7 +46,7 @@ __host__ void load_alp_constants() {
 // WARNING
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void alp_vector(T_out *__restrict out, const AlpData<T_out> data,
+__device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
                            const uint16_t vector_index, const uint16_t lane,
                            const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
@@ -56,12 +57,13 @@ __device__ void alp_vector(T_out *__restrict out, const AlpData<T_out> data,
   using INT_T =
       typename std::conditional<sizeof(T_out) == 4, int32_t, int64_t>::type;
 
-	T_in* in = data.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-	uint16_t value_bit_width = data.bit_widths[vector_index];
-  T_in base = data.ffor_bases[vector_index];
-  INT_T factor = constant_memory::FACT_ARR[data.factors[vector_index]];
-  T_out frac10 = constant_memory::FRAC_ARR_D[data.exponents[vector_index]]; // WARNING TODO implement a
-                                                   // switch to grab float array
+  T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
+  uint16_t value_bit_width = column.bit_widths[vector_index];
+  T_in base = column.ffor_bases[vector_index];
+  INT_T factor = constant_memory::FACT_ARR[column.factors[vector_index]];
+  T_out frac10 = constant_memory::FRAC_ARR_D
+      [column.exponents[vector_index]]; // WARNING TODO implement a
+                                      // switch to grab float array
   auto lambda = [base, factor, frac10](const T_in value) -> T_out {
     return T_out{(value + base) * factor} * frac10;
   };

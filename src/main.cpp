@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
   if (args.compression_type == "fls") {
 #ifdef DATA_TYPE
-    return run_fls_verification<DATA_TYPE>(args);
+    // return run_fls_verification<DATA_TYPE>(args);
 #else
     switch (args.lane_width) {
     case 64: {

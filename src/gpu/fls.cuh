@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <cstdint>
+#include <cstdio>
 #include <type_traits>
 
 #include "../utils.hpp"

@@ -99,6 +99,25 @@ void int_decode(T *output_array, AlpCompressionData<T> *data) {
   data->ffor_array -= consts::VALUES_PER_VECTOR * n_vecs;
 }
 
+template<typename T>
+void patch_exceptions(T *output_array, AlpCompressionData<T> *data) {
+  const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
+
+  for (size_t i{0}; i < n_vecs; i++) {
+    alp::AlpDecode<T>::patch_exceptions(
+        output_array, data->exceptions.exceptions, data->exceptions.positions,
+        data->exceptions.counts);
+
+    output_array += consts::VALUES_PER_VECTOR;
+    data->ffor_array += consts::VALUES_PER_VECTOR;
+    data->exceptions.add_offset(consts::VALUES_PER_VECTOR);
+  }
+
+  data->exceptions.add_offset(
+      -static_cast<int64_t>(consts::VALUES_PER_VECTOR * n_vecs));
+  data->ffor_array -= consts::VALUES_PER_VECTOR * n_vecs;
+}
+
 } // namespace alp
 
 // template
@@ -109,4 +128,6 @@ template void alp::int_encode<double>(const double *input_array,
                                       const size_t count,
                                       alp::AlpCompressionData<double> *data);
 template void alp::int_decode<double>(double *output_array,
+                                      alp::AlpCompressionData<double> *data);
+template void alp::patch_exceptions<double>(double *output_array,
                                       alp::AlpCompressionData<double> *data);

@@ -2,11 +2,10 @@
 #include <cstdint>
 
 #include "../consts.hpp"
-#include "alp.cuh"
 #include "alp-global.cuh"
+#include "alp.cuh"
 #include "gpu-bindings-alp.hpp"
 #include "gpu-utils.cuh"
-
 
 namespace gpu {
 
@@ -26,10 +25,15 @@ void alp(T *__restrict out, const alp::AlpCompressionData<T> *data) {
   GPUArray<uint8_t> d_exponents(n_vecs, data->exponents);
   GPUArray<uint8_t> d_factors(n_vecs, data->factors);
 
-  AlpColumn<T> alp_data = {d_ffor_array.get(), d_ffor_bases.get(),
-                         d_bit_widths.get(), d_exponents.get(),
-                         d_factors.get()};
-	constant_memory::load_alp_constants();
+  GPUArray<T> d_exceptions(count, data->exceptions.exceptions);
+  GPUArray<uint16_t> d_exception_positions(count, data->exceptions.positions);
+  GPUArray<uint16_t> d_exception_counts(n_vecs, data->exceptions.counts);
+
+  AlpColumn<T> alp_data = {
+      d_ffor_array.get(),          d_ffor_bases.get(),      d_bit_widths.get(),
+      d_exponents.get(),           d_factors.get(),         d_exceptions.get(),
+      d_exception_positions.get(), d_exception_counts.get()};
+  constant_memory::load_alp_constants();
 
   alp_global<T, UINT_T, 1, utils::get_values_per_lane<T>()>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);

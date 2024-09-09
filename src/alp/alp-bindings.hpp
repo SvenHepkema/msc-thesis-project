@@ -97,16 +97,8 @@ void int_encode(const T *input_array, const size_t count,
 template<typename T>
 void int_decode(T *output_array, AlpCompressionData<T> *data);
 
-template<typename T>
-void patch_exceptions(T *output_array, AlpCompressionData<T> *data);
 
 /*
-// falp step
-// void falp();
-
-// patching step
-// void patch_exceptions();
-
 // Rd ALP encoding
 void rd_encode();
 

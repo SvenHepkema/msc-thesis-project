@@ -262,7 +262,6 @@ verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
                     [[maybe_unused]] const size_t count,
                     [[maybe_unused]] const int32_t value_bit_width) -> void {
     gpu::alp<T>(out, alp_data_p);
-    alp::patch_exceptions<T>(out, alp_data_p);
     delete alp_data_p;
   };
 

@@ -16,6 +16,10 @@ template <typename T> struct AlpColumn {
   uint8_t *bit_widths;
   uint8_t *exponents;
   uint8_t *factors;
+
+  T *exceptions;
+  uint16_t *positions;
+  uint16_t *counts;
 };
 
 namespace constant_memory {
@@ -37,6 +41,7 @@ __host__ void load_alp_constants() {
 // WARNING
 // WARNING
 // TODO WARNING IS IT NOT FASTER TO PASS THESE ARGUMENTS IN FULL WIDTH?
+
 // SO uint8_T -> uint32_t (if it gets multiplied with 32) This saves a cast
 // in each kernel, and we do not care how big parameters are, as they are
 // passed via const
@@ -63,13 +68,30 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
   INT_T factor = constant_memory::FACT_ARR[column.factors[vector_index]];
   T_out frac10 = constant_memory::FRAC_ARR_D
       [column.exponents[vector_index]]; // WARNING TODO implement a
-                                      // switch to grab float array
+                                        // compile time switch to grab float
+                                        // array
   auto lambda = [base, factor, frac10](const T_in value) -> T_out {
     return T_out{(value + base) * factor} * frac10;
   };
 
   unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
+
+  // Patch exceptions
+  auto n_lanes = utils::get_n_lanes<INT_T>();
+  auto exceptions_count = column.counts[vector_index];
+
+  auto vec_exceptions =
+      column.exceptions + consts::VALUES_PER_VECTOR * vector_index;
+  auto vec_exceptions_positions =
+      column.positions + consts::VALUES_PER_VECTOR * vector_index;
+  for (int i{lane}; i < exceptions_count; i += n_lanes) {
+    // WARNING Currently assumes that you are decoding an entire vector
+    // TODO Implement an if (position > startindex && position < (start_index +
+    // UNPACK_N_VALUES * n_lanes) {...}
+    auto position = vec_exceptions_positions[i];
+    out[position] = vec_exceptions[i];
+  }
 }
 
 #endif // ALP_CUH

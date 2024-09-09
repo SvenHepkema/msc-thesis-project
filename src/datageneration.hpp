@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -87,6 +88,9 @@ std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
   T max_base = max_value * 100;
   auto base_generator = get_random_number_generator<T>(0, max_base);
 
+  auto exception_picker = get_random_number_generator<int32_t>(0, 30);
+  auto exception_generator = get_random_number_generator<int32_t>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+
   auto column_p = column.get();
 
   T base = base_generator();
@@ -95,7 +99,12 @@ std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
       base = base_generator();
     }
 
-    column_p[i] += base;
+		if (exception_picker() == 0) {
+			column_p[i] = exception_generator();
+		}
+		else {
+			column_p[i] += base;
+		}
   }
 
   return column;

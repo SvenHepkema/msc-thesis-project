@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "../common/consts.hpp"
+#include "../common/utils.hpp"
 #include "alp-global.cuh"
 #include "alp.cuh"
 #include "gpu-bindings-alp.hpp"
@@ -11,17 +12,17 @@ namespace gpu {
 
 template <typename T>
 void alp(T *__restrict out, const alp::AlpCompressionData<T> *data) {
-  using UINT_T =
-      typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_blocks = n_vecs;
 
   GPUArray<T> d_out(count);
-  GPUArray<UINT_T> d_ffor_array(count, data->ffor_array);
+  GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
 
-  GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor_bases);
-  GPUArray<uint8_t> d_bit_widths(n_vecs, data->bit_widths);
+  GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
+  GPUArray<uint8_t> d_bit_widths(n_vecs, data->ffor.bit_widths);
   GPUArray<uint8_t> d_exponents(n_vecs, data->exponents);
   GPUArray<uint8_t> d_factors(n_vecs, data->factors);
 

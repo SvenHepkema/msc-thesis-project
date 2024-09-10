@@ -1,4 +1,4 @@
-COMPRESSIONS_TO_VERIFY="alp gpu_alp"
+COMPRESSIONS_TO_VERIFY="alp alprd gpu_alp"
 LOG_FILE=/tmp/log
 parallel --joblog $LOG_FILE ./bin/executable alp 1024 {1} {2} {3} 1 0 ::: 64 ::: $COMPRESSIONS_TO_VERIFY  2> /dev/null
 ./print-joblog.sh

@@ -1,11 +1,11 @@
 #include <algorithm>
-#include <limits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <random>
 #include <stdexcept>
@@ -57,9 +57,43 @@ std::function<T()> get_random_number_generator(const T min, const T max) {
 }
 
 template <typename T>
+std::function<T()> get_random_floating_point_generator(const T min, const T max,
+                                                       const int32_t decimals) {
+  using INT_T = typename utils::same_width_int<T>::type;
+
+  std::random_device random_device;
+  std::default_random_engine random_engine(random_device());
+  std::uniform_int_distribution<INT_T> integer_distribution(
+      static_cast<INT_T>(min + 1.0), static_cast<INT_T>(max - 1.0));
+  std::uniform_int_distribution<INT_T> decimal_distribution(
+      0, static_cast<INT_T>(std::pow(10, decimals)));
+
+  auto integer_generator = std::bind(integer_distribution, random_engine);
+  auto decimal_generator = std::bind(decimal_distribution, random_engine);
+  double multiplier = T{std::pow(10, -decimals)};
+
+  return [&integer_generator, &decimal_generator, multiplier]() {
+    return static_cast<T>(integer_generator()) +
+           static_cast<T>(decimal_generator()) * multiplier;
+  };
+}
+
+template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 void generate_random_data(T *data, const size_t count, const T min,
                           const T max) {
   auto generate_random_number = get_random_number_generator<T>(min, max);
+
+  for (size_t i = 0; i < count; ++i) {
+    data[i] = generate_random_number();
+  }
+}
+
+template <typename T,
+          std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
+void generate_random_data(T *data, const size_t count, const T min,
+                          const T max) {
+  auto generate_random_number =
+      get_random_floating_point_generator<T>(min, max, 10);
 
   for (size_t i = 0; i < count; ++i) {
     data[i] = generate_random_number();
@@ -82,13 +116,14 @@ std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
   T max_value = utils::set_first_n_bits<T>(value_bit_width);
   auto column = generate_random_column<T>(count, 0, max_value);
 
-  //int32_t left_over_bits = int32_t{sizeof(T)} * 8 - value_bit_width;
-	//T max_base = utils::set_first_n_bits<T>(left_over_bits);
+  // int32_t left_over_bits = int32_t{sizeof(T)} * 8 - value_bit_width;
+  // T max_base = utils::set_first_n_bits<T>(left_over_bits);
   T max_base = max_value * 100;
   auto base_generator = get_random_number_generator<T>(0, max_base);
 
   auto exception_picker = get_random_number_generator<int32_t>(0, 30);
-  auto exception_generator = get_random_number_generator<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+  auto exception_generator = get_random_number_generator<T>(
+      std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 
   auto column_p = column.get();
 
@@ -98,12 +133,43 @@ std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
       base = base_generator();
     }
 
-		if (exception_picker() == 0) {
-			column_p[i] = exception_generator();
-		}
-		else {
-			column_p[i] += base;
-		}
+    if (exception_picker() == 0) {
+      column_p[i] = exception_generator();
+    } else {
+      column_p[i] += base;
+    }
+  }
+
+  return column;
+}
+
+template <typename T>
+std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  auto column = generate_random_column<T>(count, 0, 100.0);
+
+  auto base_generator = get_random_number_generator<UINT_T>(0.0, 1000000.0);
+
+  const auto exceptions_per_vector = 30;
+  auto exception_picker =
+      get_random_number_generator<int32_t>(0, consts::VALUES_PER_VECTOR);
+  auto exception_generator = generation::get_random_floating_point_generator(
+      std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), 10);
+
+  auto column_p = column.get();
+
+  T base = static_cast<double>(base_generator());
+  for (size_t i{0}; i < count; ++i) {
+    if (i % consts::VALUES_PER_VECTOR == 0) {
+      base = static_cast<double>(base_generator());
+    }
+
+    if (exception_picker() < exceptions_per_vector) {
+      column_p[i] = exception_generator();
+    } else {
+      column_p[i] += static_cast<double>(base);
+    }
   }
 
   return column;
@@ -174,14 +240,25 @@ DataGenerationLambda<T>
 get_alp_data([[maybe_unused]] const bool use_random_data) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-  using INT_T =
-      typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
+  using INT_T = typename utils::same_width_int<T>::type;
 
   return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
     return generation::cast_column<INT_T, T>(
         generation::generate_ffor_column_with_different_bases_per_vector<INT_T>(
             count, value_bit_width),
         count);
+  };
+}
+
+template <typename T>
+DataGenerationLambda<T>
+get_alprd_data([[maybe_unused]] const bool use_random_data) {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "T should be float or double");
+
+  return [](size_t count,
+            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
+    return generation::generate_ffor_column_with_real_doubles<T>(count);
   };
 }
 

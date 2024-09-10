@@ -3,14 +3,15 @@
 #include <type_traits>
 
 #include "../alp/constants.hpp"
+#include "../common/utils.hpp"
 #include "../gpu-fls/fls.cuh"
 
 #ifndef ALP_CUH
 #define ALP_CUH
 
 template <typename T> struct AlpColumn {
-  using UINT_T =
-      typename std::conditional<sizeof(T) == 4, uint32_t, uint64_t>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
   UINT_T *ffor_array;
   UINT_T *ffor_bases;
   uint8_t *bit_widths;
@@ -59,8 +60,7 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
                     (std::is_same<T_in, uint64_t>::value &&
                      std::is_same<T_out, double>::value),
                 "Wrong type arguments");
-  using INT_T =
-      typename std::conditional<sizeof(T_out) == 4, int32_t, int64_t>::type;
+  using INT_T = typename utils::same_width_int<T_out>::type;
 
   T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
   uint16_t value_bit_width = column.bit_widths[vector_index];

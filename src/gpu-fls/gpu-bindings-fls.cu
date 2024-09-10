@@ -1,10 +1,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../consts.hpp"
+#include "../common/consts.hpp"
 #include "fls-global.cuh"
 #include "gpu-bindings-fls.hpp"
-#include "gpu-utils.cuh"
+#include "../gpu-common/gpu-utils.cuh"
 
 namespace gpu {
 template <typename T>

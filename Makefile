@@ -13,12 +13,12 @@ COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
 
 
-CPU_OBJ := $(patsubst src/cpu/%.cpp, obj/cpu-%.o, $(wildcard src/cpu/*.cpp))
+CPU_OBJ := $(patsubst src/cpu-fls/%.cpp, obj/cpu-fls-%.o, $(wildcard src/cpu-fls/*.cpp))
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))
 
 # OBJ Files
-obj/cpu-%.o: src/cpu/%.cpp
+obj/cpu-fls-%.o: src/cpu-fls/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
 obj/fls-%.o: src/fls/%.cpp
@@ -27,10 +27,10 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/gpu-fls.o: src/gpu/gpu-bindings-fls.cu
+obj/gpu-fls.o: src/gpu-fls/gpu-bindings-fls.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
-obj/gpu-alp.o: src/gpu/gpu-bindings-alp.cu obj/gpu-fls.o
+obj/gpu-alp.o: src/gpu-alp/gpu-bindings-alp.cu obj/gpu-fls.o
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables

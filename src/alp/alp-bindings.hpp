@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "../utils.hpp"
+#include "../common/utils.hpp"
 // WARNING The original ALP repo contains code that triggers warnings if all
 // warnings are turned off. To make sure these warnings do not show up when the
 // alp directory itself is not recompiled, I added this pragma to show it as a

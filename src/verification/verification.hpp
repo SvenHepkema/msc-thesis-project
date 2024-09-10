@@ -11,10 +11,10 @@
 #include <type_traits>
 #include <vector>
 
-#include "cpu/fls.hpp"
+#include "../cpu-fls/fls.hpp"
 #include "datageneration.hpp"
-#include "fls/compression.hpp"
-#include "gpu/gpu-bindings-fls.hpp"
+#include "../fls/compression.hpp"
+#include "../gpu-fls/gpu-bindings-fls.hpp"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H

@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "verification.hpp"
-#include "verifiers.hpp"
+#include "verification/verification.hpp"
+#include "verification/verifiers.hpp"
 
 struct CLIArgs {
 	std::string compression_type;

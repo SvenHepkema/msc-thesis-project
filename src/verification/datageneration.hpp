@@ -13,9 +13,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "cpu/fls.hpp"
-#include "fls/compression.hpp"
-#include "gpu/gpu-bindings-fls.hpp"
+#include "../common/consts.hpp"
+#include "../common/utils.hpp"
 
 #ifndef DATAGENERATION_H
 #define DATAGENERATION_H

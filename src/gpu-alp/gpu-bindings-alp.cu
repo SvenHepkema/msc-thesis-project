@@ -1,11 +1,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../consts.hpp"
+#include "../common/consts.hpp"
 #include "alp-global.cuh"
 #include "alp.cuh"
 #include "gpu-bindings-alp.hpp"
-#include "gpu-utils.cuh"
+#include "../gpu-common/gpu-utils.cuh"
 
 namespace gpu {
 

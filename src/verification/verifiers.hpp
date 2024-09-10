@@ -2,11 +2,11 @@
 
 #include "verification.hpp"
 
-#include "cpu/fls.hpp"
-#include "fls/compression.hpp"
-#include "alp/alp-bindings.hpp"
-#include "gpu/gpu-bindings-fls.hpp"
-#include "gpu/gpu-bindings-alp.hpp"
+#include "../cpu-fls/fls.hpp"
+#include "../fls/compression.hpp"
+#include "../alp/alp-bindings.hpp"
+#include "../gpu-fls/gpu-bindings-fls.hpp"
+#include "../gpu-alp/gpu-bindings-alp.hpp"
 
 namespace verifiers {
 

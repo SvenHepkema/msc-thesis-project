@@ -3,7 +3,7 @@
 #include <type_traits>
 
 #include "../alp/constants.hpp"
-#include "fls.cuh"
+#include "../gpu-fls/fls.cuh"
 
 #ifndef ALP_CUH
 #define ALP_CUH

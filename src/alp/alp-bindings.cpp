@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include "../fls/compression.hpp"
-#include "../utils.hpp"
+#include "../common/utils.hpp"
 #include "alp-bindings.hpp"
 #include "decode.hpp"
 #include "encode.hpp"

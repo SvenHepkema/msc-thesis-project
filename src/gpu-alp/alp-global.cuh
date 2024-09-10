@@ -1,8 +1,7 @@
 #include "alp.cuh"
 #include "gpu-bindings-alp.hpp"
 
-#include "../consts.hpp"
-#include "../utils.hpp"
+#include "../common/utils.hpp"
 
 #ifndef ALP_GLOBAL_CUH
 #define ALP_GLOBAL_CUH

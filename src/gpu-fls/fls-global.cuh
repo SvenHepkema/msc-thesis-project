@@ -1,8 +1,8 @@
 #include "fls.cuh"
 #include "gpu-bindings-fls.hpp"
 
-#include "../consts.hpp"
-#include "../utils.hpp"
+#include "../common/consts.hpp"
+#include "../common/utils.hpp"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH

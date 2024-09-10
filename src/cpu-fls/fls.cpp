@@ -3,7 +3,7 @@
 #include <functional>
 #include <type_traits>
 
-#include "../utils.hpp"
+#include "../common/utils.hpp"
 #include "fls.hpp"
 
 namespace compression {

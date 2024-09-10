@@ -88,7 +88,7 @@ std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
   auto base_generator = get_random_number_generator<T>(0, max_base);
 
   auto exception_picker = get_random_number_generator<int32_t>(0, 30);
-  auto exception_generator = get_random_number_generator<int32_t>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+  auto exception_generator = get_random_number_generator<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 
   auto column_p = column.get();
 

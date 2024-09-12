@@ -57,25 +57,12 @@ std::function<T()> get_random_number_generator(const T min, const T max) {
 }
 
 template <typename T>
-std::function<T()> get_random_floating_point_generator(const T min, const T max,
-                                                       const int32_t decimals) {
-  using INT_T = typename utils::same_width_int<T>::type;
-
+std::function<T()> get_random_floating_point_generator(const T min, const T max) {
   std::random_device random_device;
   std::default_random_engine random_engine(random_device());
-  std::uniform_int_distribution<INT_T> integer_distribution(
-      static_cast<INT_T>(min + 1.0), static_cast<INT_T>(max - 1.0));
-  std::uniform_int_distribution<INT_T> decimal_distribution(
-      0, static_cast<INT_T>(std::pow(10, decimals)));
+  std::uniform_real_distribution<T> uniform_dist(min, max);
 
-  auto integer_generator = std::bind(integer_distribution, random_engine);
-  auto decimal_generator = std::bind(decimal_distribution, random_engine);
-  double multiplier = T{std::pow(10, -decimals)};
-
-  return [&integer_generator, &decimal_generator, multiplier]() {
-    return static_cast<T>(integer_generator()) +
-           static_cast<T>(decimal_generator()) * multiplier;
-  };
+  return std::bind(uniform_dist, random_engine);
 }
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
@@ -93,7 +80,7 @@ template <typename T,
 void generate_random_data(T *data, const size_t count, const T min,
                           const T max) {
   auto generate_random_number =
-      get_random_floating_point_generator<T>(min, max, 10);
+      get_random_floating_point_generator<T>(min, max);
 
   for (size_t i = 0; i < count; ++i) {
     data[i] = generate_random_number();
@@ -147,15 +134,15 @@ template <typename T>
 std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
-  auto column = generate_random_column<T>(count, 0, 100.0);
+  auto column = generate_random_column<T>(count, 0, 100000.0);
 
-  auto base_generator = get_random_number_generator<UINT_T>(0.0, 1000000.0);
+  auto base_generator = get_random_number_generator<UINT_T>(0.0, 1000.0);
 
   const auto exceptions_per_vector = 30;
   auto exception_picker =
       get_random_number_generator<int32_t>(0, consts::VALUES_PER_VECTOR);
   auto exception_generator = generation::get_random_floating_point_generator(
-      std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), 10);
+      std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 
   auto column_p = column.get();
 

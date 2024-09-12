@@ -13,6 +13,8 @@
 #ifndef ALP_BINDINGS_HPP
 #define ALP_BINDINGS_HPP
 
+#include "config.hpp"
+
 namespace alp {
 
 template <typename T> struct AlpFFORVecHeader {
@@ -121,15 +123,18 @@ template <typename T> struct AlpRdCompressionData {
   AlpFFORArray<uint16_t> left_ffor;
   AlpFFORArray<UINT_T> right_ffor;
 
-  uint16_t *left_parts_dict;
+  uint16_t *left_parts_dicts;
 
   AlpExceptions<uint16_t> exceptions;
 
   AlpRdCompressionData<T>(const size_t size_a)
       : size(size_a), left_ffor(size_a), right_ffor(size_a),
-        exceptions(AlpExceptions<uint16_t>(size_a)) {}
+        exceptions(AlpExceptions<uint16_t>(size_a)) {
+    const size_t n_vecs = utils::get_n_vecs_from_size(size_a);
+    left_parts_dicts = new uint16_t[n_vecs * config::MAX_RD_DICTIONARY_SIZE];
+  }
 
-  ~AlpRdCompressionData<T>() {}
+  ~AlpRdCompressionData<T>() { delete[] left_parts_dicts; }
 };
 
 // Default ALP encoding

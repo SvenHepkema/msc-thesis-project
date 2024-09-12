@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <stdexcept>
 
 #include "../common/utils.hpp"
@@ -93,6 +94,7 @@ void rd_encode(const T *input_array, const size_t count,
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
+	auto left_parts_dicts = data->left_parts_dicts;
 
   T *sample_array = new T[count];
   state alpstate;
@@ -101,22 +103,24 @@ void rd_encode(const T *input_array, const size_t count,
   while (attempts_to_int_encode < 1000) {
     alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
                             sample_array, alpstate);
-    if (alpstate.scheme == SCHEME::ALP) {
+    if (alpstate.scheme == SCHEME::ALP_RD) {
       break;
     }
     ++attempts_to_int_encode;
   }
   if (attempts_to_int_encode >= 1000) {
-    throw std::logic_error("Could not encode data as alp int\n");
+    throw std::logic_error("Could not encode data as alp rd\n");
   }
-  delete[] sample_array;
 
   uint16_t left_array[consts::VALUES_PER_VECTOR];
   UINT_T right_array[consts::VALUES_PER_VECTOR];
 
   for (size_t i{0}; i < n_vecs; i++) {
     alp::AlpRD<T>::init(const_cast<T *>(input_array), data->rowgroup_offset,
-                        count, sample_array, alpstate);
+                        consts::VALUES_PER_VECTOR, sample_array, alpstate);
+
+		std::memcpy(left_parts_dicts, alpstate.left_parts_dict, config::MAX_RD_DICTIONARY_SIZE);
+		left_parts_dicts += config::MAX_RD_DICTIONARY_SIZE;
 
     AlpVecExceptions<uint16_t> exceptions =
         data->exceptions.get_exceptions_for_vec(i);
@@ -141,6 +145,8 @@ void rd_encode(const T *input_array, const size_t count,
 
     input_array += consts::VALUES_PER_VECTOR;
   }
+
+  delete[] sample_array;
 }
 
 template <typename T>
@@ -166,7 +172,7 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
     alpstate.right_bit_width = (*right_ffor_header.bit_width);
 
     for (size_t j{0}; j < config::MAX_RD_DICTIONARY_SIZE; j++) {
-      alpstate.left_parts_dict[j] = data->left_parts_dict[j];
+      alpstate.left_parts_dict[j] = data->left_parts_dicts[j];
     }
 
     AlpVecExceptions<uint16_t> exceptions =

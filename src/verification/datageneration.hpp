@@ -57,7 +57,8 @@ std::function<T()> get_random_number_generator(const T min, const T max) {
 }
 
 template <typename T>
-std::function<T()> get_random_floating_point_generator(const T min, const T max) {
+std::function<T()> get_random_floating_point_generator(const T min,
+                                                       const T max) {
   std::random_device random_device;
   std::default_random_engine random_engine(random_device());
   std::uniform_real_distribution<T> uniform_dist(min, max);
@@ -223,18 +224,27 @@ DataGenerationLambda<T> get_ffor_data(const bool use_random_data, T base) {
 }
 
 template <typename T>
-DataGenerationLambda<T>
-get_alp_data([[maybe_unused]] const bool use_random_data) {
+DataGenerationLambda<T> get_alp_data(const bool use_random_data) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
   using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
 
-  return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-    return generation::cast_column<INT_T, T>(
-        generation::generate_ffor_column_with_different_bases_per_vector<INT_T>(
-            count, value_bit_width),
-        count);
-  };
+  if (use_random_data) {
+    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+      return generation::cast_column<INT_T, T>(
+          generation::generate_ffor_column_with_different_bases_per_vector<
+              INT_T>(count, value_bit_width),
+          count);
+    };
+  } else {
+    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+      return generation::cast_column<UINT_T, T>(
+          generation::generate_index_column<UINT_T>(
+              count, utils::set_first_n_bits<UINT_T>(value_bit_width)),
+          count);
+    };
+  }
 }
 
 template <typename T>
@@ -242,7 +252,8 @@ DataGenerationLambda<T>
 get_alprd_data([[maybe_unused]] const bool use_random_data) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-
+	// Non random data is not supported as the sampling step will never sample it to 
+	// use ALPrd
   return [](size_t count,
             [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
     return generation::generate_ffor_column_with_real_doubles<T>(count);

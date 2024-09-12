@@ -46,7 +46,7 @@ int32_t process_results(verification::VerificationResult<T> results,
       fprintf(stderr, "\nValue bit width %d failed.\n", result.first);
 
       for (auto difference : result.second) {
-        difference.log();
+        difference.template log<T>();
       }
     }
     fprintf(stderr, "\n[%ld/%d] Value bit widths failed.\n", results.size(),

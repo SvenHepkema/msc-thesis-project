@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "../cpu-fls/fls.hpp"
-#include "datageneration.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-fls/gpu-bindings-fls.hpp"
+#include "datageneration.hpp"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H
@@ -81,10 +81,17 @@ template <typename T> struct Difference {
   T original;
   T other;
 
+  template <typename U, std::enable_if_t<std::is_integral<U>::value, bool> = true>
   void log() {
     fprintf(stderr, "[%lu] correct: %lu, unpacked: %lu\n",
             static_cast<uint64_t>(index), static_cast<uint64_t>(original),
             static_cast<uint64_t>(other));
+  }
+
+  template <typename U, std::enable_if_t<std::is_floating_point<U>::value, bool> = true>
+  void log() {
+    fprintf(stderr, "[%lu] correct: %f, unpacked: %f\n", static_cast<uint64_t>(index),
+            static_cast<U>(original), static_cast<U>(other));
   }
 };
 
@@ -130,16 +137,17 @@ verify_conversion(const size_t count, const int32_t value_bit_width,
 }
 
 template <typename T>
-VerificationResult<T>
-verify_all_value_bit_widths(const size_t count,
-                            const data::lambda::DataGenerationLambda<T> generate_data,
-                            const CompressAllVectorsLambda<T> compress,
-                            const CompressAllVectorsLambda<T> decompress,
-														const int32_t max_bit_width=0) {
+VerificationResult<T> verify_all_value_bit_widths(
+    const size_t count,
+    const data::lambda::DataGenerationLambda<T> generate_data,
+    const CompressAllVectorsLambda<T> compress,
+    const CompressAllVectorsLambda<T> decompress,
+    const int32_t max_bit_width = 0) {
   auto value_bit_width_differences =
       std::vector<std::pair<int32_t, Differences<T>>>();
   Differences<T> result;
-  int32_t max_value_bit_width = max_bit_width == 0 ? sizeof(T) * 8 : max_bit_width;
+  int32_t max_value_bit_width =
+      max_bit_width == 0 ? sizeof(T) * 8 : max_bit_width;
 
 #ifdef VBW
   {

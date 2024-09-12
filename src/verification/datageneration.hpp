@@ -98,33 +98,54 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   return column;
 }
 
+template <typename T, typename U>
+std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
+                               const size_t count) {
+  auto casted_column = allocate_column<U>(count);
+  T *column_p = column.get();
+  U *casted_column_p = casted_column.get();
+
+  for (size_t i = 0; i < count; ++i) {
+    casted_column_p[i] = static_cast<U>(column_p[i]);
+  }
+
+  return casted_column;
+}
+
 template <typename T>
-std::unique_ptr<T> generate_ffor_column_with_different_bases_per_vector(
-    const size_t count, const int32_t value_bit_width) {
-  T max_value = utils::set_first_n_bits<T>(value_bit_width);
-  auto column = generate_random_column<T>(count, 0, max_value);
+std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
+    const size_t count, const int32_t value_bit_width, const int32_t exception_percentage, const int32_t decimals) {
+	static_assert(std::is_floating_point<T>::value, "T should be a floating point type.");
+  using INT_T = typename utils::same_width_int<T>::type;
 
-  // int32_t left_over_bits = int32_t{sizeof(T)} * 8 - value_bit_width;
-  // T max_base = utils::set_first_n_bits<T>(left_over_bits);
-  T max_base = max_value * 100;
-  auto base_generator = get_random_number_generator<T>(0, max_base);
+  INT_T max_value = utils::set_first_n_bits<INT_T>(value_bit_width);
+  auto int_column = generate_random_column<INT_T>(count, 0, max_value);
+	auto column = cast_column<INT_T, T>(std::move(int_column), count);
 
-  auto exception_picker = get_random_number_generator<int32_t>(0, 30);
-  auto exception_generator = get_random_number_generator<T>(
+  INT_T max_base = max_value * 100;
+  auto base_generator = get_random_number_generator<INT_T>(-max_base, max_base);
+
+  auto exception_picker = get_random_number_generator<int32_t>(0, 100);
+  auto exception_generator = get_random_floating_point_generator<T>(
       std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 
   auto column_p = column.get();
 
-  T base = base_generator();
+  INT_T base = base_generator();
+
+  auto decimal_offset = std::pow(10.0, -static_cast<T>(decimals));
+
   for (size_t i{0}; i < count; ++i) {
     if (i % consts::VALUES_PER_VECTOR == 0) {
       base = base_generator();
     }
 
-    if (exception_picker() == 0) {
+    column_p[i] *= decimal_offset;
+
+    if (exception_picker() < exception_percentage) {
       column_p[i] = exception_generator();
     } else {
-      column_p[i] += base;
+      column_p[i] += static_cast<T>(base);
     }
   }
 
@@ -161,20 +182,6 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
   }
 
   return column;
-}
-
-template <typename T, typename U>
-std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
-                               const size_t count) {
-  auto casted_column = allocate_column<U>(count);
-  T *column_p = column.get();
-  U *casted_column_p = casted_column.get();
-
-  for (size_t i = 0; i < count; ++i) {
-    casted_column_p[i] = static_cast<U>(column_p[i]);
-  }
-
-  return casted_column;
 }
 
 } // namespace generation
@@ -227,15 +234,13 @@ template <typename T>
 DataGenerationLambda<T> get_alp_data(const bool use_random_data) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-  using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   if (use_random_data) {
     return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-      return generation::cast_column<INT_T, T>(
-          generation::generate_ffor_column_with_different_bases_per_vector<
-              INT_T>(count, value_bit_width),
-          count);
+			auto decimals = value_bit_width % 3;
+      return generation::generate_ffor_column_with_fixed_decimals<
+          T>(count, value_bit_width, 3, decimals);
     };
   } else {
     return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
@@ -252,8 +257,8 @@ DataGenerationLambda<T>
 get_alprd_data([[maybe_unused]] const bool use_random_data) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-	// Non random data is not supported as the sampling step will never sample it to 
-	// use ALPrd
+  // Non random data is not supported as the sampling step will never sample it
+  // to use ALPrd
   return [](size_t count,
             [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
     return generation::generate_ffor_column_with_real_doubles<T>(count);

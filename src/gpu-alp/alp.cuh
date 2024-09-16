@@ -23,6 +23,24 @@ template <typename T> struct AlpColumn {
   uint16_t *counts;
 };
 
+template <typename T> struct AlpRdColumn {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  uint16_t *left_ffor_array;
+  uint16_t *left_ffor_bases;
+  uint8_t *left_bit_widths;
+
+  UINT_T *right_ffor_array;
+  UINT_T *right_ffor_bases;
+  uint8_t *right_bit_widths;
+
+  uint16_t *left_parts_dicts;
+
+  uint16_t *exceptions;
+  uint16_t *positions;
+  uint16_t *counts;
+};
+
 namespace constant_memory {
 constexpr int32_t F_FACT_ARR_COUNT = 10;
 constexpr int32_t F_FRAC_ARR_COUNT = 11;
@@ -124,6 +142,21 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
     auto position = vec_exceptions_positions[i];
     out[position] = vec_exceptions[i];
   }
+}
+
+template <typename T_in, typename T_out, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void alprd_vector(T_out *__restrict out, const AlpRdColumn<T_out> column,
+                           const uint16_t vector_index, const uint16_t lane,
+                           const uint16_t start_index) {
+  static_assert((std::is_same<T_in, uint32_t>::value &&
+                 std::is_same<T_out, float>::value) ||
+                    (std::is_same<T_in, uint64_t>::value &&
+                     std::is_same<T_out, double>::value),
+                "Wrong type arguments");
+  using INT_T = typename utils::same_width_int<T_out>::type;
+  using UINT_T = typename utils::same_width_int<T_out>::type;
+
 }
 
 #endif // ALP_CUH

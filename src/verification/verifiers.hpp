@@ -308,6 +308,35 @@ verification::VerificationResult<T> verify_alprd(const size_t a_count,
 }
 
 template <typename T>
+verification::VerificationResult<T> verify_gpu_alprd(const size_t a_count,
+                                               bool use_random_data) {
+  alp::AlpRdCompressionData<T> *alp_data_p = nullptr;
+
+  auto compress_all =
+      [&alp_data_p](const T *in, [[maybe_unused]] T *out, const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    alp_data_p = new alp::AlpRdCompressionData<T>(count);
+    alp::rd_encode<T>(in, count, alp_data_p);
+  };
+
+  auto decompress_all =
+      [&alp_data_p]([[maybe_unused]] const T *in, T *out,
+                    [[maybe_unused]] const size_t count,
+                    [[maybe_unused]] const int32_t value_bit_width) -> void {
+    gpu::alprd<T>(out, alp_data_p);
+    delete alp_data_p;
+  };
+
+  return verification::verify_all_value_bit_widths<T>(
+      a_count,
+      data::lambda::get_alprd_data<T>(use_random_data),
+      compress_all,
+      decompress_all,
+			40); // After ~47 value bit width alp usually chooses to encode with RD
+					 // for safety we choose a max value bit width of 40
+}
+
+template <typename T>
 std::function<verification::VerificationResult<T>(const size_t, const bool)>
 get_fls_verifier(const std::string name) {
   if (name == "bp") {
@@ -395,6 +424,12 @@ get_alp_verifier(const std::string name) {
         [](const size_t count,
            const bool use_random_data) -> verification::VerificationResult<T> {
           return verify_alprd<T>(count, use_random_data);
+        };
+	} else if (name == "gpu_alprd") {
+    return
+        [](const size_t count,
+           const bool use_random_data) -> verification::VerificationResult<T> {
+          return verify_gpu_alprd<T>(count, use_random_data);
         };
   } else {
     throw std::invalid_argument(

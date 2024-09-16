@@ -3,10 +3,11 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
+#include "../gpu-common/gpu-utils.cuh"
 #include "alp-global.cuh"
 #include "alp.cuh"
 #include "gpu-bindings-alp.hpp"
-#include "../gpu-common/gpu-utils.cuh"
+#include "src/alp/config.hpp"
 
 namespace gpu {
 
@@ -43,9 +44,54 @@ void alp(T *__restrict out, const alp::AlpCompressionData<T> *data) {
   d_out.copy_to_host(out);
 }
 
+template <typename T>
+void alprd(T *__restrict out, const alp::AlpRdCompressionData<T> *data) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  const auto count = data->size;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+  const auto n_blocks = n_vecs;
+
+  GPUArray<T> d_out(count);
+
+  GPUArray<uint16_t> d_left_ffor_array(count, data->left_ffor.array);
+  GPUArray<uint16_t> d_left_ffor_bases(n_vecs, data->left_ffor.bases);
+  GPUArray<uint8_t> d_left_bit_widths(n_vecs, data->left_ffor.bit_widths);
+
+  GPUArray<UINT_T> d_right_ffor_array(count, data->right_ffor.array);
+  GPUArray<UINT_T> d_right_ffor_bases(n_vecs, data->right_ffor.bases);
+  GPUArray<uint8_t> d_right_bit_widths(n_vecs, data->right_ffor.bit_widths);
+
+  GPUArray<uint16_t> d_left_parts_dicts(
+      n_vecs * alp::config::MAX_RD_DICTIONARY_SIZE, data->left_parts_dicts);
+
+  GPUArray<uint16_t> d_exceptions(count, data->exceptions.exceptions);
+  GPUArray<uint16_t> d_exception_positions(count, data->exceptions.positions);
+  GPUArray<uint16_t> d_exception_counts(n_vecs, data->exceptions.counts);
+
+  AlpRdColumn<T> alp_data = {
+      d_left_ffor_array.get(),     d_left_ffor_bases.get(),
+      d_left_bit_widths.get(),     d_right_ffor_array.get(),
+      d_right_ffor_bases.get(),    d_right_bit_widths.get(),
+      d_left_parts_dicts.get(),    d_exceptions.get(),
+      d_exception_positions.get(), d_exception_counts.get(),
+  };
+  constant_memory::load_alp_constants();
+
+  alprd_global<T, UINT_T, 1, utils::get_values_per_lane<T>()>
+      <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  d_out.copy_to_host(out);
+}
+
 } // namespace gpu
 
 template void gpu::alp<float>(float *__restrict out,
-                               const alp::AlpCompressionData<float> *data);
+                              const alp::AlpCompressionData<float> *data);
 template void gpu::alp<double>(double *__restrict out,
                                const alp::AlpCompressionData<double> *data);
+template void gpu::alprd<float>(float *__restrict out,
+                                const alp::AlpRdCompressionData<float> *data);
+template void gpu::alprd<double>(double *__restrict out,
+                                 const alp::AlpRdCompressionData<double> *data);

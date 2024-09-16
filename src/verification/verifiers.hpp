@@ -298,13 +298,13 @@ verification::VerificationResult<T> verify_alprd(const size_t a_count,
     delete alp_data_p;
   };
 
+	int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
       a_count,
       data::lambda::get_alprd_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			40); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 40
+			max_value_bitwidth_to_test); 
 }
 
 template <typename T>
@@ -327,13 +327,13 @@ verification::VerificationResult<T> verify_gpu_alprd(const size_t a_count,
     delete alp_data_p;
   };
 
+	int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
       a_count,
       data::lambda::get_alprd_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			40); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 40
+			max_value_bitwidth_to_test); 
 }
 
 template <typename T>

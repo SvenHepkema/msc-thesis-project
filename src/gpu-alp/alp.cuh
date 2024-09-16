@@ -5,6 +5,7 @@
 #include "../alp/constants.hpp"
 #include "../common/utils.hpp"
 #include "../gpu-fls/fls.cuh"
+#include "src/alp/config.hpp"
 
 #ifndef ALP_CUH
 #define ALP_CUH
@@ -119,8 +120,8 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
                                                 // compile time switch to grab
                                                 // float array
   auto lambda = [base, factor, frac10](const T_in value) -> T_out {
-    return T_out{static_cast<INT_T>((value + base) *
-                                    static_cast<UINT_T>(factor))} *
+    return static_cast<T_out>(static_cast<INT_T>((value + base) *
+                                    static_cast<UINT_T>(factor))) *
            frac10;
   };
 
@@ -146,16 +147,73 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void alprd_vector(T_out *__restrict out, const AlpRdColumn<T_out> column,
-                           const uint16_t vector_index, const uint16_t lane,
-                           const uint16_t start_index) {
+__device__ void alprd_vector(T_out *__restrict out,
+                             const AlpRdColumn<T_out> column,
+                             const uint16_t vector_index, const uint16_t lane,
+                             const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
                      std::is_same<T_out, double>::value),
                 "Wrong type arguments");
   using INT_T = typename utils::same_width_int<T_out>::type;
-  using UINT_T = typename utils::same_width_int<T_out>::type;
+  using UINT_T = typename utils::same_width_uint<T_out>::type;
+
+  constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
+  constexpr int32_t VALUES_PER_LANE = utils::get_values_per_lane<UINT_T>();
+
+  // Unfforring Arrays
+  uint16_t left_array[VALUES_PER_LANE];
+  const uint16_t* left_ffor_array =
+      column.left_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
+  const uint16_t left_bitwidth = column.left_bit_widths[vector_index];
+  const uint16_t left_base = column.left_ffor_bases[vector_index];
+  unffor_vector<uint16_t, UnpackingType::LaneArray, 1,
+                VALUES_PER_LANE>(left_ffor_array, left_array, lane,
+                                 left_bitwidth, 0, &left_base);
+
+  UINT_T right_array[VALUES_PER_LANE];
+  UINT_T* right_ffor_array =
+      column.right_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
+  const uint16_t right_bitwidth = column.right_bit_widths[vector_index];
+  const UINT_T right_base = column.right_ffor_bases[vector_index];
+  unffor_vector<UINT_T, UnpackingType::LaneArray, 1, VALUES_PER_LANE>(
+      right_ffor_array, right_array, lane, right_bitwidth, 0, &right_base);
+
+  // Loading left parts dict
+  // TODO Let the threads collaborate to load this data
+  const uint16_t* left_parts_dicts_p =
+      column.left_parts_dicts + vector_index * consts::VALUES_PER_VECTOR;
+  uint16_t left_parts_dict[alp::config::MAX_RD_DICTIONARY_SIZE];
+  for (size_t j{0}; j < alp::config::MAX_RD_DICTIONARY_SIZE; j++) {
+    left_parts_dict[j] = left_parts_dicts_p[j];
+  }
+
+  // Decoding
+#pragma unroll
+  for (int i{lane}; i < consts::VALUES_PER_VECTOR; i += N_LANES) {
+    const uint16_t left = left_parts_dict[left_array[i]];
+    const UINT_T right = right_array[i];
+
+		// WARNING THIS SHOULD NOT WRITE TO GLOBAL
+		// TODO write to thread local, and then patch all thread local values
+		// INFO THIS IS ALSO an issue in the normal ALP kernel
+    out[i] = (static_cast<UINT_T>(left) << right_bitwidth) | right;
+  }
+
+  // Patching exceptions
+  const uint16_t exceptions_count = column.counts[vector_index];
+  const uint16_t* vec_exceptions =
+      column.exceptions + consts::VALUES_PER_VECTOR * vector_index;
+  const uint16_t* vec_exceptions_positions =
+      column.positions + consts::VALUES_PER_VECTOR * vector_index;
+
+  for (int i{lane}; i < exceptions_count; i += N_LANES) {
+    const UINT_T right = right_array[vec_exceptions_positions[i]/N_LANES];
+    const uint16_t left = vec_exceptions[i];
+    out[vec_exceptions_positions[i]] =
+        (static_cast<UINT_T>(left) << right_bitwidth) | right;
+  }
 
 }
 

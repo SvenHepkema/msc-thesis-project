@@ -1,28 +1,15 @@
 #ifndef ALP_CONSTANTS_HPP
 #define ALP_CONSTANTS_HPP
 
-#include "./config.hpp"
+#include "config.hpp"
 #include <cstdint>
 #include <vector>
 
 namespace alp {
 
-enum class SCHEME : uint8_t {
+enum class Scheme : uint8_t {
 	ALP_RD,
 	ALP,
-};
-
-template <class T>
-struct FloatingToExact {};
-
-template <>
-struct FloatingToExact<double> {
-	typedef uint64_t type;
-};
-
-template <>
-struct FloatingToExact<float> {
-	typedef uint32_t type;
 };
 
 inline constexpr uint8_t SAMPLING_EARLY_EXIT_THRESHOLD    = 2;
@@ -60,6 +47,8 @@ struct Constants<float> {
 
 	static inline constexpr float EXP_ARR[] = {
 	    1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 10000000.0, 100000000.0, 1000000000.0, 10000000000.0};
+
+	static constexpr int32_t FACT_ARR[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
 };
 
 template <>
@@ -128,47 +117,26 @@ struct Constants<double> {
 	    10000000000000000000000.0,
 	    100000000000000000000000.0,
 	};
+	static constexpr int64_t FACT_ARR[] = {1,
+	                                       10,
+	                                       100,
+	                                       1000,
+	                                       10000,
+	                                       100000,
+	                                       1000000,
+	                                       10000000,
+	                                       100000000,
+	                                       1000000000,
+	                                       10000000000,
+	                                       100000000000,
+	                                       1000000000000,
+	                                       10000000000000,
+	                                       100000000000000,
+	                                       1000000000000000,
+	                                       10000000000000000,
+	                                       100000000000000000,
+	                                       1000000000000000000};
 };
-
-inline constexpr int64_t FACT_ARR[] = {1,
-                                       10,
-                                       100,
-                                       1000,
-                                       10000,
-                                       100000,
-                                       1000000,
-                                       10000000,
-                                       100000000,
-                                       1000000000,
-                                       10000000000,
-                                       100000000000,
-                                       1000000000000,
-                                       10000000000000,
-                                       100000000000000,
-                                       1000000000000000,
-                                       10000000000000000,
-                                       100000000000000000,
-                                       1000000000000000000};
-
-inline constexpr int64_t U_FACT_ARR[] = {1,
-                                         10,
-                                         100,
-                                         1000,
-                                         10000,
-                                         100000,
-                                         1000000,
-                                         10000000,
-                                         100000000,
-                                         1000000000,
-                                         10000000000,
-                                         100000000000,
-                                         1000000000000,
-                                         10000000000000,
-                                         100000000000000,
-                                         1000000000000000,
-                                         10000000000000000,
-                                         100000000000000000,
-                                         1000000000000000000};
 
 alignas(64) inline constexpr uint64_t INDEX_ARR[1024] {
     0,    1,    2,    3,    4,    5,    6,    7,    8,    9,    10,   11,   12,   13,   14,   15,   16,   17,   18,

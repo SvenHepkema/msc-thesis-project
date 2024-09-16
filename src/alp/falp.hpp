@@ -1,9 +1,3 @@
-/*
--- DATE : 18/04/2024
--- FILE_PATH : include/alp/falp.hpp
--- PROJECT_NAME : ALP
-*/
-
 #ifndef ALP_FALP_HPP
 #define ALP_FALP_HPP
 
@@ -12,6 +6,7 @@
 namespace generated { namespace falp {
 namespace fallback {
 namespace scalar {
+
 void falp(const uint64_t* __restrict in,
           double* __restrict out,
           uint8_t bw,
@@ -19,8 +14,35 @@ void falp(const uint64_t* __restrict in,
           uint8_t factor,
           uint8_t exponent);
 
+inline void falp(const int64_t* __restrict in,
+                 double* __restrict out,
+                 uint8_t bw,
+                 const int64_t* __restrict base,
+                 uint8_t factor,
+                 uint8_t exponent) {
+	const auto* in_p   = reinterpret_cast<const uint64_t*>(in);
+	const auto* base_p = reinterpret_cast<const uint64_t*>(base);
+	falp(in_p, out, bw, base_p, factor, exponent);
+}
+
+void falp(const uint32_t* __restrict in,
+          float* __restrict out,
+          uint8_t bw,
+          const uint32_t* __restrict base,
+          uint8_t factor,
+          uint8_t exponent);
+
+inline void falp(const int32_t* __restrict in,
+                 float* __restrict out,
+                 uint8_t bw,
+                 const int32_t* __restrict base,
+                 uint8_t factor,
+                 uint8_t exponent) {
+	const auto* in_p   = reinterpret_cast<const uint32_t*>(in);
+	const auto* base_p = reinterpret_cast<const uint32_t*>(base);
+	falp(in_p, out, bw, base_p, factor, exponent);
+}
 } // namespace scalar
-/*
 namespace unit64 {
 void falp(const uint64_t* __restrict in,
           double* __restrict out,
@@ -30,10 +52,8 @@ void falp(const uint64_t* __restrict in,
           uint8_t exponent);
 
 } // namespace unit64
-*/
 } // namespace fallback
 
-/*
 namespace helper { namespace scalar {
 void falp(const uint64_t* __restrict in,
           double* __restrict out,
@@ -109,7 +129,6 @@ void falp(const uint64_t* __restrict in,
           uint8_t exponent);
 } // namespace sve
 } // namespace arm64v8
-*/
 }} // namespace generated::falp
 
-#endif // FALP_HPP
+#endif // ALP_FALP_HPP

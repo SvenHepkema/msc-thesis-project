@@ -1,19 +1,18 @@
-#ifndef ALP_CUTTER_HPP
-#define ALP_CUTTER_HPP
+#ifndef ALP_RD_HPP
+#define ALP_RD_HPP
 
-#include "./common.hpp"
-#include "./constants.hpp"
-#include "./encode.hpp"
-#include "./sampler.hpp"
+#include "common.hpp"
+#include "constants.hpp"
+#include "encoder.hpp"
+#include "sampler.hpp"
 #include <algorithm>
 
 namespace alp {
 
-template <class T>
-struct AlpRD {
-
-	using EXACT_TYPE                            = typename FloatingToExact<T>::type;
-	static constexpr uint8_t EXACT_TYPE_BITSIZE = sizeof(EXACT_TYPE) * 8;
+template <class PT>
+struct rd_encoder {
+	using UT                                     = typename inner_t<PT>::ut;
+	static constexpr uint8_t EXACT_TYPE_BIT_SIZE = sizeof(UT) * 8;
 
 	//! Estimate the bits per value of ALPRD within a sample
 	static inline double estimate_compression_size(const bw_t     right_bit_width,
@@ -26,11 +25,11 @@ struct AlpRD {
 	}
 
 	template <bool PERSIST_DICT>
-	static double build_left_parts_dictionary(const T* in_p, bw_t right_bit_width, state& stt) {
-		std::unordered_map<EXACT_TYPE, int32_t> left_parts_hash;
-		std::vector<std::pair<int, uint64_t>>   left_parts_sorted_repetitions;
+	static double build_left_parts_dictionary(const PT* in_p, bw_t right_bit_width, state<PT>& stt) {
+		std::unordered_map<UT, int32_t>       left_parts_hash;
+		std::vector<std::pair<int, uint64_t>> left_parts_sorted_repetitions;
 
-		auto* in = reinterpret_cast<const EXACT_TYPE*>(in_p);
+		auto* in = reinterpret_cast<const UT*>(in_p);
 		// Building a hash for all the left parts and how many times they appear
 		for (size_t i = 0; i < stt.sampled_values_n; i++) {
 			auto left_tmp = in[i] >> right_bit_width;
@@ -81,13 +80,13 @@ struct AlpRD {
 		return estimated_size;
 	}
 
-	static inline void find_best_dictionary(T* smp_arr, state& stt) {
+	static inline void find_best_dictionary(PT* smp_arr, state<PT>& stt) {
 		bw_t   right_bit_width {0};
 		double best_dict_size = std::numeric_limits<double>::max();
 
 		// Finding the best position to CUT the values
 		for (size_t i {1}; i <= config::CUTTING_LIMIT; i++) {
-			bw_t         candidate_right_bit_width = EXACT_TYPE_BITSIZE - i;
+			bw_t         candidate_right_bit_width = EXACT_TYPE_BIT_SIZE - i;
 			const double estimated_size = build_left_parts_dictionary<false>(smp_arr, candidate_right_bit_width, stt);
 			if (estimated_size < best_dict_size) {
 				right_bit_width = candidate_right_bit_width;
@@ -101,18 +100,18 @@ struct AlpRD {
 	/*
 	 * ALP RD Encode
 	 */
-	static inline void encode(const T*    dbl_arr,
-	                          uint16_t*   exceptions,
-	                          uint16_t*   exception_positions,
-	                          uint16_t*   exceptions_count_p,
-	                          EXACT_TYPE* right_parts,
-	                          uint16_t*   left_parts,
-	                          state&      stt) {
-		const EXACT_TYPE* in = reinterpret_cast<const EXACT_TYPE*>(dbl_arr);
+	static inline void encode(const PT*  dbl_arr,
+	                          uint16_t*  exceptions,
+	                          uint16_t*  exception_positions,
+	                          uint16_t*  exceptions_count_p,
+	                          UT*        right_parts,
+	                          uint16_t*  left_parts,
+	                          state<PT>& stt) {
+		const auto* in = reinterpret_cast<const UT*>(dbl_arr);
 
 		// Cutting the floating point values
 		for (size_t i {0}; i < config::VECTOR_SIZE; ++i) {
-			EXACT_TYPE tmp = in[i];
+			UT tmp         = in[i];
 			right_parts[i] = tmp & ((1ULL << stt.right_bit_width) - 1);
 			left_parts[i]  = (tmp >> stt.right_bit_width);
 		}
@@ -144,40 +143,41 @@ struct AlpRD {
 	/*
 	 * ALP RD Decode
 	 */
-	static inline void decode(T*          a_out,
-	                          EXACT_TYPE* unffor_right_arr,
-	                          uint16_t*   unffor_left_arr,
-	                          uint16_t*   exceptions,
-	                          uint16_t*   exceptions_positions,
-	                          uint16_t*   exceptions_count,
-	                          state&      stt) {
+	static inline void decode(PT*        a_out,
+	                          UT*        unffor_right_arr,
+	                          uint16_t*  unffor_left_arr,
+	                          uint16_t*  exceptions,
+	                          uint16_t*  exceptions_positions,
+	                          uint16_t*  exceptions_count,
+	                          state<PT>& stt) {
 
-		EXACT_TYPE* out         = reinterpret_cast<EXACT_TYPE*>(a_out);
-		auto*       right_parts = unffor_right_arr;
-		auto*       left_parts  = unffor_left_arr;
+		auto* out         = reinterpret_cast<UT*>(a_out);
+		auto* right_parts = unffor_right_arr;
+		auto* left_parts  = unffor_left_arr;
 
 		// Decoding
 		for (size_t i = 0; i < config::VECTOR_SIZE; i++) {
-			uint16_t   left  = stt.left_parts_dict[left_parts[i]];
-			EXACT_TYPE right = right_parts[i];
-			out[i]           = (static_cast<EXACT_TYPE>(left) << stt.right_bit_width) | right;
+			uint16_t left  = stt.left_parts_dict[left_parts[i]];
+			UT       right = right_parts[i];
+			out[i]         = (static_cast<UT>(left) << stt.right_bit_width) | right;
 		}
 
 		// Exceptions Patching (exceptions only occur in left parts)
 		auto exp_c = exceptions_count[0];
 		for (size_t i = 0; i < exp_c; i++) {
-			EXACT_TYPE right             = right_parts[exceptions_positions[i]];
-			uint16_t   left              = exceptions[i];
-			out[exceptions_positions[i]] = (static_cast<EXACT_TYPE>(left) << stt.right_bit_width) | right;
+			UT       right               = right_parts[exceptions_positions[i]];
+			uint16_t left                = exceptions[i];
+			out[exceptions_positions[i]] = (static_cast<UT>(left) << stt.right_bit_width) | right;
 		}
 	}
 
-	static inline void init(T* data_column, size_t column_offset, size_t tuples_count, T* sample_arr, state& stt) {
-		stt.scheme           = SCHEME::ALP_RD;
-		stt.sampled_values_n = sampler::first_level_sample<T>(data_column, column_offset, tuples_count, sample_arr);
+	static inline void
+	init(PT* data_column, size_t column_offset, size_t tuples_count, PT* sample_arr, state<PT>& stt) {
+		stt.scheme           = Scheme::ALP_RD;
+		stt.sampled_values_n = sampler::first_level_sample<PT>(data_column, column_offset, tuples_count, sample_arr);
 		find_best_dictionary(sample_arr, stt);
 	}
 };
 
 } // namespace alp
-#endif // BENCH_ALP_CUTTER_H
+#endif // ALP_RD_HPP

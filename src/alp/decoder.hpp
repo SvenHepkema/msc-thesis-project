@@ -1,11 +1,28 @@
-#ifndef ALP_DECODE_HPP
-#define ALP_DECODE_HPP
+#ifndef ALP_DECODER_HPP
+#define ALP_DECODER_HPP
 
 #include "common.hpp"
-#include "constants.hpp"
 #include <cstdint>
 
 namespace alp {
+
+// Default template, not defined intentionally
+template <typename T>
+struct inner_t;
+
+// Specialization for float -> uint32_t
+template <>
+struct inner_t<float> {
+	using ut = uint32_t;
+	using st = int32_t;
+};
+
+// Specialization for double -> uint64_t
+template <>
+struct inner_t<double> {
+	using ut = uint64_t;
+	using st = int64_t;
+};
 
 #ifdef AVX2
 #include "immintrin.h"
@@ -97,26 +114,27 @@ void avx2_decode(const int64_t* digits, uint8_t fac_idx, uint8_t exp_idx, double
 
 #endif
 
-template <class T>
-struct AlpDecode {
+template <class PT>
+struct decoder {
+	using UT = typename inner_t<PT>::ut;
+	using ST = typename inner_t<PT>::st;
 
 	//! Scalar decoding a single value with ALP
-	static inline T decode_value(const int64_t encoded_value, const uint8_t factor, const uint8_t exponent) {
-		const T decoded_value = encoded_value * FACT_ARR[factor] * alp::Constants<T>::FRAC_ARR[exponent];
+	static inline PT decode_value(const ST encoded_value, const uint8_t factor, const uint8_t exponent) {
+		const PT decoded_value = encoded_value * Constants<PT>::FACT_ARR[factor] * Constants<PT>::FRAC_ARR[exponent];
 		return decoded_value;
 	}
 
 	//! Scalar decoding of an ALP vector
-	static inline void
-	decode(const int64_t* encoded_integers, const uint8_t fac_idx, const uint8_t exp_idx, T* output) {
+	static inline void decode(const ST* encoded_integers, const uint8_t fac_idx, const uint8_t exp_idx, PT* output) {
 		for (size_t i {0}; i < config::VECTOR_SIZE; i++) {
 			output[i] = decode_value(encoded_integers[i], fac_idx, exp_idx);
 		}
 	}
 
 	//! Patch Exceptions
-	static inline void patch_exceptions(T*             out,
-	                                    const T*       exceptions,
+	static inline void patch_exceptions(PT*            out,
+	                                    const PT*      exceptions,
 	                                    const exp_p_t* exceptions_positions,
 	                                    const exp_c_t* exceptions_count) {
 		const auto exp_c = exceptions_count[0];
@@ -128,4 +146,4 @@ struct AlpDecode {
 
 } // namespace alp
 
-#endif // ALP_DECODE_HPP
+#endif // ALP_DECODER_HPP

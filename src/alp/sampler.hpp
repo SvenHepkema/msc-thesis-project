@@ -1,7 +1,7 @@
 #ifndef ALP_SAMPLER_HPP
 #define ALP_SAMPLER_HPP
 
-#include "./config.hpp"
+#include "config.hpp"
 #include <algorithm>
 #include <cmath>
 

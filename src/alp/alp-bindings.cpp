@@ -8,11 +8,10 @@
 #include "../fls/compression.hpp"
 #include "alp-bindings.hpp"
 #include "config.hpp"
-#include "decode.hpp"
-#include "encode.hpp"
+#include "encoder.hpp"
+#include "decoder.hpp"
 #include "falp.hpp"
 #include "rd.hpp"
-#include "state.hpp"
 
 namespace alp {
 	constexpr int MAX_ATTEMPTS_TO_ENCODE = 10000;
@@ -26,13 +25,13 @@ void int_encode(const T *input_array, const size_t count,
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
 
   T *sample_array = new double[count];
-  state alpstate;
+  state<T> alpstate;
 
   int32_t attempts_to_int_encode = 0;
   while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
-    alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
+    alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
                             sample_array, alpstate);
-    if (alpstate.scheme == SCHEME::ALP) {
+    if (alpstate.scheme == Scheme::ALP) {
       break;
     }
     ++attempts_to_int_encode;
@@ -46,13 +45,13 @@ void int_encode(const T *input_array, const size_t count,
 
   for (size_t i{0}; i < n_vecs; i++) {
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
-    alp::AlpEncode<T>::encode(input_array, exceptions.exceptions,
+    alp::encoder<T>::encode(input_array, exceptions.exceptions,
                               exceptions.positions, exceptions.count,
                               encoded_array, alpstate);
     data->exponents[i] = alpstate.exp;
     data->factors[i] = alpstate.fac;
 
-    alp::AlpEncode<T>::analyze_ffor(
+    alp::encoder<T>::analyze_ffor(
         encoded_array, data->ffor.bit_widths[i],
         reinterpret_cast<INT_T *>(&data->ffor.bases[i]));
 
@@ -79,7 +78,7 @@ void int_decode(T *output_array, AlpCompressionData<T> *data) {
         &data->ffor.bases[i], data->factors[i], data->exponents[i]);
 
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
-    alp::AlpDecode<T>::patch_exceptions(output_array, exceptions.exceptions,
+    alp::decoder<T>::patch_exceptions(output_array, exceptions.exceptions,
                                         exceptions.positions, exceptions.count);
 
     output_array += consts::VALUES_PER_VECTOR;
@@ -98,13 +97,13 @@ void rd_encode(const T *input_array, const size_t count,
 	auto left_parts_dicts = data->left_parts_dicts;
 
   T *sample_array = new T[count];
-  state alpstate;
+  state<T> alpstate;
 
   int32_t attempts_to_int_encode = 0;
   while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
-    alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
+    alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
                             sample_array, alpstate);
-    if (alpstate.scheme == SCHEME::ALP_RD) {
+    if (alpstate.scheme == Scheme::ALP_RD) {
       break;
     }
     ++attempts_to_int_encode;
@@ -117,7 +116,7 @@ void rd_encode(const T *input_array, const size_t count,
   UINT_T right_array[consts::VALUES_PER_VECTOR];
 
   for (size_t i{0}; i < n_vecs; i++) {
-    alp::AlpRD<T>::init(const_cast<T *>(input_array), data->rowgroup_offset,
+    alp::rd_encoder<T>::init(const_cast<T *>(input_array), data->rowgroup_offset,
                         consts::VALUES_PER_VECTOR, sample_array, alpstate);
 
 		std::memcpy(left_parts_dicts, alpstate.left_parts_dict, config::MAX_RD_DICTIONARY_SIZE);
@@ -130,7 +129,7 @@ void rd_encode(const T *input_array, const size_t count,
     AlpFFORVecHeader<UINT_T> right_ffor =
         data->right_ffor.get_ffor_header_for_vec(i);
 
-    alp::AlpRD<T>::encode(input_array, exceptions.exceptions,
+    alp::rd_encoder<T>::encode(input_array, exceptions.exceptions,
                           exceptions.positions, exceptions.count, right_array,
                           left_array, alpstate);
 
@@ -157,7 +156,7 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
 
   uint16_t left_array[consts::VALUES_PER_VECTOR];
   UINT_T right_array[consts::VALUES_PER_VECTOR];
-  state alpstate;
+  state<T> alpstate;
 
   for (size_t i{0}; i < n_vecs; i++) {
     AlpFFORVecHeader<uint16_t> left_ffor_header =
@@ -178,7 +177,7 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
 
     AlpVecExceptions<uint16_t> exceptions =
         data->exceptions.get_exceptions_for_vec(i);
-    alp::AlpRD<T>::decode(output_array, right_array, left_array,
+    alp::rd_encoder<T>::decode(output_array, right_array, left_array,
                           exceptions.exceptions, exceptions.positions,
                           exceptions.count, alpstate);
 

@@ -37,7 +37,7 @@ void int_encode(const T *input_array, const size_t count,
     ++attempts_to_int_encode;
   }
   if (attempts_to_int_encode >= 1000) {
-    throw std::logic_error("Could not encode data as alp int\n");
+    throw alp::EncodingException();
   }
   delete[] sample_array;
 
@@ -108,7 +108,7 @@ void rd_encode(const T *input_array, const size_t count,
     ++attempts_to_int_encode;
   }
   if (attempts_to_int_encode >= 1000) {
-    throw std::logic_error("Could not encode data as alp rd\n");
+    throw alp::EncodingException();
   }
 
   uint16_t left_array[consts::VALUES_PER_VECTOR];

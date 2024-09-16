@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <type_traits>
 
 #include "../common/utils.hpp"
@@ -16,6 +17,12 @@
 #include "config.hpp"
 
 namespace alp {
+
+class EncodingException : public std::exception {
+public:
+  using std::exception::what;
+  char *what() { return "Could not encode data with desired encoding."; }
+};
 
 template <typename T> struct AlpFFORVecHeader {
   T *array;

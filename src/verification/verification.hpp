@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "../alp/alp-bindings.hpp"
 #include "../cpu-fls/fls.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-fls/gpu-bindings-fls.hpp"
@@ -81,17 +82,20 @@ template <typename T> struct Difference {
   T original;
   T other;
 
-  template <typename U, std::enable_if_t<std::is_integral<U>::value, bool> = true>
+  template <typename U,
+            std::enable_if_t<std::is_integral<U>::value, bool> = true>
   void log() {
     fprintf(stderr, "[%lu] correct: %lu, unpacked: %lu\n",
             static_cast<uint64_t>(index), static_cast<uint64_t>(original),
             static_cast<uint64_t>(other));
   }
 
-  template <typename U, std::enable_if_t<std::is_floating_point<U>::value, bool> = true>
+  template <typename U,
+            std::enable_if_t<std::is_floating_point<U>::value, bool> = true>
   void log() {
-    fprintf(stderr, "[%lu] correct: %f, unpacked: %f\n", static_cast<uint64_t>(index),
-            static_cast<U>(original), static_cast<U>(other));
+    fprintf(stderr, "[%lu] correct: %f, unpacked: %f\n",
+            static_cast<uint64_t>(index), static_cast<U>(original),
+            static_cast<U>(other));
   }
 };
 
@@ -128,7 +132,15 @@ verify_conversion(const size_t count, const int32_t value_bit_width,
   auto decompressed_column = data::generation::allocate_column<T>(count);
   auto original = generate_data(count, value_bit_width);
 
-  compress(original.get(), compressed_column.get(), count, value_bit_width);
+  bool compressed_data_successfully = false;
+  while (!compressed_data_successfully) {
+    try {
+      compress(original.get(), compressed_column.get(), count, value_bit_width);
+      compressed_data_successfully = true;
+    } catch (alp::EncodingException) {
+      original = generate_data(count, value_bit_width);
+    }
+  }
   decompress(compressed_column.get(), decompressed_column.get(), count,
              value_bit_width);
 

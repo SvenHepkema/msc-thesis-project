@@ -8,13 +8,13 @@
 #include "../fls/compression.hpp"
 #include "alp-bindings.hpp"
 #include "config.hpp"
-#include "encoder.hpp"
 #include "decoder.hpp"
+#include "encoder.hpp"
 #include "falp.hpp"
 #include "rd.hpp"
 
 namespace alp {
-	constexpr int MAX_ATTEMPTS_TO_ENCODE = 10000;
+constexpr int MAX_ATTEMPTS_TO_ENCODE = 10000;
 
 template <typename T>
 void int_encode(const T *input_array, const size_t count,
@@ -30,7 +30,7 @@ void int_encode(const T *input_array, const size_t count,
   int32_t attempts_to_int_encode = 0;
   while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
     alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
-                            sample_array, alpstate);
+                          sample_array, alpstate);
     if (alpstate.scheme == Scheme::ALP) {
       break;
     }
@@ -45,8 +45,8 @@ void int_encode(const T *input_array, const size_t count,
   for (size_t i{0}; i < n_vecs; i++) {
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
     alp::encoder<T>::encode(input_array, exceptions.exceptions,
-                              exceptions.positions, exceptions.count,
-                              encoded_array, alpstate);
+                            exceptions.positions, exceptions.count,
+                            encoded_array, alpstate);
     data->exponents[i] = alpstate.exp;
     data->factors[i] = alpstate.fac;
 
@@ -78,7 +78,7 @@ void int_decode(T *output_array, AlpCompressionData<T> *data) {
 
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
     alp::decoder<T>::patch_exceptions(output_array, exceptions.exceptions,
-                                        exceptions.positions, exceptions.count);
+                                      exceptions.positions, exceptions.count);
 
     output_array += consts::VALUES_PER_VECTOR;
     data->ffor.array += consts::VALUES_PER_VECTOR;
@@ -93,7 +93,7 @@ void rd_encode(const T *input_array, const size_t count,
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
-	auto left_parts_dicts = data->left_parts_dicts;
+  auto left_parts_dicts = data->left_parts_dicts;
 
   T *sample_array = new T[count];
   state<T> alpstate;
@@ -101,7 +101,7 @@ void rd_encode(const T *input_array, const size_t count,
   int32_t attempts_to_int_encode = 0;
   while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
     alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
-                            sample_array, alpstate);
+                          sample_array, alpstate);
     if (alpstate.scheme == Scheme::ALP_RD) {
       break;
     }
@@ -115,11 +115,13 @@ void rd_encode(const T *input_array, const size_t count,
   UINT_T right_array[consts::VALUES_PER_VECTOR];
 
   for (size_t i{0}; i < n_vecs; i++) {
-    alp::rd_encoder<T>::init(const_cast<T *>(input_array), data->rowgroup_offset,
-                        consts::VALUES_PER_VECTOR, sample_array, alpstate);
+    alp::rd_encoder<T>::init(const_cast<T *>(input_array),
+                             data->rowgroup_offset, consts::VALUES_PER_VECTOR,
+                             sample_array, alpstate);
 
-		std::memcpy(left_parts_dicts, alpstate.left_parts_dict, config::MAX_RD_DICTIONARY_SIZE);
-		left_parts_dicts += config::MAX_RD_DICTIONARY_SIZE;
+    std::memcpy(left_parts_dicts, alpstate.left_parts_dict,
+                config::MAX_RD_DICTIONARY_SIZE * sizeof(uint16_t));
+    left_parts_dicts += config::MAX_RD_DICTIONARY_SIZE;
 
     AlpVecExceptions<uint16_t> exceptions =
         data->exceptions.get_exceptions_for_vec(i);
@@ -129,8 +131,8 @@ void rd_encode(const T *input_array, const size_t count,
         data->right_ffor.get_ffor_header_for_vec(i);
 
     alp::rd_encoder<T>::encode(input_array, exceptions.exceptions,
-                          exceptions.positions, exceptions.count, right_array,
-                          left_array, alpstate);
+                               exceptions.positions, exceptions.count,
+                               right_array, left_array, alpstate);
 
     (*left_ffor.base) = alpstate.left_for_base;
     (*left_ffor.bit_width) = alpstate.left_bit_width;
@@ -157,6 +159,7 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
   UINT_T right_array[consts::VALUES_PER_VECTOR];
   state<T> alpstate;
 
+	uint16_t* left_parts_dict = data->left_parts_dicts;
   for (size_t i{0}; i < n_vecs; i++) {
     AlpFFORVecHeader<uint16_t> left_ffor_header =
         data->left_ffor.get_ffor_header_for_vec(i);
@@ -171,14 +174,16 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
     alpstate.right_bit_width = (*right_ffor_header.bit_width);
 
     for (size_t j{0}; j < config::MAX_RD_DICTIONARY_SIZE; j++) {
-      alpstate.left_parts_dict[j] = data->left_parts_dicts[j];
+      alpstate.left_parts_dict[j] = left_parts_dict[j];
     }
+    left_parts_dict += config::MAX_RD_DICTIONARY_SIZE;
 
     AlpVecExceptions<uint16_t> exceptions =
         data->exceptions.get_exceptions_for_vec(i);
+
     alp::rd_encoder<T>::decode(output_array, right_array, left_array,
-                          exceptions.exceptions, exceptions.positions,
-                          exceptions.count, alpstate);
+                               exceptions.exceptions, exceptions.positions,
+                               exceptions.count, alpstate);
 
     output_array += consts::VALUES_PER_VECTOR;
   }
@@ -187,10 +192,10 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
 } // namespace alp
 
 template void alp::int_encode<float>(const float *input_array,
-                                      const size_t count,
-                                      alp::AlpCompressionData<float> *data);
+                                     const size_t count,
+                                     alp::AlpCompressionData<float> *data);
 template void alp::int_decode<float>(float *output_array,
-                                      alp::AlpCompressionData<float> *data);
+                                     alp::AlpCompressionData<float> *data);
 
 template void alp::int_encode<double>(const double *input_array,
                                       const size_t count,

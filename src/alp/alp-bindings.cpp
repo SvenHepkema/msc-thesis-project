@@ -15,6 +15,7 @@
 #include "state.hpp"
 
 namespace alp {
+	constexpr int MAX_ATTEMPTS_TO_ENCODE = 10000;
 
 template <typename T>
 void int_encode(const T *input_array, const size_t count,
@@ -28,7 +29,7 @@ void int_encode(const T *input_array, const size_t count,
   state alpstate;
 
   int32_t attempts_to_int_encode = 0;
-  while (attempts_to_int_encode < 1000) {
+  while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
     alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
                             sample_array, alpstate);
     if (alpstate.scheme == SCHEME::ALP) {
@@ -100,7 +101,7 @@ void rd_encode(const T *input_array, const size_t count,
   state alpstate;
 
   int32_t attempts_to_int_encode = 0;
-  while (attempts_to_int_encode < 1000) {
+  while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
     alp::AlpEncode<T>::init(input_array, data->rowgroup_offset, count,
                             sample_array, alpstate);
     if (alpstate.scheme == SCHEME::ALP_RD) {

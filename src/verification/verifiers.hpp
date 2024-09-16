@@ -241,8 +241,8 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
       data::lambda::get_alp_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			40); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 40
+			30); // After ~47 value bit width alp usually chooses to encode with RD
+					 // for safety we choose a max value bit width of 30
 }
 
 template <typename T>
@@ -270,8 +270,8 @@ verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
       data::lambda::get_alp_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			40); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 40
+			30); // After ~47 value bit width alp usually chooses to encode with RD
+					 // for safety we choose a max value bit width of 30
 }
 
 template <typename T>

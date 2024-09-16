@@ -33770,39 +33770,46 @@ static void falp_0bw_32ow_32crw_1uf(const uint32_t* __restrict a_in_p,
 	[[maybe_unused]] float      frac10 = alp::Constants<float>::FRAC_ARR[exp];
 	[[maybe_unused]] float      tmp_dbl;
 	[[maybe_unused]] int32_t    tmp_int;
+
+	tmp_0 = base_0;
+	tmp_0 *= factor;
+	tmp_int = tmp_0;
+	tmp_dbl = tmp_int;
+	tmp_dbl *= frac10;
+
 	for (int i = 0; i < 32; ++i) {
-		*(out + (i * 1) + (0 * 32) + (32 * 0))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 1))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 2))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 3))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 4))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 5))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 6))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 7))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 8))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 9))  = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 10)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 11)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 12)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 13)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 14)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 15)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 16)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 17)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 18)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 19)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 20)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 21)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 22)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 23)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 24)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 25)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 26)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 27)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 28)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 29)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 30)) = base_0;
-		*(out + (i * 1) + (0 * 32) + (32 * 31)) = base_0;
+		*(out + (i * 1) + (0 * 32) + (32 * 0))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 1))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 2))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 3))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 4))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 5))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 6))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 7))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 8))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 9))  = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 10)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 11)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 12)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 13)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 14)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 15)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 16)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 17)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 18)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 19)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 20)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 21)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 22)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 23)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 24)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 25)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 26)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 27)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 28)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 29)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 30)) = tmp_dbl;
+		*(out + (i * 1) + (0 * 32) + (32 * 31)) = tmp_dbl;
 	}
 }
 static void falp_1bw_32ow_32crw_1uf(const uint32_t* __restrict a_in_p,

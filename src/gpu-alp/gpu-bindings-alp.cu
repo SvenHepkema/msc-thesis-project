@@ -45,5 +45,7 @@ void alp(T *__restrict out, const alp::AlpCompressionData<T> *data) {
 
 } // namespace gpu
 
+template void gpu::alp<float>(float *__restrict out,
+                               const alp::AlpCompressionData<float> *data);
 template void gpu::alp<double>(double *__restrict out,
                                const alp::AlpCompressionData<double> *data);

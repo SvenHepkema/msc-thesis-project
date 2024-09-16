@@ -46,7 +46,7 @@ int32_t process_results(verification::VerificationResult<T> results,
       fprintf(stderr, "\nValue bit width %d failed.\n", result.first);
 
       for (auto difference : result.second) {
-        difference.template log<T>();
+        difference.template log<double>();
       }
     }
     fprintf(stderr, "\n[%ld/%d] Value bit widths failed.\n", results.size(),
@@ -98,11 +98,9 @@ int main(int argc, char **argv) {
     case 64: {
       return run_alp_verification<double>(args);
     }
-		/*
     case 32: {
       return run_alp_verification<float>(args);
     }
-		*/
     }
 #endif
   } else {

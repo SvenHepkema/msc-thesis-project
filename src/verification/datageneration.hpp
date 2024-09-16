@@ -133,7 +133,7 @@ std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
 
   INT_T base = base_generator();
 
-  auto decimal_offset = std::pow(10.0, -static_cast<T>(decimals));
+  T decimal_offset = static_cast<T>(std::pow(10.0, -static_cast<T>(decimals)));
 
   for (size_t i{0}; i < count; ++i) {
     if (i % consts::VALUES_PER_VECTOR == 0) {
@@ -154,11 +154,9 @@ std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
 
 template <typename T>
 std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
   auto column = generate_random_column<T>(count, 0, 100000.0);
 
-  auto base_generator = get_random_number_generator<UINT_T>(0.0, 1000.0);
+  auto base_generator = get_random_floating_point_generator<T>(0.0, 1000.0);
 
   const auto exceptions_per_vector = 30;
   auto exception_picker =
@@ -168,16 +166,16 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
 
   auto column_p = column.get();
 
-  T base = static_cast<double>(base_generator());
+  T base = static_cast<T>(base_generator());
   for (size_t i{0}; i < count; ++i) {
     if (i % consts::VALUES_PER_VECTOR == 0) {
-      base = static_cast<double>(base_generator());
+      base = static_cast<T>(base_generator());
     }
 
     if (exception_picker() < exceptions_per_vector) {
       column_p[i] = exception_generator();
     } else {
-      column_p[i] += static_cast<double>(base);
+      column_p[i] += static_cast<T>(base);
     }
   }
 

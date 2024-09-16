@@ -24,7 +24,7 @@ void int_encode(const T *input_array, const size_t count,
 
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
 
-  T *sample_array = new double[count];
+  T *sample_array = new T[count];
   state<T> alpstate;
 
   int32_t attempts_to_int_encode = 0;
@@ -42,7 +42,6 @@ void int_encode(const T *input_array, const size_t count,
   delete[] sample_array;
 
   INT_T *encoded_array = new INT_T[count];
-
   for (size_t i{0}; i < n_vecs; i++) {
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
     alp::encoder<T>::encode(input_array, exceptions.exceptions,
@@ -187,10 +186,12 @@ void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
 
 } // namespace alp
 
-// template
-// void alp::int_encode(float *output_array, alp::AlpCompressionData<float>
-// *data); template void alp::int_decode(float *output_array,
-// alp::AlpCompressionData<float> *data);
+template void alp::int_encode<float>(const float *input_array,
+                                      const size_t count,
+                                      alp::AlpCompressionData<float> *data);
+template void alp::int_decode<float>(float *output_array,
+                                      alp::AlpCompressionData<float> *data);
+
 template void alp::int_encode<double>(const double *input_array,
                                       const size_t count,
                                       alp::AlpCompressionData<double> *data);

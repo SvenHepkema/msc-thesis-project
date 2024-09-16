@@ -236,13 +236,17 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
     delete alp_data_p;
   };
 
+	 // Higher value bit width causes more data variance. 
+	 // ALP does not always choose int32 then as an encoding method
+	 // So we take reduced max value bit width to ensure it always chooses
+	 // alp_int
+	int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
       a_count,
       data::lambda::get_alp_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			30); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 30
+			max_value_bitwidth_to_test);
 }
 
 template <typename T>
@@ -265,13 +269,13 @@ verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
     delete alp_data_p;
   };
 
+	int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
       a_count,
       data::lambda::get_alp_data<T>(use_random_data),
       compress_all,
       decompress_all,
-			30); // After ~47 value bit width alp usually chooses to encode with RD
-					 // for safety we choose a max value bit width of 30
+			max_value_bitwidth_to_test); 
 }
 
 template <typename T>

@@ -61,17 +61,18 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
                      std::is_same<T_out, double>::value),
                 "Wrong type arguments");
   using INT_T = typename utils::same_width_int<T_out>::type;
+  using UINT_T = typename utils::same_width_int<T_out>::type;
 
   T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
   uint16_t value_bit_width = column.bit_widths[vector_index];
-  T_in base = column.ffor_bases[vector_index];
+  UINT_T base = column.ffor_bases[vector_index];
   INT_T factor = constant_memory::FACT_ARR[column.factors[vector_index]];
   T_out frac10 = constant_memory::FRAC_ARR_D
       [column.exponents[vector_index]]; // WARNING TODO implement a
                                         // compile time switch to grab float
                                         // array
   auto lambda = [base, factor, frac10](const T_in value) -> T_out {
-    return T_out{(value + base) * factor} * frac10;
+    return T_out{static_cast<INT_T>((value + base) * static_cast<UINT_T>(factor))} * frac10;
   };
 
   unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(

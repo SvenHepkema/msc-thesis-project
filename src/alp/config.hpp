@@ -1,6 +1,8 @@
 #ifndef ALP_CONFIG_HPP
 #define ALP_CONFIG_HPP
 
+#pragma clang system_header
+
 #include <cstddef>
 
 /*

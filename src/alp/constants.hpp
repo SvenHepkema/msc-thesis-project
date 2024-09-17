@@ -1,6 +1,8 @@
 #ifndef ALP_CONSTANTS_HPP
 #define ALP_CONSTANTS_HPP
 
+#pragma clang system_header
+
 #include "config.hpp"
 #include <cstdint>
 #include <vector>

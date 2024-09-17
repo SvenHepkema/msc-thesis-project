@@ -10,12 +10,13 @@
 
 enum UnpackingType { LaneArray, VectorArray };
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES, typename lambda_T>
-__device__ void
-unpack_vector(const T_in *__restrict in, T_out *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index,
-              lambda_T lambda) {
+template <typename T_in, typename T_out, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename lambda_T>
+__device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
+                              const uint16_t lane,
+                              const uint16_t value_bit_width,
+                              const uint16_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -73,7 +74,8 @@ unpack_vector(const T_in *__restrict in, T_out *__restrict out, const uint16_t l
       ++n_input_line;
       buffer_offset -= LANE_BIT_WIDTH;
 
-      buffer_offset_mask = (T_in{1} << static_cast<T_in>(buffer_offset)) - T_in{1};
+      buffer_offset_mask =
+          (T_in{1} << static_cast<T_in>(buffer_offset)) - T_in{1};
 #pragma unroll
       for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
         value[v] |= (line_buffer[v] & buffer_offset_mask)
@@ -108,6 +110,18 @@ unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
   T base = *a_base_p;
   auto lambda = [base](const T value) -> T { return value + base; };
   unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
+}
+
+template <typename T, typename T_dict, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void
+undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
+              const uint16_t value_bit_width, const uint16_t start_index,
+              const T *__restrict a_base_p, const T_dict *__restrict dict) {
+  T base = *a_base_p;
+  auto lambda = [base, dict](const T value) -> T { return dict[value + base]; };
+  unpack_vector<T, T_dict, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 }
 

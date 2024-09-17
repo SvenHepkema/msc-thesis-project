@@ -162,34 +162,8 @@ __device__ void alprd_vector(T_out *__restrict out,
   constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
   constexpr int32_t VALUES_PER_LANE = utils::get_values_per_lane<UINT_T>();
 
-	UINT_T* out_ut = reinterpret_cast<UINT_T*>(out);
+  UINT_T *out_ut = reinterpret_cast<UINT_T *>(out);
 
-  // Unfforring Arrays
-  // INFO The paper says something about fusing, consider using a custom lambda
-	// TODO Do thread local array instead of shared
-  __shared__ uint16_t left_array[consts::VALUES_PER_VECTOR];
-  const uint16_t *left_ffor_array =
-      column.left_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
-  const uint16_t left_bitwidth = column.left_bit_widths[vector_index];
-  const uint16_t left_base = column.left_ffor_bases[vector_index];
-
-  // WARNING This mapping from alprd lane to uint16_t lane should be independent
-  // of block sizes
-  for (int i{lane}; i < utils::get_n_lanes<uint16_t>(); i += N_LANES) {
-    unffor_vector<uint16_t, UnpackingType::VectorArray, 1,
-                  utils::get_values_per_lane<uint16_t>()>(
-        left_ffor_array, left_array, i, left_bitwidth, 0, &left_base);
-  }
-
-	// TODO Do thread local array instead of shared
-  __shared__ UINT_T right_array[consts::VALUES_PER_VECTOR];
-  const UINT_T *right_ffor_array =
-      column.right_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
-  const uint16_t right_bitwidth = column.right_bit_widths[vector_index];
-  const UINT_T right_base = column.right_ffor_bases[vector_index];
-  unffor_vector<UINT_T, UnpackingType::VectorArray, 1, VALUES_PER_LANE>(
-      right_ffor_array, right_array, lane, right_bitwidth, 0, &right_base);
-	
   // Loading left parts dict
   // TODO Let the threads collaborate to load this data
   const uint16_t *left_parts_dicts_p =
@@ -200,16 +174,39 @@ __device__ void alprd_vector(T_out *__restrict out,
     left_parts_dict[j] = left_parts_dicts_p[j];
   }
 
+  // Unfforring Arrays
+  // INFO The paper says something about fusing, consider using a custom lambda
+  // TODO Do thread local array instead of shared
+  __shared__ uint16_t left_array[consts::VALUES_PER_VECTOR];
+  const uint16_t *left_ffor_array =
+      column.left_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
+  const uint16_t left_bitwidth = column.left_bit_widths[vector_index];
+  const uint16_t left_base = column.left_ffor_bases[vector_index];
+
+  // WARNING This mapping from alprd lane to uint16_t lane should be independent
+  // of block sizes
+  for (int i{lane}; i < utils::get_n_lanes<uint16_t>(); i += N_LANES) {
+    undict_vector<uint16_t, uint16_t, UnpackingType::VectorArray, 1,
+                  utils::get_values_per_lane<uint16_t>()>(
+        left_ffor_array, left_array, i, left_bitwidth, 0, &left_base, left_parts_dict);
+  }
+
+  // TODO Do thread local array instead of shared
+  __shared__ UINT_T right_array[consts::VALUES_PER_VECTOR];
+  const UINT_T *right_ffor_array =
+      column.right_ffor_array + vector_index * consts::VALUES_PER_VECTOR;
+  const uint16_t right_bitwidth = column.right_bit_widths[vector_index];
+  const UINT_T right_base = column.right_ffor_bases[vector_index];
+  unffor_vector<UINT_T, UnpackingType::VectorArray, 1, VALUES_PER_LANE>(
+      right_ffor_array, right_array, lane, right_bitwidth, 0, &right_base);
+
   // Decoding
 #pragma unroll
   for (int i{lane}; i < consts::VALUES_PER_VECTOR; i += N_LANES) {
-    const uint16_t left = left_parts_dict[left_array[i]];
-    const UINT_T right = right_array[i];
-		
     // WARNING THIS SHOULD NOT WRITE TO GLOBAL
     // TODO write to thread local, and then patch all thread local values
     // INFO THIS IS ALSO an issue in the normal ALP kernel
-    out_ut[i] = (static_cast<UINT_T>(left) << right_bitwidth) | right;
+    out_ut[i] = (static_cast<UINT_T>(left_array[i]) << right_bitwidth) | right_array[i];
   }
 
   // Patching exceptions

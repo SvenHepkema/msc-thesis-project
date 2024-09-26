@@ -12,8 +12,8 @@
 namespace verifiers {
 
 template <typename T>
-verification::VerificationResult<T> verify_bitpacking(const size_t a_count,
-                                                      bool use_random_data) {
+verification::VerificationResult<T>
+verify_bitpacking(const size_t a_count, const std::string dataset_name) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
     fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
@@ -25,14 +25,14 @@ verification::VerificationResult<T> verify_bitpacking(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(dataset_name),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bitpacking(const size_t a_count, bool use_random_data) {
+verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
   auto compress = [](const T *in, T *out,
                      const int32_t value_bit_width) -> void {
     fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
@@ -44,13 +44,13 @@ verify_gpu_bitpacking(const size_t a_count, bool use_random_data) {
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_bp_data<T>(use_random_data),
+      a_count, data::lambda::get_bp_data<T>(dataset_name),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_ffor(const size_t a_count,
-                                                bool use_random_data) {
+verification::VerificationResult<T>
+verify_ffor(const size_t a_count, const std::string dataset_name) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
@@ -64,14 +64,14 @@ verification::VerificationResult<T> verify_ffor(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_ffor_data<T>(use_random_data, temp_base),
+      a_count, data::lambda::get_ffor_data<T>(dataset_name, temp_base),
       verification::apply_compression_to_all<T>(compress),
       verification::apply_decompression_to_all<T>(decompress));
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_gpu_unffor(const size_t a_count,
-                                                      bool use_random_data) {
+verification::VerificationResult<T>
+verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
   T temp_base = 125;
   T *temp_base_p = &temp_base;
 
@@ -86,13 +86,13 @@ verification::VerificationResult<T> verify_gpu_unffor(const size_t a_count,
   };
 
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_ffor_data<T>(use_random_data, temp_base),
+      a_count, data::lambda::get_ffor_data<T>(dataset_name, temp_base),
       verification::apply_compression_to_all<T>(compress), decompress_all);
 }
 
 template <typename T>
 verification::VerificationResult<T> verify_alp(const size_t a_count,
-                                               bool use_random_data) {
+                                               const std::string dataset_name) {
   alp::AlpCompressionData<T> *alp_data_p = nullptr;
 
   auto compress_all =
@@ -116,13 +116,13 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
   // alp_int
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_alp_data<T>(use_random_data), compress_all,
+      a_count, data::lambda::get_alp_data<T>(dataset_name), compress_all,
       decompress_all, max_value_bitwidth_to_test);
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
-                                                   bool use_random_data) {
+verification::VerificationResult<T>
+verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
   alp::AlpCompressionData<T> *alp_data_p = nullptr;
 
   auto compress_all =
@@ -142,13 +142,13 @@ verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_alp_data<T>(use_random_data), compress_all,
+      a_count, data::lambda::get_alp_data<T>(dataset_name), compress_all,
       decompress_all, max_value_bitwidth_to_test);
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_alprd(const size_t a_count,
-                                                 bool use_random_data) {
+verification::VerificationResult<T>
+verify_alprd(const size_t a_count, const std::string dataset_name) {
   alp::AlpRdCompressionData<T> *alp_data_p = nullptr;
 
   auto compress_all =
@@ -168,13 +168,13 @@ verification::VerificationResult<T> verify_alprd(const size_t a_count,
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_alprd_data<T>(use_random_data), compress_all,
+      a_count, data::lambda::get_alprd_data<T>(dataset_name), compress_all,
       decompress_all, max_value_bitwidth_to_test);
 }
 
 template <typename T>
-verification::VerificationResult<T> verify_gpu_alprd(const size_t a_count,
-                                                     bool use_random_data) {
+verification::VerificationResult<T>
+verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
   alp::AlpRdCompressionData<T> *alp_data_p = nullptr;
 
   auto compress_all =
@@ -194,35 +194,35 @@ verification::VerificationResult<T> verify_gpu_alprd(const size_t a_count,
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   return verification::verify_all_value_bit_widths<T>(
-      a_count, data::lambda::get_alprd_data<T>(use_random_data), compress_all,
+      a_count, data::lambda::get_alprd_data<T>(dataset_name), compress_all,
       decompress_all, max_value_bitwidth_to_test);
 }
 
 template <typename T>
 using Verifier = std::function<verification::VerificationResult<T>(
-    const size_t, const bool)>;
+    const size_t, const std::string)>;
 
 template <class T> struct Fastlanes {
   static inline const std::unordered_map<std::string, Verifier<T>> verifiers = {
       {"bp",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_bitpacking<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_bitpacking<T>(count, dataset_name);
        }},
       {"gpu_bp",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_gpu_bitpacking<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_gpu_bitpacking<T>(count, dataset_name);
        }},
       {"flsffor",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_ffor<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_ffor<T>(count, dataset_name);
        }},
       {"gpu_unffor",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_gpu_unffor<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_gpu_unffor<T>(count, dataset_name);
        }},
   };
 };
@@ -230,24 +230,24 @@ template <class T> struct Fastlanes {
 template <class T> struct Alp {
   static inline std::unordered_map<std::string, Verifier<T>> verifiers = {
       {"alp",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_alp<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_alp<T>(count, dataset_name);
        }},
       {"gpu_alp",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_gpu_alp<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_gpu_alp<T>(count, dataset_name);
        }},
       {"alprd",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_alprd<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_alprd<T>(count, dataset_name);
        }},
       {"gpu_alprd",
-       [](const size_t count,
-          const bool use_random_data) -> verification::VerificationResult<T> {
-         return verify_gpu_alprd<T>(count, use_random_data);
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_gpu_alprd<T>(count, dataset_name);
        }},
   };
 };

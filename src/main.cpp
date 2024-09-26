@@ -10,8 +10,8 @@
 struct CLIArgs {
   std::string verifier;
   int32_t datatype_width;
+	std::string dataset_name;
   size_t count;
-  bool use_random_data;
   bool print_debug;
 
   CLIArgs(int argc, char **argv) {
@@ -22,9 +22,9 @@ struct CLIArgs {
 
     verifier = argv[++argcounter];
     datatype_width = std::atoi(argv[++argcounter]);
+    dataset_name = argv[++argcounter];
     size_t n_vecs = static_cast<size_t>(std::atoi(argv[++argcounter]));
     count = n_vecs * 1024;
-    use_random_data = std::atoi(argv[++argcounter]);
     print_debug = std::atoi(argv[++argcounter]);
   }
 };
@@ -58,7 +58,7 @@ template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results =
       verifiers::Fastlanes<T>::verifiers.at(args.verifier)(
-          args.count, args.use_random_data);
+          args.count, args.dataset_name);
   return process_results<T>(results, args);
 }
 
@@ -66,7 +66,7 @@ template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
 int32_t run_verification(CLIArgs args) {
   verification::VerificationResult<T> results = verifiers::Alp<T>::verifiers.at(
-      args.verifier)(args.count, args.use_random_data);
+      args.verifier)(args.count, args.dataset_name);
   return process_results<T>(results, args);
 }
 

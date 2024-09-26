@@ -114,13 +114,15 @@ std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
 
 template <typename T>
 std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
-    const size_t count, const int32_t value_bit_width, const int32_t exception_percentage, const int32_t decimals) {
-	static_assert(std::is_floating_point<T>::value, "T should be a floating point type.");
+    const size_t count, const int32_t value_bit_width,
+    const int32_t exception_percentage, const int32_t decimals) {
+  static_assert(std::is_floating_point<T>::value,
+                "T should be a floating point type.");
   using INT_T = typename utils::same_width_int<T>::type;
 
   INT_T max_value = utils::set_first_n_bits<INT_T>(value_bit_width);
   auto int_column = generate_random_column<INT_T>(count, 0, max_value);
-	auto column = cast_column<INT_T, T>(std::move(int_column), count);
+  auto column = cast_column<INT_T, T>(std::move(int_column), count);
 
   INT_T max_base = max_value * 100;
   auto base_generator = get_random_number_generator<INT_T>(-max_base, max_base);
@@ -190,28 +192,38 @@ using DataGenerationLambda =
     std::function<std::unique_ptr<T>(const size_t, const int32_t)>;
 
 template <typename T>
-DataGenerationLambda<T> get_bp_data(const bool use_random_data) {
-  if (use_random_data) {
+DataGenerationLambda<T> get_bp_data(const std::string dataset_name) {
+  if (dataset_name == "index") {
+    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+      return generation::generate_index_column<T>(
+          count, utils::set_first_n_bits<T>(value_bit_width));
+    };
+  } else if (dataset_name == "random") {
     return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
       return generation::generate_random_column<T>(
           count, T{0}, utils::set_first_n_bits<T>(value_bit_width));
     };
   } else {
-    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-      return generation::generate_index_column<T>(
-          count, utils::set_first_n_bits<T>(value_bit_width));
-    };
+    throw std::invalid_argument(
+        "This data generator only accepts 'index' & 'random'");
   }
 }
 
 template <typename T>
-DataGenerationLambda<T> get_ffor_data(const bool use_random_data, T base) {
+DataGenerationLambda<T> get_ffor_data(const std::string dataset_name, T base) {
   auto get_max_value = [](const int32_t value_bit_width, T l_base) -> T {
     return utils::set_first_n_bits<T>(value_bit_width) +
            (value_bit_width == sizeof(T) * 8 ? T{0} : l_base);
   };
 
-  if (use_random_data) {
+  if (dataset_name == "index") {
+    return [base, get_max_value](
+               const size_t count,
+               const int32_t value_bit_width) -> std::unique_ptr<T> {
+      return generation::generate_index_column<T>(
+          count, get_max_value(value_bit_width, base), base);
+    };
+  } else if (dataset_name == "random") {
     return [base, get_max_value](
                const size_t count,
                const int32_t value_bit_width) -> std::unique_ptr<T> {
@@ -219,48 +231,43 @@ DataGenerationLambda<T> get_ffor_data(const bool use_random_data, T base) {
           count, base, get_max_value(value_bit_width, base));
     };
   } else {
-    return [base, get_max_value](
-               const size_t count,
-               const int32_t value_bit_width) -> std::unique_ptr<T> {
-      return generation::generate_index_column<T>(
-          count, get_max_value(value_bit_width, base), base);
-    };
+    throw std::invalid_argument(
+        "This data generator only accepts 'index' & 'random'");
   }
 }
 
 template <typename T>
-DataGenerationLambda<T> get_alp_data(const bool use_random_data) {
+DataGenerationLambda<T> get_alp_data(const std::string dataset_name) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-  using UINT_T = typename utils::same_width_uint<T>::type;
 
-  if (use_random_data) {
+  if (dataset_name == "random") {
     return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-			auto decimals = value_bit_width % 3;
-      return generation::generate_ffor_column_with_fixed_decimals<
-          T>(count, value_bit_width, 3, decimals);
+      auto decimals = value_bit_width % 3;
+      return generation::generate_ffor_column_with_fixed_decimals<T>(
+          count, value_bit_width, 3, decimals);
     };
   } else {
-    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
-      return generation::cast_column<UINT_T, T>(
-          generation::generate_index_column<UINT_T>(
-              count, utils::set_first_n_bits<UINT_T>(value_bit_width)),
-          count);
-    };
+    throw std::invalid_argument(
+        "This data generator only accepts 'index' & 'random'");
   }
 }
 
 template <typename T>
 DataGenerationLambda<T>
-get_alprd_data([[maybe_unused]] const bool use_random_data) {
+get_alprd_data([[maybe_unused]] const std::string dataset_name) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
-  // Non random data is not supported as the sampling step will never sample it
-  // to use ALPrd
-  return [](size_t count,
-            [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
-    return generation::generate_ffor_column_with_real_doubles<T>(count);
-  };
+
+  if (dataset_name == "random") {
+    return [](size_t count,
+              [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
+      return generation::generate_ffor_column_with_real_doubles<T>(count);
+    };
+  } else {
+    throw std::invalid_argument(
+        "This data generator only accepts 'index' & 'random'");
+  }
 }
 
 } // namespace lambda

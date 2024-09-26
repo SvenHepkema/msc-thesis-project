@@ -8,9 +8,9 @@
 #include "verification/verifiers.hpp"
 
 struct CLIArgs {
-  size_t count;
-  int32_t datatype_width;
   std::string verifier;
+  int32_t datatype_width;
+  size_t count;
   bool use_random_data;
   bool print_debug;
 
@@ -20,10 +20,10 @@ struct CLIArgs {
     }
     int32_t argcounter = 0;
 
+    verifier = argv[++argcounter];
+    datatype_width = std::atoi(argv[++argcounter]);
     size_t n_vecs = static_cast<size_t>(std::atoi(argv[++argcounter]));
     count = n_vecs * 1024;
-    datatype_width = std::atoi(argv[++argcounter]);
-    verifier = argv[++argcounter];
     use_random_data = std::atoi(argv[++argcounter]);
     print_debug = std::atoi(argv[++argcounter]);
   }

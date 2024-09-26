@@ -8,23 +8,21 @@
 #include "verification/verifiers.hpp"
 
 struct CLIArgs {
-	std::string compression_type;
   size_t count;
-  int32_t lane_width;
+  int32_t datatype_width;
   std::string verifier;
   bool use_random_data;
   bool print_debug;
 
   CLIArgs(int argc, char **argv) {
-    if (argc != 7) {
+    if (argc != 6) {
       throw std::invalid_argument("Not the required amount of arguments.");
     }
     int32_t argcounter = 0;
 
-    compression_type = argv[++argcounter];
     size_t n_vecs = static_cast<size_t>(std::atoi(argv[++argcounter]));
     count = n_vecs * 1024;
-    lane_width = std::atoi(argv[++argcounter]);
+    datatype_width = std::atoi(argv[++argcounter]);
     verifier = argv[++argcounter];
     use_random_data = std::atoi(argv[++argcounter]);
     print_debug = std::atoi(argv[++argcounter]);
@@ -56,14 +54,18 @@ int32_t process_results(verification::VerificationResult<T> results,
   return static_cast<int32_t>(results.size());
 }
 
-template <typename T> int32_t run_fls_verification(CLIArgs args) {
-  verification::VerificationResult<T> results = verifiers::get_fls_verifier<T>(
-      args.verifier)(args.count, args.use_random_data);
+template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
+int32_t run_verifier(CLIArgs args) {
+  verification::VerificationResult<T> results =
+      verifiers::Fastlanes<T>::verifiers.at(args.verifier)(
+          args.count, args.use_random_data);
   return process_results<T>(results, args);
 }
 
-template <typename T> int32_t run_alp_verification(CLIArgs args) {
-  verification::VerificationResult<T> results = verifiers::get_alp_verifier<T>(
+template <typename T,
+          std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
+int32_t run_verification(CLIArgs args) {
+  verification::VerificationResult<T> results = verifiers::Alp<T>::verifiers.at(
       args.verifier)(args.count, args.use_random_data);
   return process_results<T>(results, args);
 }
@@ -71,39 +73,33 @@ template <typename T> int32_t run_alp_verification(CLIArgs args) {
 int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
 
-  if (args.compression_type == "fls") {
-#ifdef DATA_TYPE
-    // return run_fls_verification<DATA_TYPE>(args);
-#else
-    switch (args.lane_width) {
+  if (verifiers::Fastlanes<uint32_t>::verifiers.find(args.verifier) !=
+      verifiers::Fastlanes<uint32_t>::verifiers.end()) {
+    switch (args.datatype_width) {
     case 64: {
-      return run_fls_verification<uint64_t>(args);
+      return run_verifier<uint64_t>(args);
     }
     case 32: {
-      return run_fls_verification<uint32_t>(args);
+      return run_verifier<uint32_t>(args);
     }
     case 16: {
-      return run_fls_verification<uint16_t>(args);
+      return run_verifier<uint16_t>(args);
     }
     case 8: {
-      return run_fls_verification<uint8_t>(args);
+      return run_verifier<uint8_t>(args);
     }
     }
-#endif
-  } else if (args.compression_type == "alp") {
-#ifdef DATA_TYPE
-    return run_alp_verification<DATA_TYPE>(args);
-#else
-    switch (args.lane_width) {
+  } else if (verifiers::Alp<float>::verifiers.find(args.verifier) !=
+             verifiers::Alp<float>::verifiers.end()) {
+    switch (args.datatype_width) {
     case 64: {
-      return run_alp_verification<double>(args);
+      return run_verification<double>(args);
     }
     case 32: {
-      return run_alp_verification<float>(args);
+      return run_verification<float>(args);
     }
     }
-#endif
   } else {
-    throw std::invalid_argument("This compression type is not supported");
-	}
+    throw std::invalid_argument("This verifier is not supported");
+  }
 }

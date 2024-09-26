@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "../alp/alp-bindings.hpp"
-#include "../cpu-fls/fls.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-fls/gpu-bindings-fls.hpp"
 #include "datageneration.hpp"

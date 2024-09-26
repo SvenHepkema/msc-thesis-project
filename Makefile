@@ -30,7 +30,7 @@ obj/alp-%.o: src/alp/%.cpp
 obj/gpu-fls.o: src/gpu-fls/gpu-bindings-fls.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
-obj/gpu-alp.o: src/gpu-alp/gpu-bindings-alp.cu obj/gpu-fls.o
+obj/gpu-alp.o: src/gpu-alp/alp-test-kernels-setup.cu obj/gpu-fls.o
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables

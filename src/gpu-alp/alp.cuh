@@ -99,7 +99,7 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 // WARNING
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
+__device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
                            const uint16_t vector_index, const uint16_t lane,
                            const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
@@ -147,7 +147,7 @@ __device__ void alp_vector(T_out *__restrict out, const AlpColumn<T_out> column,
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void alprd_vector(T_out *__restrict out,
+__device__ void unalprd(T_out *__restrict out,
                              const AlpRdColumn<T_out> column,
                              const uint16_t vector_index, const uint16_t lane,
                              const uint16_t start_index) {

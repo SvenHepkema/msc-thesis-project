@@ -6,7 +6,7 @@
 #include "../fls/compression.hpp"
 #include "../alp/alp-bindings.hpp"
 #include "../gpu-fls/gpu-bindings-fls.hpp"
-#include "../gpu-alp/gpu-bindings-alp.hpp"
+#include "../gpu-alp/alp-test-kernels-bindings.hpp"
 
 namespace verifiers {
 
@@ -265,7 +265,7 @@ verification::VerificationResult<T> verify_gpu_alp(const size_t a_count,
       [&alp_data_p]([[maybe_unused]] const T *in, T *out,
                     [[maybe_unused]] const size_t count,
                     [[maybe_unused]] const int32_t value_bit_width) -> void {
-    gpu::alp<T>(out, alp_data_p);
+    gpu::test_alp_complete_vector_decoding<T>(out, alp_data_p);
     delete alp_data_p;
   };
 
@@ -323,7 +323,7 @@ verification::VerificationResult<T> verify_gpu_alprd(const size_t a_count,
       [&alp_data_p]([[maybe_unused]] const T *in, T *out,
                     [[maybe_unused]] const size_t count,
                     [[maybe_unused]] const int32_t value_bit_width) -> void {
-    gpu::alprd<T>(out, alp_data_p);
+    gpu::test_alprd_complete_vector_decoding<T>(out, alp_data_p);
     delete alp_data_p;
   };
 

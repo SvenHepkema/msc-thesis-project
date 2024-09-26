@@ -64,7 +64,7 @@ int32_t run_verifier(CLIArgs args) {
 
 template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
-int32_t run_verification(CLIArgs args) {
+int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results = verifiers::Alp<T>::verifiers.at(
       args.verifier)(args.count, args.dataset_name);
   return process_results<T>(results, args);
@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
              verifiers::Alp<float>::verifiers.end()) {
     switch (args.datatype_width) {
     case 64: {
-      return run_verification<double>(args);
+      return run_verifier<double>(args);
     }
     case 32: {
-      return run_verification<float>(args);
+      return run_verifier<float>(args);
     }
     }
   } else {

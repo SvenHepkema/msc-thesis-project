@@ -82,6 +82,7 @@ CompressColumnFunction<T, T, int32_t>
 apply_fls_compression_to_column(CompressVectorFunction<T, T, int32_t> lambda) {
   return [lambda](const T *in, T *out, const int32_t value_bit_width,
                   const size_t count) -> void {
+    out = new T[count];
     size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
     int32_t compressed_vector_size =
         utils::get_compressed_vector_size<T>(value_bit_width);
@@ -155,8 +156,8 @@ get_equal_decompression_verifier(
     const CompressedDataType *compressed_data =
         datagenerator(data_parameters, result_size);
 
-    T *result_a;
-    T *result_b;
+    T *result_a = new T[result_size];
+    T *result_b = new T[result_size];
 
     column_decompressor_a(compressed_data, result_a, compression_parameters,
                           result_size);
@@ -166,8 +167,8 @@ get_equal_decompression_verifier(
     auto result = compare_data<T>(result_a, result_b, result_size);
 
     delete compressed_data;
-    delete result_a;
-    delete result_b;
+    delete[] result_a;
+    delete[] result_b;
 
     return result;
   };
@@ -187,8 +188,8 @@ get_compression_and_decompression_verifier(
                              DataParamsType data_parameters,
                              size_t result_size) -> ExecutionResult<T> {
     const T *original_data = datagenerator(data_parameters, result_size);
-    CompressedDataType *compressed_data;
-    T *decompressed_data;
+    CompressedDataType *compressed_data = nullptr;
+    T *decompressed_data = new T[result_size];
 
     compress_column(original_data, compressed_data, compression_parameters,
                     result_size);
@@ -200,7 +201,7 @@ get_compression_and_decompression_verifier(
 
     delete original_data;
     delete compressed_data;
-    delete decompressed_data;
+    delete[] decompressed_data;
 
     return result;
   };
@@ -231,7 +232,7 @@ VerificationResult<T> run_verifier_on_parameters(
         verifier) {
   auto results = std::vector<ExecutionResult<T>>();
 
-  for (int i{0}; i < compression_parameters_set.size(); ++i) {
+  for (size_t i{0}; i < compression_parameters_set.size(); ++i) {
     results.push_back(
         verifier(compression_parameters_set[i], data_parameters[i], size));
   }

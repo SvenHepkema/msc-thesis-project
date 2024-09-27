@@ -1,4 +1,4 @@
-COMPRESSIONS_TO_VERIFY="gpu_bp gpu_unffor"
+COMPRESSIONS_TO_VERIFY="bp ffor gpu_bp gpu_unffor"
 VECTOR_COUNT=1024
 
 LOG_FILE=/tmp/log

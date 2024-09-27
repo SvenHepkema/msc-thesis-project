@@ -258,7 +258,7 @@ template <class T> struct Fastlanes {
            -> verification::VerificationResult<T> {
          return verify_gpu_bitpacking<T>(count, dataset_name);
        }},
-      {"flsffor",
+      {"ffor",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verify_ffor<T>(count, dataset_name);

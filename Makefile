@@ -2,7 +2,7 @@ INC := -I $(CUDA_LIBRARY_PATH)/include -I.
 LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand 
 CUDA_OBJ_FLAGS = $(INC) $(LIB) 
 OPTIMIZATION_LEVEL = -O3
-CLANG_FLAGS = -std=c++17 $(OPTIMIZATION_LEVEL) -g $(WARNINGS)
+CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-float-equal -Wno-global-constructors -Wno-exit-time-destructors 
 
 # For the fast compilations:
@@ -34,17 +34,14 @@ obj/gpu-alp.o: src/gpu-alp/alp-test-kernels-setup.cu obj/gpu-fls.o
 HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
 SOURCE_FILES=src/main.cpp obj/gpu-fls.o obj/gpu-alp.o $(FLS_OBJ) $(ALP_OBJ)
 
-fast: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
-
 executable: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES)  -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
+	clang++ $(SOURCE_FILES) $(OPTIMIZATION_FLAG) -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 
 
 ub-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -fsanitize=undefined  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $(SOURCE_FILES) -O2 -fsanitize=undefined  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g 
 
 address-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -fsanitize=address  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g -DDATA_TYPE=$(DATA_TYPE) -DVBW=$(VALUE_BIT_WIDTH)
+	clang++ $(SOURCE_FILES) -O2 -fsanitize=address  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g 
 
 clean:
 	rm -f bin/*

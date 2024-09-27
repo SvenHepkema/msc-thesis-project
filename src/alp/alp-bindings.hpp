@@ -47,7 +47,7 @@ template <typename T> struct AlpFFORArray {
     bit_widths = new uint8_t[n_vecs];
   }
 
-  AlpFFORVecHeader<T> get_ffor_header_for_vec(const int64_t vec_index) {
+  AlpFFORVecHeader<T> get_ffor_header_for_vec(const int64_t vec_index) const {
     return AlpFFORVecHeader<T>{
         array + vec_index * 1024,
         bases + vec_index,
@@ -81,7 +81,7 @@ template <typename T> struct AlpExceptions {
     counts = new uint16_t[n_vecs];
   }
 
-  AlpVecExceptions<T> get_exceptions_for_vec(const int64_t vec_index) {
+  AlpVecExceptions<T> get_exceptions_for_vec(const int64_t vec_index) const {
     return AlpVecExceptions<T>{
         exceptions + vec_index * 1024,
         positions + vec_index * 1024,
@@ -151,7 +151,7 @@ void int_encode(const T *input_array, const size_t count,
 
 // Default ALP decoding
 template <typename T>
-void int_decode(T *output_array, AlpCompressionData<T> *data);
+void int_decode(T *output_array, const AlpCompressionData<T> *data);
 
 // Rd ALP encoding
 template <typename T>
@@ -160,7 +160,7 @@ void rd_encode(const T *input_array, const size_t count,
 
 // Rd ALP decoding
 template <typename T>
-void rd_decode(T *output_array, AlpRdCompressionData<T> *data);
+void rd_decode(T *output_array, const AlpRdCompressionData<T> *data);
 
 /*
 // True ALP adaptive encoding

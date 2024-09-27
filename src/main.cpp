@@ -10,7 +10,7 @@
 struct CLIArgs {
   std::string verifier;
   int32_t datatype_width;
-	std::string dataset_name;
+  std::string dataset_name;
   size_t count;
   bool print_debug;
 
@@ -32,33 +32,38 @@ struct CLIArgs {
 template <typename T>
 int32_t process_results(verification::VerificationResult<T> results,
                         CLIArgs args) {
-  if (results.size() == 0) {
-    if (args.print_debug) {
-      fprintf(stderr, "Compression successful.\n");
+
+  int32_t runs_failed = 0;
+  for (size_t i{0}; i < results.size(); i++) {
+    if (!results[i].success) {
+      ++runs_failed;
+
+      if (args.print_debug) {
+        fprintf(stderr, "\n Run %lu failed.\n", i);
+
+        for (auto difference : results[i].differences) {
+          difference.template log<double>();
+        }
+      }
     }
-    return 0;
   }
 
   if (args.print_debug) {
-    for (auto result : results) {
-      fprintf(stderr, "\nValue bit width %d failed.\n", result.first);
-
-      for (auto difference : result.second) {
-        difference.template log<double>();
-      }
+    if (runs_failed == 0) {
+      fprintf(stderr, "Compression successful.\n");
+    } else {
+      fprintf(stderr, "\n[%d/%ld] Runs failed.\n", runs_failed, results.size());
     }
-    fprintf(stderr, "\n[%ld/%d] Value bit widths failed.\n", results.size(),
-            int32_t{sizeof(T)} * 8);
   }
 
-  return static_cast<int32_t>(results.size());
+  return runs_failed;
 }
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results =
-      verifiers::Fastlanes<T>::verifiers.at(args.verifier)(
-          args.count, args.dataset_name);
+      verifiers::Fastlanes<T>::verifiers.at(args.verifier)(args.count,
+                                                           args.dataset_name);
   return process_results<T>(results, args);
 }
 

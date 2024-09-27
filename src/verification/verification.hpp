@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <random>
 #include <stdexcept>
+#include <sys/cdefs.h>
 #include <time.h>
 #include <type_traits>
 #include <vector>
@@ -14,67 +16,13 @@
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-fls/gpu-bindings-fls.hpp"
-#include "datageneration.hpp"
 
 #ifndef VERIFICATION_H
 #define VERIFICATION_H
 
 namespace verification {
-constexpr int32_t LOG_N_MISTAKES = 5;
 
-template <typename T>
-using CompressAllVectorsLambda =
-    std::function<void(const T *, T *, const size_t, const int32_t)>;
-template <typename T>
-using CompressVectorLambda = std::function<void(const T *, T *, const int32_t)>;
-
-template <typename T>
-void compress_all_vectors(const T *in, T *out, const size_t count,
-                          const int32_t value_bit_width,
-                          const CompressVectorLambda<T> compress) {
-  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
-  int32_t compressed_vector_size =
-      utils::get_compressed_vector_size<T>(value_bit_width);
-
-  for (size_t i = 0; i < n_vecs; ++i) {
-    compress(in, out, value_bit_width);
-    in += consts::VALUES_PER_VECTOR;
-    out += compressed_vector_size;
-  }
-}
-
-template <typename T>
-void decompress_all_vectors(const T *in, T *out, const size_t count,
-                            const int32_t value_bit_width,
-                            const CompressVectorLambda<T> decompress) {
-  size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
-  int32_t compressed_vector_size =
-      utils::get_compressed_vector_size<T>(value_bit_width);
-
-  for (size_t i = 0; i < n_vecs; ++i) {
-    decompress(in, out, value_bit_width);
-    in += compressed_vector_size;
-    out += consts::VALUES_PER_VECTOR;
-  }
-}
-
-template <typename T>
-CompressAllVectorsLambda<T>
-apply_compression_to_all(CompressVectorLambda<T> lambda) {
-  return [lambda](const T *in, T *out, const size_t count,
-                  const int32_t value_bit_width) -> void {
-    compress_all_vectors<T>(in, out, count, value_bit_width, lambda);
-  };
-}
-
-template <typename T>
-CompressAllVectorsLambda<T>
-apply_decompression_to_all(CompressVectorLambda<T> lambda) {
-  return [lambda](const T *in, T *out, const size_t count,
-                  const int32_t value_bit_width) -> void {
-    decompress_all_vectors<T>(in, out, count, value_bit_width, lambda);
-  };
-}
+constexpr size_t LOG_N_MISTAKES = 5;
 
 template <typename T> struct Difference {
   size_t index;
@@ -84,7 +32,7 @@ template <typename T> struct Difference {
   template <typename U,
             std::enable_if_t<std::is_integral<U>::value, bool> = true>
   void log() {
-    fprintf(stderr, "[%lu] correct: %lu, unpacked: %lu\n",
+    fprintf(stderr, "[%lu] correct: %lu, found: %lu\n",
             static_cast<uint64_t>(index), static_cast<uint64_t>(original),
             static_cast<uint64_t>(other));
   }
@@ -92,91 +40,203 @@ template <typename T> struct Difference {
   template <typename U,
             std::enable_if_t<std::is_floating_point<U>::value, bool> = true>
   void log() {
-    fprintf(stderr, "[%lu] correct: %f, unpacked: %f\n",
+    fprintf(stderr, "[%lu] correct: %f, found: %f\n",
             static_cast<uint64_t>(index), static_cast<U>(original),
             static_cast<U>(other));
   }
 };
 
-template <typename T> using Differences = std::vector<Difference<T>>;
-template <typename T>
-using VerificationResult = std::vector<std::pair<int32_t, Differences<T>>>;
+template <typename T> struct ExecutionResult {
+  bool success;
+  std::vector<Difference<T>> differences;
+};
 
 template <typename T>
-Differences<T> count_differences(const T *__restrict original,
-                                 const T *__restrict other, const size_t length,
-                                 const size_t max_differences) {
-  Differences<T> differences;
+using VerificationResult = std::vector<ExecutionResult<T>>;
 
-  for (size_t i = 0; i < length; ++i) {
-    if (original[i] != other[i]) {
-      differences.push_back(Difference<T>{i, original[i], other[i]});
-      if (differences.size() >= max_differences) {
-        return differences;
+template <typename T, typename DataParamsType>
+using DataGenerator = std::function<T *(DataParamsType, size_t)>;
+
+template <typename T, typename CompressedT, typename CompressionParamsType>
+using CompressVectorFunction =
+    std::function<void(const T *, CompressedT *, CompressionParamsType)>;
+
+template <typename T, typename CompressedT, typename CompressionParamsType>
+using CompressColumnFunction = std::function<void(
+    const T *, CompressedT *, CompressionParamsType, size_t count)>;
+
+template <typename CompressedT, typename T, typename CompressionParamsType>
+using DecompressVectorFunction =
+    std::function<void(const CompressedT *, T *, CompressionParamsType)>;
+
+template <typename CompressedT, typename T, typename CompressionParamsType>
+using DecompressColumnFunction = std::function<void(
+    const CompressedT *, T *, CompressionParamsType, size_t count)>;
+
+template <typename T, typename CompressionParamsType, typename DataParamsType>
+using VerificationFunction = std::function<ExecutionResult<T>(
+    CompressionParamsType, DataParamsType, size_t)>;
+
+template <typename T>
+CompressColumnFunction<T, T, int32_t>
+apply_fls_compression_to_column(CompressVectorFunction<T, T, int32_t> lambda) {
+  return [lambda](const T *in, T *out, const int32_t value_bit_width,
+                  const size_t count) -> void {
+    size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
+    int32_t compressed_vector_size =
+        utils::get_compressed_vector_size<T>(value_bit_width);
+
+    for (size_t i = 0; i < n_vecs; ++i) {
+      lambda(in, out, value_bit_width);
+      in += consts::VALUES_PER_VECTOR;
+      out += compressed_vector_size;
+    }
+  };
+}
+
+template <typename T>
+DecompressColumnFunction<T, T, int32_t> apply_fls_decompression_to_column(
+    DecompressVectorFunction<T, T, int32_t> lambda) {
+  return [lambda](const T *in, T *out, const int32_t value_bit_width,
+                  const size_t count) -> void {
+    size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
+    int32_t compressed_vector_size =
+        utils::get_compressed_vector_size<T>(value_bit_width);
+
+    for (size_t i = 0; i < n_vecs; ++i) {
+      lambda(in, out, value_bit_width);
+      in += compressed_vector_size;
+      out += consts::VALUES_PER_VECTOR;
+    }
+  };
+}
+
+template <typename T = int32_t>
+std::vector<T> generate_value_bitwidth_parameterset(T start, T end = -1) {
+  std::vector<T> value_bitwidths = {start};
+
+  for (T i{start}; i < end; i++) {
+    value_bitwidths.push_back(i);
+  }
+
+  return value_bitwidths;
+}
+
+template <typename T>
+ExecutionResult<T> compare_data(const T *a, const T *b, const size_t size) {
+  auto differences = std::vector<Difference<T>>();
+
+  for (size_t i{0}; i < size; ++i) {
+    if (a[i] != b[i]) {
+      differences.push_back(Difference<T>{i, a[i], b[i]});
+
+      if (differences.size() > LOG_N_MISTAKES) {
+        break;
       }
     }
   }
 
-  return differences;
+  return ExecutionResult<T>{differences.size() == 0, differences};
 }
 
-template <typename T>
-Differences<T>
-verify_conversion(const size_t count, const int32_t value_bit_width,
-                  const data::lambda::DataGenerationLambda<T> generate_data,
-                  const CompressAllVectorsLambda<T> compress,
-                  const CompressAllVectorsLambda<T> decompress) {
-  auto compressed_column =
-      data::generation::allocate_packed_column<T>(count, value_bit_width);
-  auto decompressed_column = data::generation::allocate_column<T>(count);
-  auto original = generate_data(count, value_bit_width);
+template <typename T, typename CompressedDataType,
+          typename CompressionParamsType, typename DataParamsType>
+VerificationFunction<T, CompressionParamsType, DataParamsType>
+get_equal_decompression_verifier(
+    DataGenerator<T, DataParamsType> datagenerator,
+    const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
+        column_decompressor_a,
+    const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
+        column_decompressor_b) {
+  return [datagenerator, column_decompressor_a,
+          column_decompressor_b](CompressionParamsType compression_parameters,
+                                 DataParamsType data_parameters,
+                                 size_t result_size) -> ExecutionResult<T> {
+    const CompressedDataType *compressed_data =
+        datagenerator(data_parameters, result_size);
 
-  bool compressed_data_successfully = false;
-  while (!compressed_data_successfully) {
-    try {
-      compress(original.get(), compressed_column.get(), count, value_bit_width);
-      compressed_data_successfully = true;
-    } catch (alp::EncodingException) {
-      original = generate_data(count, value_bit_width);
-    }
-  }
-  decompress(compressed_column.get(), decompressed_column.get(), count,
-             value_bit_width);
+    T *result_a;
+    T *result_b;
 
-  return count_differences(original.get(), decompressed_column.get(), count,
-                           LOG_N_MISTAKES);
+    column_decompressor_a(compressed_data, result_a, compression_parameters,
+                          result_size);
+    column_decompressor_b(compressed_data, result_b, compression_parameters,
+                          result_size);
+
+    auto result = compare_data<T>(result_a, result_b, result_size);
+
+    delete compressed_data;
+    delete result_a;
+    delete result_b;
+
+    return result;
+  };
 }
 
-template <typename T>
-VerificationResult<T> verify_all_value_bit_widths(
-    const size_t count,
-    const data::lambda::DataGenerationLambda<T> generate_data,
-    const CompressAllVectorsLambda<T> compress,
-    const CompressAllVectorsLambda<T> decompress,
-    const int32_t max_bit_width = 0) {
-  auto value_bit_width_differences =
-      std::vector<std::pair<int32_t, Differences<T>>>();
-  Differences<T> result;
-  int32_t max_value_bit_width =
-      max_bit_width == 0 ? sizeof(T) * 8 : max_bit_width;
+template <typename T, typename CompressedDataType,
+          typename CompressionParamsType, typename DataParamsType>
+VerificationFunction<T, CompressionParamsType, DataParamsType>
+get_compression_and_decompression_verifier(
+    DataGenerator<T, DataParamsType> datagenerator,
+    const CompressColumnFunction<T, CompressedDataType, CompressionParamsType>
+        compress_column,
+    const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
+        decompress_columm) {
+  return [datagenerator, compress_column,
+          decompress_columm](CompressionParamsType compression_parameters,
+                             DataParamsType data_parameters,
+                             size_t result_size) -> ExecutionResult<T> {
+    const T *original_data = datagenerator(data_parameters, result_size);
+    CompressedDataType *compressed_data;
+    T *decompressed_data;
 
-#ifdef VBW
-  {
-    int32_t value_bit_width = VBW;
-#else
-  for (int32_t value_bit_width = 1; value_bit_width <= max_value_bit_width;
-       ++value_bit_width) {
-#endif
-    result = verify_conversion(count, value_bit_width, generate_data, compress,
-                               decompress);
+    compress_column(original_data, compressed_data, compression_parameters,
+                    result_size);
+    decompress_columm(compressed_data, decompressed_data,
+                      compression_parameters, result_size);
 
-    if (result.size() != 0) {
-      value_bit_width_differences.push_back(std::pair<int32_t, Differences<T>>(
-          value_bit_width, std::move(result)));
-    }
+    auto result =
+        compare_data<T>(original_data, decompressed_data, result_size);
+
+    delete original_data;
+    delete compressed_data;
+    delete decompressed_data;
+
+    return result;
+  };
+}
+
+template <typename T, typename CompressedT, typename CompressionParamsType,
+          typename DataParamsType>
+VerificationResult<T> run_verifier_on_parameters(
+    const std::vector<CompressionParamsType> compression_parameters_set,
+    const DataParamsType data_parameters, const size_t size,
+    const VerificationFunction<T, CompressionParamsType, DataParamsType>
+        verifier) {
+  auto results = std::vector<ExecutionResult<T>>();
+
+  for (auto parameters : compression_parameters_set) {
+    results.push_back(verifier(parameters, data_parameters, size));
   }
 
-  return value_bit_width_differences;
+  return results;
+}
+
+template <typename T, typename CompressedT, typename CompressionParamsType,
+          typename DataParamsType>
+VerificationResult<T> run_verifier_on_parameters(
+    const std::vector<CompressionParamsType> compression_parameters_set,
+    const std::vector<DataParamsType> data_parameters, const size_t size,
+    const VerificationFunction<T, CompressionParamsType, DataParamsType>
+        verifier) {
+  auto results = std::vector<ExecutionResult<T>>();
+
+  for (int i{0}; i < compression_parameters_set.size(); ++i) {
+    results.push_back(
+        verifier(compression_parameters_set[i], data_parameters[i], size));
+  }
+
+  return results;
 }
 
 } // namespace verification

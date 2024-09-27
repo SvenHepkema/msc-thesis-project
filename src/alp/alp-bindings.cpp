@@ -68,8 +68,9 @@ void int_encode(const T *input_array, const size_t count,
 }
 
 template <typename T>
-void int_decode(T *output_array, AlpCompressionData<T> *data) {
+void int_decode(T *output_array, const AlpCompressionData<T> *data) {
   const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
+	auto ffor_array = data->ffor.array;
 
   for (size_t i{0}; i < n_vecs; i++) {
     generated::falp::fallback::scalar::falp(
@@ -81,10 +82,8 @@ void int_decode(T *output_array, AlpCompressionData<T> *data) {
                                       exceptions.positions, exceptions.count);
 
     output_array += consts::VALUES_PER_VECTOR;
-    data->ffor.array += consts::VALUES_PER_VECTOR;
+    ffor_array += consts::VALUES_PER_VECTOR;
   }
-
-  data->ffor.array -= consts::VALUES_PER_VECTOR * n_vecs;
 }
 
 template <typename T>
@@ -151,7 +150,7 @@ void rd_encode(const T *input_array, const size_t count,
 }
 
 template <typename T>
-void rd_decode(T *output_array, AlpRdCompressionData<T> *data) {
+void rd_decode(T *output_array, const AlpRdCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
 
@@ -195,20 +194,20 @@ template void alp::int_encode<float>(const float *input_array,
                                      const size_t count,
                                      alp::AlpCompressionData<float> *data);
 template void alp::int_decode<float>(float *output_array,
-                                     alp::AlpCompressionData<float> *data);
+                                     const alp::AlpCompressionData<float> *data);
 
 template void alp::int_encode<double>(const double *input_array,
                                       const size_t count,
                                       alp::AlpCompressionData<double> *data);
 template void alp::int_decode<double>(double *output_array,
-                                      alp::AlpCompressionData<double> *data);
+                                      const alp::AlpCompressionData<double> *data);
 
 template void alp::rd_encode(const float *input_array, const size_t count,
                              AlpRdCompressionData<float> *data);
 template void alp::rd_decode(float *output_array,
-                             AlpRdCompressionData<float> *data);
+                             const AlpRdCompressionData<float> *data);
 
 template void alp::rd_encode(const double *input_array, const size_t count,
                              AlpRdCompressionData<double> *data);
 template void alp::rd_decode(double *output_array,
-                             AlpRdCompressionData<double> *data);
+                             const AlpRdCompressionData<double> *data);

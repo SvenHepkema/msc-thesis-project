@@ -15,6 +15,7 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
+#include "verification.hpp"
 
 #ifndef DATAGENERATION_H
 #define DATAGENERATION_H
@@ -187,21 +188,19 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
 } // namespace generation
 
 namespace lambda {
-template <typename T>
-using DataGenerationLambda =
-    std::function<std::unique_ptr<T>(const size_t, const int32_t)>;
 
 template <typename T>
-DataGenerationLambda<T> get_bp_data(const std::string dataset_name) {
+verification::DataGenerator<T, int32_t>
+get_bp_data(const std::string dataset_name) {
   if (dataset_name == "index") {
-    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [](int32_t value_bit_width, size_t count) -> T* {
       return generation::generate_index_column<T>(
-          count, utils::set_first_n_bits<T>(value_bit_width));
+          count, utils::set_first_n_bits<T>(value_bit_width)).release();
     };
   } else if (dataset_name == "random") {
-    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [](int32_t value_bit_width, size_t count) -> T* {
       return generation::generate_random_column<T>(
-          count, T{0}, utils::set_first_n_bits<T>(value_bit_width));
+          count, T{0}, utils::set_first_n_bits<T>(value_bit_width)).release();
     };
   } else {
     throw std::invalid_argument(
@@ -210,25 +209,24 @@ DataGenerationLambda<T> get_bp_data(const std::string dataset_name) {
 }
 
 template <typename T>
-DataGenerationLambda<T> get_ffor_data(const std::string dataset_name, T base) {
+verification::DataGenerator<T, int32_t>
+get_ffor_data(const std::string dataset_name, T base) {
   auto get_max_value = [](const int32_t value_bit_width, T l_base) -> T {
     return utils::set_first_n_bits<T>(value_bit_width) +
            (value_bit_width == sizeof(T) * 8 ? T{0} : l_base);
   };
 
   if (dataset_name == "index") {
-    return [base, get_max_value](
-               const size_t count,
-               const int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [base, get_max_value](const int32_t value_bit_width,
+                                 const size_t count) -> T* {
       return generation::generate_index_column<T>(
-          count, get_max_value(value_bit_width, base), base);
+          count, get_max_value(value_bit_width, base), base).release();
     };
   } else if (dataset_name == "random") {
-    return [base, get_max_value](
-               const size_t count,
-               const int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [base, get_max_value](const int32_t value_bit_width,
+                                 const size_t count) -> T* {
       return generation::generate_random_column<T>(
-          count, base, get_max_value(value_bit_width, base));
+          count, base, get_max_value(value_bit_width, base)).release();
     };
   } else {
     throw std::invalid_argument(
@@ -237,15 +235,16 @@ DataGenerationLambda<T> get_ffor_data(const std::string dataset_name, T base) {
 }
 
 template <typename T>
-DataGenerationLambda<T> get_alp_data(const std::string dataset_name) {
+verification::DataGenerator<T, int32_t>
+get_alp_data(const std::string dataset_name) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return [](size_t count, int32_t value_bit_width) -> std::unique_ptr<T> {
+    return [](int32_t value_bit_width, size_t count) -> T* {
       auto decimals = value_bit_width % 3;
       return generation::generate_ffor_column_with_fixed_decimals<T>(
-          count, value_bit_width, 3, decimals);
+          count, value_bit_width, 3, decimals).release();
     };
   } else {
     throw std::invalid_argument(
@@ -254,15 +253,14 @@ DataGenerationLambda<T> get_alp_data(const std::string dataset_name) {
 }
 
 template <typename T>
-DataGenerationLambda<T>
+verification::DataGenerator<T, int32_t>
 get_alprd_data([[maybe_unused]] const std::string dataset_name) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return [](size_t count,
-              [[maybe_unused]] int32_t value_bit_width) -> std::unique_ptr<T> {
-      return generation::generate_ffor_column_with_real_doubles<T>(count);
+    return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T* {
+      return generation::generate_ffor_column_with_real_doubles<T>(count).release();
     };
   } else {
     throw std::invalid_argument(

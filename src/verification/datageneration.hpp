@@ -247,10 +247,18 @@ get_ffor_data(const std::string dataset_name, T base) {
 template <typename T>
 verification::DataGenerator<T, int32_t>
 get_alp_data(const std::string dataset_name) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
 
-  if (dataset_name == "random") {
+  if (dataset_name == "index") {
+    return [](const int32_t value_bit_width,
+                                 const size_t count) -> T * {
+      return generation::cast_column<UINT_T, T>(generation::generate_index_column<UINT_T>(
+                 count, utils::set_first_n_bits<UINT_T>(value_bit_width)), count)
+          .release();
+    };
+  } else if (dataset_name == "random") {
     return [](int32_t value_bit_width, size_t count) -> T * {
       auto decimals = value_bit_width % 3;
       return generation::generate_ffor_column_with_fixed_decimals<T>(
@@ -275,8 +283,7 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
           .release();
     };
   } else {
-    throw std::invalid_argument(
-        "This data generator only accepts 'index' & 'random'");
+    throw std::invalid_argument("This data generator only accepts 'random'");
   }
 }
 

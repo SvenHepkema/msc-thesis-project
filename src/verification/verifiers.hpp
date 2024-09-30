@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -123,7 +124,7 @@ verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
 template <typename T>
 verification::VerificationResult<T> verify_alp(const size_t a_count,
                                                const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *out,
+  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *& out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
     out = new alp::AlpCompressionData<T>(count);
@@ -158,7 +159,7 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *out,
+  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
     out = new alp::AlpCompressionData<T>(count);
@@ -189,7 +190,7 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
 template <typename T>
 verification::VerificationResult<T>
 verify_alprd(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *out,
+  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
     out = new alp::AlpRdCompressionData<T>(count);
@@ -217,7 +218,7 @@ verify_alprd(const size_t a_count, const std::string dataset_name) {
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *out,
+  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
     out = new alp::AlpRdCompressionData<T>(count);

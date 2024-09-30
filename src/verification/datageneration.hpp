@@ -41,8 +41,14 @@ std::unique_ptr<T> generate_index_column(const size_t count, const T max,
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
-  for (size_t i = 0; i < count; ++i) {
-    column_p[i] = static_cast<T>(i % (size_t{max} - size_t{offset})) + offset;
+  if (max == offset) {
+    for (size_t i = 0; i < count; ++i) {
+      column_p[i] = offset;
+    }
+  } else {
+    for (size_t i = 0; i < count; ++i) {
+      column_p[i] = static_cast<T>(i % (size_t{max} - size_t{offset})) + offset;
+    }
   }
 
   return column;
@@ -193,14 +199,16 @@ template <typename T>
 verification::DataGenerator<T, int32_t>
 get_bp_data(const std::string dataset_name) {
   if (dataset_name == "index") {
-    return [](int32_t value_bit_width, size_t count) -> T* {
+    return [](int32_t value_bit_width, size_t count) -> T * {
       return generation::generate_index_column<T>(
-          count, utils::set_first_n_bits<T>(value_bit_width)).release();
+                 count, utils::set_first_n_bits<T>(value_bit_width))
+          .release();
     };
   } else if (dataset_name == "random") {
-    return [](int32_t value_bit_width, size_t count) -> T* {
+    return [](int32_t value_bit_width, size_t count) -> T * {
       return generation::generate_random_column<T>(
-          count, T{0}, utils::set_first_n_bits<T>(value_bit_width)).release();
+                 count, T{0}, utils::set_first_n_bits<T>(value_bit_width))
+          .release();
     };
   } else {
     throw std::invalid_argument(
@@ -218,15 +226,17 @@ get_ffor_data(const std::string dataset_name, T base) {
 
   if (dataset_name == "index") {
     return [base, get_max_value](const int32_t value_bit_width,
-                                 const size_t count) -> T* {
+                                 const size_t count) -> T * {
       return generation::generate_index_column<T>(
-          count, get_max_value(value_bit_width, base), base).release();
+                 count, get_max_value(value_bit_width, base), base)
+          .release();
     };
   } else if (dataset_name == "random") {
     return [base, get_max_value](const int32_t value_bit_width,
-                                 const size_t count) -> T* {
+                                 const size_t count) -> T * {
       return generation::generate_random_column<T>(
-          count, base, get_max_value(value_bit_width, base)).release();
+                 count, base, get_max_value(value_bit_width, base))
+          .release();
     };
   } else {
     throw std::invalid_argument(
@@ -241,10 +251,11 @@ get_alp_data(const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return [](int32_t value_bit_width, size_t count) -> T* {
+    return [](int32_t value_bit_width, size_t count) -> T * {
       auto decimals = value_bit_width % 3;
       return generation::generate_ffor_column_with_fixed_decimals<T>(
-          count, value_bit_width, 3, decimals).release();
+                 count, value_bit_width, 3, decimals)
+          .release();
     };
   } else {
     throw std::invalid_argument(
@@ -259,8 +270,9 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T* {
-      return generation::generate_ffor_column_with_real_doubles<T>(count).release();
+    return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T * {
+      return generation::generate_ffor_column_with_real_doubles<T>(count)
+          .release();
     };
   } else {
     throw std::invalid_argument(

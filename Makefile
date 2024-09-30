@@ -41,7 +41,7 @@ ub-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
 	clang++ $(SOURCE_FILES) -O2 -fsanitize=undefined  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS)  -g 
 
 address-sanitizer: $(SOURCE_FILES) $(HEADER_FILES)
-	clang++ $(SOURCE_FILES) -O2 -fsanitize=address  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g 
+	clang++ $(SOURCE_FILES) -O3 -fsanitize=address  -fno-omit-frame-pointer -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) -g 
 
 clean:
 	rm -f bin/*

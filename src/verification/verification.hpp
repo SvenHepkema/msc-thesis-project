@@ -63,7 +63,7 @@ using CompressVectorFunction =
 
 template <typename T, typename CompressedT, typename CompressionParamsType>
 using CompressColumnFunction = std::function<void(
-    const T *, CompressedT *, CompressionParamsType, size_t count)>;
+    const T *, CompressedT *&, CompressionParamsType, size_t count)>;
 
 template <typename CompressedT, typename T, typename CompressionParamsType>
 using DecompressVectorFunction =
@@ -80,17 +80,17 @@ using VerificationFunction = std::function<ExecutionResult<T>(
 template <typename T>
 CompressColumnFunction<T, T, int32_t>
 apply_fls_compression_to_column(CompressVectorFunction<T, T, int32_t> lambda) {
-  return [lambda](const T *in, T *out, const int32_t value_bit_width,
+  return [lambda](const T *in, T *&out, const int32_t value_bit_width,
                   const size_t count) -> void {
-    out = new T[count];
     size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
-    int32_t compressed_vector_size =
-        utils::get_compressed_vector_size<T>(value_bit_width);
-
+    size_t compressed_vector_size = static_cast<size_t>(
+        utils::get_compressed_vector_size<T>(value_bit_width));
+    T* compressed = new T[compressed_vector_size*n_vecs];
+		out = compressed;
     for (size_t i = 0; i < n_vecs; ++i) {
-      lambda(in, out, value_bit_width);
+      lambda(in, compressed, value_bit_width);
       in += consts::VALUES_PER_VECTOR;
-      out += compressed_vector_size;
+      compressed += compressed_vector_size;
     }
   };
 }
@@ -104,7 +104,7 @@ DecompressColumnFunction<T, T, int32_t> apply_fls_decompression_to_column(
     int32_t compressed_vector_size =
         utils::get_compressed_vector_size<T>(value_bit_width);
 
-    for (size_t i = 0; i < n_vecs; ++i) {
+    for (size_t i{0}; i < n_vecs; ++i) {
       lambda(in, out, value_bit_width);
       in += compressed_vector_size;
       out += consts::VALUES_PER_VECTOR;
@@ -116,7 +116,7 @@ template <typename T = int32_t>
 std::vector<T> generate_value_bitwidth_parameterset(T start, T end = -1) {
   std::vector<T> value_bitwidths = {start};
 
-  for (T i{start}; i < end; i++) {
+  for (T i{start+1}; i <= end; i++) {
     value_bitwidths.push_back(i);
   }
 
@@ -182,9 +182,9 @@ get_compression_and_decompression_verifier(
     const CompressColumnFunction<T, CompressedDataType, CompressionParamsType>
         compress_column,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
-        decompress_columm) {
+        decompress_column) {
   return [datagenerator, compress_column,
-          decompress_columm](CompressionParamsType compression_parameters,
+          decompress_column](CompressionParamsType compression_parameters,
                              DataParamsType data_parameters,
                              size_t result_size) -> ExecutionResult<T> {
     const T *original_data = datagenerator(data_parameters, result_size);
@@ -193,7 +193,7 @@ get_compression_and_decompression_verifier(
 
     compress_column(original_data, compressed_data, compression_parameters,
                     result_size);
-    decompress_columm(compressed_data, decompressed_data,
+    decompress_column(compressed_data, decompressed_data,
                       compression_parameters, result_size);
 
     auto result =

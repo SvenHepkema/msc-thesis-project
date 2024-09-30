@@ -135,7 +135,6 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
     alp::int_decode<T>(out, in);
-    delete in;
   };
 
   // Higher value bit width causes more data variance.
@@ -170,7 +169,6 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
     gpu::test_alp_complete_vector_decoding<T>(out, in);
-    delete in;
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
@@ -201,7 +199,6 @@ verify_alprd(const size_t a_count, const std::string dataset_name) {
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
     alp::rd_decode<T>(out, in);
-    delete in;
   };
 
   std::vector<int32_t> parameters({0});
@@ -229,7 +226,6 @@ verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
     gpu::test_alprd_complete_vector_decoding<T>(out, in);
-    delete in;
   };
 
   std::vector<int32_t> parameters({0});

@@ -12,7 +12,7 @@ void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
                const int32_t value_bit_width) {
   const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
   const auto n_blocks = n_vecs;
-  const auto encoded_count = (count * static_cast<size_t>(value_bit_width)) / (8 *sizeof(T));
+  const auto encoded_count = value_bit_width == 0 ? 1 : (count * static_cast<size_t>(value_bit_width)) / (8 *sizeof(T));
 
   GPUArray<T> device_in(encoded_count, in);
   GPUArray<T> device_out(count);
@@ -31,7 +31,8 @@ void unffor(const T *__restrict in, T *__restrict out, const size_t count,
   const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
   const auto n_blocks = n_vecs;
 
-  const auto encoded_count = (count * static_cast<size_t>(value_bit_width)) / (8 *sizeof(T));
+  const auto encoded_count = value_bit_width == 0 ? 1 : (count * static_cast<size_t>(value_bit_width)) / (8 *sizeof(T));
+
 
   GPUArray<T> device_in(encoded_count, in);
   GPUArray<T> device_out(count);

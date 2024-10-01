@@ -144,7 +144,7 @@ template <typename T, typename CompressedDataType,
           typename CompressionParamsType, typename DataParamsType>
 VerificationFunction<T, CompressionParamsType, DataParamsType>
 get_equal_decompression_verifier(
-    DataGenerator<T, DataParamsType> datagenerator,
+    DataGenerator<CompressedDataType, DataParamsType> datagenerator,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
         column_decompressor_a,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>

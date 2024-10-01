@@ -5,7 +5,7 @@
 #include <string>
 
 #include "verification/verification.hpp"
-#include "verification/verifiers.hpp"
+#include "functions.h"
 
 struct CLIArgs {
   std::string verifier;
@@ -62,7 +62,7 @@ int32_t process_results(verification::VerificationResult<T> results,
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results =
-      verifiers::Fastlanes<T>::verifiers.at(args.verifier)(args.count,
+      functions::Fastlanes<T>::functions.at(args.verifier)(args.count,
                                                            args.dataset_name);
   return process_results<T>(results, args);
 }
@@ -70,7 +70,7 @@ int32_t run_verifier(CLIArgs args) {
 template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
-  verification::VerificationResult<T> results = verifiers::Alp<T>::verifiers.at(
+  verification::VerificationResult<T> results = functions::Alp<T>::functions.at(
       args.verifier)(args.count, args.dataset_name);
   return process_results<T>(results, args);
 }
@@ -78,8 +78,8 @@ int32_t run_verifier(CLIArgs args) {
 int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
 
-  if (verifiers::Fastlanes<uint32_t>::verifiers.find(args.verifier) !=
-      verifiers::Fastlanes<uint32_t>::verifiers.end()) {
+  if (functions::Fastlanes<uint32_t>::functions.find(args.verifier) !=
+      functions::Fastlanes<uint32_t>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_verifier<uint64_t>(args);
@@ -94,8 +94,8 @@ int main(int argc, char **argv) {
       return run_verifier<uint8_t>(args);
     }
     }
-  } else if (verifiers::Alp<float>::verifiers.find(args.verifier) !=
-             verifiers::Alp<float>::verifiers.end()) {
+  } else if (functions::Alp<float>::functions.find(args.verifier) !=
+             functions::Alp<float>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_verifier<double>(args);
@@ -105,6 +105,6 @@ int main(int argc, char **argv) {
     }
     }
   } else {
-    throw std::invalid_argument("This verifier is not supported");
+    throw std::invalid_argument("This function is not supported");
   }
 }

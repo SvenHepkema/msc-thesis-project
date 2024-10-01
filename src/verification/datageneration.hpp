@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -193,6 +194,64 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
   return column;
 }
 
+template <typename T>
+void fill_array_with_random_data(T *array, const size_t count) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  UINT_T* out = reinterpret_cast<UINT_T*>(array);
+  auto generator = get_random_number_generator<UINT_T>(
+      std::numeric_limits<UINT_T>::min(), std::numeric_limits<UINT_T>::max());
+
+  for (size_t i{0}; i < count; ++i) {
+    *out = generator();
+  }
+}
+
+template <typename T>
+alp::AlpCompressionData<T> *
+generate_alp_datastructure(const size_t count,
+                           const int32_t exception_percentage) {
+  static_assert(std::is_floating_point<T>::value,
+                "T should be a floating point type.");
+  auto data = new alp::AlpCompressionData<T>(count);
+  const size_t n_vecs = utils::get_n_vecs_from_size(count);
+
+  fill_array_with_random_data(data->exponents, n_vecs);
+  fill_array_with_random_data(data->factors, n_vecs);
+
+  fill_array_with_random_data(data->ffor.array, count);
+  fill_array_with_random_data(data->ffor.bases, n_vecs);
+  fill_array_with_random_data(data->ffor.bit_widths, n_vecs);
+
+  fill_array_with_random_data(data->exceptions.exceptions, count);
+
+  // Create a vector with all indices
+  uint16_t *positions = data->exceptions.positions;
+  std::vector<uint16_t> indices(consts::VALUES_PER_VECTOR);
+  for (uint16_t i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
+    indices[i] = i;
+  }
+
+  // Shuffle them and copy the first n to the positions array
+  std::random_device random_device;
+  auto rng = std::default_random_engine(random_device());
+  uint16_t exceptions_per_vec =
+      static_cast<uint16_t>(static_cast<double>(exception_percentage) * 0.1 *
+                            static_cast<double>(consts::VALUES_PER_VECTOR));
+  for (size_t i{0}; i < n_vecs; ++i) {
+    std::shuffle(std::begin(indices), std::end(indices), rng);
+    std::memcpy(positions, indices.data(), sizeof(T) * exceptions_per_vec);
+    positions += consts::VALUES_PER_VECTOR;
+  }
+
+  // Set up the counts
+  uint16_t *counts = data->exceptions.counts;
+  for (size_t i{0}; i < n_vecs; ++i) {
+    counts[i] = exceptions_per_vec;
+  }
+
+  return data;
+}
+
 } // namespace generation
 
 namespace lambda {
@@ -254,30 +313,47 @@ get_alp_data(const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "index") {
-    return [](const int32_t value_bit_width,
-                                 const size_t count) -> T * {
-      T* data;
-			do {
-				data = generation::cast_column<UINT_T, T>(generation::generate_index_column<UINT_T>(
-                 count, utils::set_first_n_bits<UINT_T>(value_bit_width)), count)
-          .release();
-			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
-			return data;
+    return [](const int32_t value_bit_width, const size_t count) -> T * {
+      T *data;
+      do {
+        data = generation::cast_column<UINT_T, T>(
+                   generation::generate_index_column<UINT_T>(
+                       count, utils::set_first_n_bits<UINT_T>(value_bit_width)),
+                   count)
+                   .release();
+      } while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
+      return data;
     };
   } else if (dataset_name == "random") {
     return [](int32_t value_bit_width, size_t count) -> T * {
       auto decimals = value_bit_width % 3;
-			T* data;
+      T *data;
       do {
-				data = generation::generate_ffor_column_with_fixed_decimals<T>(
-                 count, value_bit_width, 3, decimals)
-          .release();
-			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
-			return data;
+        data = generation::generate_ffor_column_with_fixed_decimals<T>(
+                   count, value_bit_width, 3, decimals)
+                   .release();
+      } while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
+      return data;
     };
   } else {
     throw std::invalid_argument(
         "This data generator only accepts 'index' & 'random'");
+  }
+}
+
+template <typename T>
+verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
+get_alp_datastructure(const std::string dataset_name) {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "T should be float or double");
+
+  if (dataset_name == "random") {
+    return [](int32_t exception_percentage, size_t count) -> alp::AlpCompressionData<T> * {
+      return generation::generate_alp_datastructure<T>(count,
+                                                       exception_percentage);
+    };
+  } else {
+    throw std::invalid_argument("This data generator only accepts 'random'");
   }
 }
 
@@ -289,12 +365,12 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
 
   if (dataset_name == "random") {
     return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T * {
-			T* data;
+      T *data;
       do {
-				data = generation::generate_ffor_column_with_real_doubles<T>(count)
-          .release();
-			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP_RD));
-			return data;
+        data = generation::generate_ffor_column_with_real_doubles<T>(count)
+                   .release();
+      } while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP_RD));
+      return data;
     };
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");

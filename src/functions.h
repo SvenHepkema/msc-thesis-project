@@ -1,0 +1,73 @@
+#include <functional>
+
+#include "benchmark/benchmarkers.hpp"
+#include "verification/verification.hpp"
+#include "verification/verifiers.hpp"
+
+namespace functions {
+
+template <typename T>
+using Verifier = std::function<verification::VerificationResult<T>(
+    const size_t, const std::string)>;
+
+template <class T> struct Fastlanes {
+  static inline const std::unordered_map<std::string, Verifier<T>> functions = {
+      {"bp",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_bitpacking<T>(count, dataset_name);
+       }},
+      {"gpu_bp",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_bitpacking<T>(count, dataset_name);
+       }},
+      {"ffor",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_ffor<T>(count, dataset_name);
+       }},
+      {"gpu_unffor",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_unffor<T>(count, dataset_name);
+       }},
+  };
+};
+
+template <class T> struct Alp {
+  static inline std::unordered_map<std::string, Verifier<T>> functions = {
+      {"alp",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_alp<T>(count, dataset_name);
+       }},
+      {"gpu_alp",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_alp<T>(count, dataset_name);
+       }},
+      {"alprd",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_alprd<T>(count, dataset_name);
+       }},
+      {"gpu_alprd",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_alprd<T>(count, dataset_name);
+       }},
+      {"baseline",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_baseline<T>(count, dataset_name);
+       }},
+      {"gpu_alp_exceptions",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_gpu_alp<T>(count, dataset_name);
+       }},
+  };
+};
+
+} // namespace functions

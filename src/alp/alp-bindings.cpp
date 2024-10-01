@@ -69,20 +69,22 @@ void int_encode(const T *input_array, const size_t count,
 
 template <typename T>
 void int_decode(T *output_array, const AlpCompressionData<T> *data) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
-	auto ffor_array = data->ffor.array;
 
-  for (size_t i{0}; i < n_vecs; i++) {
+  for (size_t i{0}; i < n_vecs; ++i){
+    AlpFFORVecHeader<UINT_T> ffor =
+        data->ffor.get_ffor_header_for_vec(i);
+
     generated::falp::fallback::scalar::falp(
-        data->ffor.array, output_array, data->ffor.bit_widths[i],
-        &data->ffor.bases[i], data->factors[i], data->exponents[i]);
+        ffor.array, output_array, *ffor.bit_width,
+        ffor.base, data->factors[i], data->exponents[i]);
 
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
     alp::decoder<T>::patch_exceptions(output_array, exceptions.exceptions,
                                       exceptions.positions, exceptions.count);
 
     output_array += consts::VALUES_PER_VECTOR;
-    ffor_array += consts::VALUES_PER_VECTOR;
   }
 }
 

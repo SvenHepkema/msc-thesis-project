@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include "../common/utils.hpp"
+#include "constants.hpp"
 // WARNING The original ALP repo contains code that triggers warnings if all
 // warnings are turned off. To make sure these warnings do not show up when the
 // alp directory itself is not recompiled, I added this pragma to show it as a
@@ -143,6 +144,10 @@ template <typename T> struct AlpRdCompressionData {
 
   ~AlpRdCompressionData<T>() { delete[] left_parts_dicts; }
 };
+
+// Test if data can be decoded in correct type
+template <typename T>
+bool is_encoding_possible(const T *input_array, const size_t count, Scheme scheme);
 
 // Default ALP encoding
 template <typename T>

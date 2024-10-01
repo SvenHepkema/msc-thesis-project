@@ -13,8 +13,10 @@
 #include <type_traits>
 #include <vector>
 
+#include "../alp/alp-bindings.hpp"
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
+#include "src/alp/constants.hpp"
 #include "verification.hpp"
 
 #ifndef DATAGENERATION_H
@@ -254,16 +256,24 @@ get_alp_data(const std::string dataset_name) {
   if (dataset_name == "index") {
     return [](const int32_t value_bit_width,
                                  const size_t count) -> T * {
-      return generation::cast_column<UINT_T, T>(generation::generate_index_column<UINT_T>(
+      T* data;
+			do {
+				data = generation::cast_column<UINT_T, T>(generation::generate_index_column<UINT_T>(
                  count, utils::set_first_n_bits<UINT_T>(value_bit_width)), count)
           .release();
+			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
+			return data;
     };
   } else if (dataset_name == "random") {
     return [](int32_t value_bit_width, size_t count) -> T * {
       auto decimals = value_bit_width % 3;
-      return generation::generate_ffor_column_with_fixed_decimals<T>(
+			T* data;
+      do {
+				data = generation::generate_ffor_column_with_fixed_decimals<T>(
                  count, value_bit_width, 3, decimals)
           .release();
+			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
+			return data;
     };
   } else {
     throw std::invalid_argument(
@@ -279,8 +289,12 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
 
   if (dataset_name == "random") {
     return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T * {
-      return generation::generate_ffor_column_with_real_doubles<T>(count)
+			T* data;
+      do {
+				data = generation::generate_ffor_column_with_real_doubles<T>(count)
           .release();
+			} while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP_RD));
+			return data;
     };
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");

@@ -17,6 +17,25 @@ namespace alp {
 constexpr int MAX_ATTEMPTS_TO_ENCODE = 10000;
 
 template <typename T>
+bool is_encoding_possible(const T *input_array, const size_t count,
+                          alp::Scheme scheme) {
+  T *sample_array = new T[count];
+  state<T> alpstate;
+
+  bool is_possible = false;
+  for (int32_t attempts = 0; attempts < MAX_ATTEMPTS_TO_ENCODE; ++attempts) {
+    alp::encoder<T>::init(input_array, 0, count, sample_array, alpstate);
+
+    if ((is_possible = alpstate.scheme == scheme)) {
+      break;
+    }
+  }
+
+  delete[] sample_array;
+  return is_possible;
+}
+
+template <typename T>
 void int_encode(const T *input_array, const size_t count,
                 AlpCompressionData<T> *data) {
   using INT_T = typename utils::same_width_int<T>::type;
@@ -27,16 +46,15 @@ void int_encode(const T *input_array, const size_t count,
   T *sample_array = new T[count];
   state<T> alpstate;
 
-  int32_t attempts_to_int_encode = 0;
-  while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
-    alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
-                          sample_array, alpstate);
-    if (alpstate.scheme == Scheme::ALP) {
+  bool successful_encoding = false;
+  for (int32_t attempts = 0; attempts < MAX_ATTEMPTS_TO_ENCODE; ++attempts) {
+    alp::encoder<T>::init(input_array, 0, count, sample_array, alpstate);
+
+    if ((successful_encoding = alpstate.scheme == Scheme::ALP)) {
       break;
     }
-    ++attempts_to_int_encode;
   }
-  if (attempts_to_int_encode >= 1000) {
+  if (!successful_encoding) {
     throw alp::EncodingException();
   }
   delete[] sample_array;
@@ -72,13 +90,12 @@ void int_decode(T *output_array, const AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   const size_t n_vecs = utils::get_n_vecs_from_size(data->size);
 
-  for (size_t i{0}; i < n_vecs; ++i){
-    AlpFFORVecHeader<UINT_T> ffor =
-        data->ffor.get_ffor_header_for_vec(i);
+  for (size_t i{0}; i < n_vecs; ++i) {
+    AlpFFORVecHeader<UINT_T> ffor = data->ffor.get_ffor_header_for_vec(i);
 
     generated::falp::fallback::scalar::falp(
-        ffor.array, output_array, *ffor.bit_width,
-        ffor.base, data->factors[i], data->exponents[i]);
+        ffor.array, output_array, *ffor.bit_width, ffor.base, data->factors[i],
+        data->exponents[i]);
 
     AlpVecExceptions<T> exceptions = data->exceptions.get_exceptions_for_vec(i);
     alp::decoder<T>::patch_exceptions(output_array, exceptions.exceptions,
@@ -99,16 +116,15 @@ void rd_encode(const T *input_array, const size_t count,
   T *sample_array = new T[count];
   state<T> alpstate;
 
-  int32_t attempts_to_int_encode = 0;
-  while (attempts_to_int_encode < MAX_ATTEMPTS_TO_ENCODE) {
-    alp::encoder<T>::init(input_array, data->rowgroup_offset, count,
-                          sample_array, alpstate);
-    if (alpstate.scheme == Scheme::ALP_RD) {
+  bool successful_encoding = false;
+  for (int32_t attempts = 0; attempts < MAX_ATTEMPTS_TO_ENCODE; ++attempts) {
+    alp::encoder<T>::init(input_array, 0, count, sample_array, alpstate);
+
+    if ((successful_encoding = alpstate.scheme == Scheme::ALP_RD)) {
       break;
     }
-    ++attempts_to_int_encode;
   }
-  if (attempts_to_int_encode >= 1000) {
+  if (!successful_encoding) {
     throw alp::EncodingException();
   }
 
@@ -160,7 +176,7 @@ void rd_decode(T *output_array, const AlpRdCompressionData<T> *data) {
   UINT_T right_array[consts::VALUES_PER_VECTOR];
   state<T> alpstate;
 
-	uint16_t* left_parts_dict = data->left_parts_dicts;
+  uint16_t *left_parts_dict = data->left_parts_dicts;
   for (size_t i{0}; i < n_vecs; i++) {
     AlpFFORVecHeader<uint16_t> left_ffor_header =
         data->left_ffor.get_ffor_header_for_vec(i);
@@ -192,17 +208,24 @@ void rd_decode(T *output_array, const AlpRdCompressionData<T> *data) {
 
 } // namespace alp
 
+template bool alp::is_encoding_possible(const float *input_array, const size_t count,
+                                   alp::Scheme scheme);
+template bool alp::is_encoding_possible(const double *input_array,
+                                   const size_t count, alp::Scheme scheme);
+
 template void alp::int_encode<float>(const float *input_array,
                                      const size_t count,
                                      alp::AlpCompressionData<float> *data);
-template void alp::int_decode<float>(float *output_array,
-                                     const alp::AlpCompressionData<float> *data);
+template void
+alp::int_decode<float>(float *output_array,
+                       const alp::AlpCompressionData<float> *data);
 
 template void alp::int_encode<double>(const double *input_array,
                                       const size_t count,
                                       alp::AlpCompressionData<double> *data);
-template void alp::int_decode<double>(double *output_array,
-                                      const alp::AlpCompressionData<double> *data);
+template void
+alp::int_decode<double>(double *output_array,
+                        const alp::AlpCompressionData<double> *data);
 
 template void alp::rd_encode(const float *input_array, const size_t count,
                              AlpRdCompressionData<float> *data);

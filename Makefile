@@ -5,10 +5,6 @@ OPTIMIZATION_LEVEL = -O3
 CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-float-equal -Wno-global-constructors -Wno-exit-time-destructors 
 
-# For the fast compilations:
-DATA_TYPE=double
-VALUE_BIT_WIDTH=4
-
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr
 

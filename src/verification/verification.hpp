@@ -124,11 +124,21 @@ std::vector<T> generate_value_bitwidth_parameterset(T start, T end = -1) {
 }
 
 template <typename T>
+bool byte_compare(const T a, const T b) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+	const UINT_T* a_c = reinterpret_cast<const UINT_T*>(&a);
+	const UINT_T* b_c = reinterpret_cast<const UINT_T*>(&b);
+
+	return (*a_c) == (*b_c);
+}
+
+
+template <typename T>
 ExecutionResult<T> compare_data(const T *a, const T *b, const size_t size) {
   auto differences = std::vector<Difference<T>>();
 
   for (size_t i{0}; i < size; ++i) {
-    if (a[i] != b[i]) {
+    if (!byte_compare(a[i], b[i])) {
       differences.push_back(Difference<T>{i, a[i], b[i]});
 
       if (differences.size() > LOG_N_MISTAKES) {

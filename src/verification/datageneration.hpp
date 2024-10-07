@@ -233,14 +233,19 @@ generate_alp_datastructure(const size_t count,
   int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
   int32_t max_bit_width = sizeof(T) == 4 ? 32 : 64;
 
+	// Note we halve the frac and fact because otherwise you 
+	// will have integer overflow in the decoding for some combinations
   fill_array_with_random_data<uint8_t>(data->exponents, n_vecs, 0,
-                                       frac_arr_size - 1);
+                                       frac_arr_size/2);
   fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
-                                       fact_arr_size - 1);
+                                       fact_arr_size/2);
 
   fill_array_with_random_bytes(data->ffor.array, count);
   fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);
-  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0, max_bit_width);
+	// Note we halve the bitwidth because otherwise you will have integer overflow
+	// and a high bitwidth is not realistic anyway for alp encoding.
+	// It can be parametrized though via the function args if needed.
+  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0, max_bit_width/2);
 
   fill_array_with_random_bytes(data->exceptions.exceptions, count);
 

@@ -72,8 +72,7 @@ alp::int_decode<T>(data, in);
               [[maybe_unused]] const int32_t exception_percentage,
               [[maybe_unused]] const size_t count) -> void {
     // gpu::bench_alp_equal_to<T>(out, in, value);
-    //gpu::test_alp_complete_vector_decoding(out, in);
-    alp::int_decode<T>(out, in);
+    gpu::test_alp_complete_vector_decoding(out, in);
   };
 
   auto exception_percentages =

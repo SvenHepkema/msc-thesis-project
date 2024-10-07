@@ -235,11 +235,11 @@ generate_alp_datastructure(const size_t count,
   std::random_device random_device;
   auto rng = std::default_random_engine(random_device());
   uint16_t exceptions_per_vec =
-      static_cast<uint16_t>(static_cast<double>(exception_percentage) * 0.1 *
+      static_cast<uint16_t>(static_cast<double>(exception_percentage) * 0.001 *
                             static_cast<double>(consts::VALUES_PER_VECTOR));
   for (size_t i{0}; i < n_vecs; ++i) {
     std::shuffle(std::begin(indices), std::end(indices), rng);
-    std::memcpy(positions, indices.data(), sizeof(T) * exceptions_per_vec);
+    std::memcpy(positions, indices.data(), sizeof(uint16_t) * exceptions_per_vec);
     positions += consts::VALUES_PER_VECTOR;
   }
 

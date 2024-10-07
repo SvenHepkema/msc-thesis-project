@@ -195,11 +195,24 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
 }
 
 template <typename T>
-void fill_array_with_random_data(T *array, const size_t count) {
+void fill_array_with_random_bytes(T *array, const size_t count) {
   using UINT_T = typename utils::same_width_uint<T>::type;
-  UINT_T* out = reinterpret_cast<UINT_T*>(array);
+  UINT_T *out = reinterpret_cast<UINT_T *>(array);
   auto generator = get_random_number_generator<UINT_T>(
       std::numeric_limits<UINT_T>::min(), std::numeric_limits<UINT_T>::max());
+
+  for (size_t i{0}; i < count; ++i) {
+    *out = generator();
+  }
+}
+
+template <typename T>
+void fill_array_with_random_data(T *array, const size_t count,
+                                 const T min = std::numeric_limits<T>::min(),
+                                 const T max = std::numeric_limits<T>::max()) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  UINT_T *out = reinterpret_cast<UINT_T *>(array);
+  auto generator = get_random_number_generator<UINT_T>(min, max);
 
   for (size_t i{0}; i < count; ++i) {
     *out = generator();
@@ -210,19 +223,26 @@ template <typename T>
 alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
                            const int32_t exception_percentage) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
   auto data = new alp::AlpCompressionData<T>(count);
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
 
-  fill_array_with_random_data(data->exponents, n_vecs);
-  fill_array_with_random_data(data->factors, n_vecs);
+  int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
+  int32_t frac_arr_size = sizeof(T) == 4 ? 11 : 21;
+  int32_t max_bit_width = sizeof(T) == 4 ? 32 : 64;
 
-  fill_array_with_random_data(data->ffor.array, count);
-  fill_array_with_random_data(data->ffor.bases, n_vecs);
-  fill_array_with_random_data(data->ffor.bit_widths, n_vecs);
+  fill_array_with_random_data<uint8_t>(data->exponents, n_vecs, 0,
+                                       fact_arr_size - 1);
+  fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
+                                       frac_arr_size - 1);
 
-  fill_array_with_random_data(data->exceptions.exceptions, count);
+  fill_array_with_random_bytes(data->ffor.array, count);
+  fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);
+  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0, max_bit_width);
+
+  fill_array_with_random_bytes(data->exceptions.exceptions, count);
 
   // Create a vector with all indices
   uint16_t *positions = data->exceptions.positions;
@@ -239,7 +259,8 @@ generate_alp_datastructure(const size_t count,
                             static_cast<double>(consts::VALUES_PER_VECTOR));
   for (size_t i{0}; i < n_vecs; ++i) {
     std::shuffle(std::begin(indices), std::end(indices), rng);
-    std::memcpy(positions, indices.data(), sizeof(uint16_t) * exceptions_per_vec);
+    std::memcpy(positions, indices.data(),
+                sizeof(uint16_t) * exceptions_per_vec);
     positions += consts::VALUES_PER_VECTOR;
   }
 
@@ -348,7 +369,8 @@ get_alp_datastructure(const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return [](int32_t exception_percentage, size_t count) -> alp::AlpCompressionData<T> * {
+    return [](int32_t exception_percentage,
+              size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T>(count,
                                                        exception_percentage);
     };

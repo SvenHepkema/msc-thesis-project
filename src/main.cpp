@@ -42,7 +42,7 @@ int32_t process_results(verification::VerificationResult<T> results,
         fprintf(stderr, "\n Run %lu failed.\n", i);
 
         for (auto difference : results[i].differences) {
-          difference.template log<double>();
+          difference.template log<T>();
         }
       }
     }

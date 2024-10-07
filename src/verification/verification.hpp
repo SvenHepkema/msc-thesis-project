@@ -40,9 +40,20 @@ template <typename T> struct Difference {
   template <typename U,
             std::enable_if_t<std::is_floating_point<U>::value, bool> = true>
   void log() {
-    fprintf(stderr, "[%lu] correct: %f, found: %f\n",
-            static_cast<uint64_t>(index), static_cast<U>(original),
-            static_cast<U>(other));
+    using UINT_T = typename utils::same_width_uint<T>::type;
+
+    UINT_T *original_c = reinterpret_cast<UINT_T *>(&original);
+    UINT_T *other_c = reinterpret_cast<UINT_T *>(&other);
+
+		if (sizeof(U) == 8) {
+    fprintf(stderr, "[%lu] correct: %f (%016X), found: %f (%016X)\n", index,
+            original, static_cast<uint64_t>(*original_c), other,
+            static_cast<uint64_t>(*other_c));
+		} else {
+    fprintf(stderr, "[%lu] correct: %f (%08X), found: %f (%08X)\n", index,
+            original, static_cast<uint32_t>(*original_c), other,
+            static_cast<uint32_t>(*other_c));
+		}
   }
 };
 
@@ -85,8 +96,8 @@ apply_fls_compression_to_column(CompressVectorFunction<T, T, int32_t> lambda) {
     size_t n_vecs = (count / consts::VALUES_PER_VECTOR);
     size_t compressed_vector_size = static_cast<size_t>(
         utils::get_compressed_vector_size<T>(value_bit_width));
-    T* compressed = new T[compressed_vector_size*n_vecs];
-		out = compressed;
+    T *compressed = new T[compressed_vector_size * n_vecs];
+    out = compressed;
     for (size_t i = 0; i < n_vecs; ++i) {
       lambda(in, compressed, value_bit_width);
       in += consts::VALUES_PER_VECTOR;
@@ -116,22 +127,20 @@ template <typename T = int32_t>
 std::vector<T> generate_value_bitwidth_parameterset(T start, T end = -1) {
   std::vector<T> value_bitwidths = {start};
 
-  for (T i{start+1}; i <= end; i++) {
+  for (T i{start + 1}; i <= end; i++) {
     value_bitwidths.push_back(i);
   }
 
   return value_bitwidths;
 }
 
-template <typename T>
-bool byte_compare(const T a, const T b) {
+template <typename T> bool byte_compare(const T a, const T b) {
   using UINT_T = typename utils::same_width_uint<T>::type;
-	const UINT_T* a_c = reinterpret_cast<const UINT_T*>(&a);
-	const UINT_T* b_c = reinterpret_cast<const UINT_T*>(&b);
+  const UINT_T *a_c = reinterpret_cast<const UINT_T *>(&a);
+  const UINT_T *b_c = reinterpret_cast<const UINT_T *>(&b);
 
-	return (*a_c) == (*b_c);
+  return (*a_c) == (*b_c);
 }
-
 
 template <typename T>
 ExecutionResult<T> compare_data(const T *a, const T *b, const size_t size) {

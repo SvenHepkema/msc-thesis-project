@@ -59,7 +59,7 @@ __host__ void load_alp_constants() {
                      F_FACT_ARR_COUNT * sizeof(int32_t));
   cudaMemcpyToSymbol(constant_memory::F_FRAC_ARRAY,
                      alp::Constants<float>::FRAC_ARR,
-                     F_FACT_ARR_COUNT * sizeof(float));
+                     F_FRAC_ARR_COUNT * sizeof(float));
 
   cudaMemcpyToSymbol(constant_memory::D_FACT_ARRAY,
                      alp::Constants<double>::FACT_ARR,

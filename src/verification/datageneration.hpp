@@ -202,7 +202,7 @@ void fill_array_with_random_bytes(T *array, const size_t count) {
       std::numeric_limits<UINT_T>::min(), std::numeric_limits<UINT_T>::max());
 
   for (size_t i{0}; i < count; ++i) {
-    *out = generator();
+    out[i] = generator();
   }
 }
 
@@ -215,7 +215,7 @@ void fill_array_with_random_data(T *array, const size_t count,
   auto generator = get_random_number_generator<UINT_T>(min, max);
 
   for (size_t i{0}; i < count; ++i) {
-    *out = generator();
+    out[i] = generator();
   }
 }
 
@@ -229,14 +229,14 @@ generate_alp_datastructure(const size_t count,
   auto data = new alp::AlpCompressionData<T>(count);
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
 
-  int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
   int32_t frac_arr_size = sizeof(T) == 4 ? 11 : 21;
+  int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
   int32_t max_bit_width = sizeof(T) == 4 ? 32 : 64;
 
   fill_array_with_random_data<uint8_t>(data->exponents, n_vecs, 0,
-                                       fact_arr_size - 1);
-  fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
                                        frac_arr_size - 1);
+  fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
+                                       fact_arr_size - 1);
 
   fill_array_with_random_bytes(data->ffor.array, count);
   fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);

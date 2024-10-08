@@ -14,8 +14,8 @@ nanoseconds = int
 
 class Variation(enum.Enum):
     Generic = 1
-    ValueBitWidth = 1
-    ExceptionCount = 1
+    ValueBitWidth = 2
+    ExceptionCount = 3
 
 VARIATION_MAPPING = {
     "generic": Variation.Generic,
@@ -81,7 +81,7 @@ def read_results_file(
     return [FunctionRecord(i, record_set) for i, record_set in enumerate(records_per_function)]
 
 def convert_results_to_dataframe(results: Results, variation: Variation) -> pl.DataFrame:
-    logging.info("Creating dataframe")
+    logging.info(f"Creating dataframe with variation {variation}")
     dataframe = {
             "id": [],
             "function_id": [],
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.variation = VARIATION_MAPPING[args.variation]
     logging.basicConfig(level=args.logging_level)  # filename='program.log',
     logging.info(
         f"Started {os.path.basename(sys.argv[0])} with the following args: {args}"

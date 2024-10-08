@@ -222,7 +222,7 @@ void fill_array_with_random_data(T *array, const size_t count,
 template <typename T>
 alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
-                           const int32_t exception_percentage) {
+                           const int32_t exceptions_per_vec) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
@@ -259,9 +259,6 @@ generate_alp_datastructure(const size_t count,
   // Shuffle them and copy the first n to the positions array
   std::random_device random_device;
   auto rng = std::default_random_engine(random_device());
-  uint16_t exceptions_per_vec =
-      static_cast<uint16_t>(static_cast<double>(exception_percentage) * 0.001 *
-                            static_cast<double>(consts::VALUES_PER_VECTOR));
   for (size_t i{0}; i < n_vecs; ++i) {
     std::shuffle(std::begin(indices), std::end(indices), rng);
     std::memcpy(positions, indices.data(),
@@ -374,10 +371,10 @@ get_alp_datastructure(const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "random") {
-    return [](int32_t exception_percentage,
+    return [](int32_t exceptions_per_vec,
               size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T>(count,
-                                                       exception_percentage);
+                                                       exceptions_per_vec);
     };
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");

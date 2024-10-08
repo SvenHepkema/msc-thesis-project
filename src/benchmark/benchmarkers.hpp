@@ -76,7 +76,7 @@ alp::int_decode<T>(data, in);
   };
 
   auto exception_percentages =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, 50);
+      verification::generate_value_bitwidth_parameterset<int32_t>(0, 70);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(

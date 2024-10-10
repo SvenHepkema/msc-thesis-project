@@ -104,14 +104,16 @@ def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
             "function_id", maintain_order=True
         ):
             x.append(function_results[column_name][0])
-            y.append(function_results["execution_speed"].mean())
+            y.append(function_results["execution_speed"].mean() / 1000)
 
         plt.scatter(x, y, s=20, c=DEFAULT_COLORS[colors_index], label=name)
         colors_index += 1
 
     plt.xlabel(pretty_name)
-    plt.ylabel("Execution speed (us)")
+    plt.ylabel("Average execution speed (us)")
 
+    if config.start_from_zero:
+        plt.ylim(ymin=0)
     if config.show_legend:
         plt.legend()
     output_graph(config.output_name)

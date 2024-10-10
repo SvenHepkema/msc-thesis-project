@@ -26,7 +26,7 @@ verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
                                 const int32_t value_bit_width,
                                 const size_t count) -> void {
     fls::gpu::bench::query_bp_contains_zero<T>(in, out, count, value_bit_width,
-                                            utils::get_values_per_lane<T>());
+                                            1);
   };
 
   auto value_bit_widths =

@@ -35,6 +35,7 @@ void query_bp_contains_zero(const T *__restrict in, T *__restrict out,
         <<<n_blocks, n_threads>>>(device_in.get(), device_out.get(),
                                   value_bit_width);
     break;
+		/*
   case 2:
     kernels::fls::global::bench::query_bp_contains_zero<
         T, UNPACK_N_VECTORS, 2>
@@ -71,6 +72,7 @@ void query_bp_contains_zero(const T *__restrict in, T *__restrict out,
         <<<n_blocks, n_threads>>>(device_in.get(), device_out.get(),
                                   value_bit_width);
     break;
+		*/
   }
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 

@@ -15,9 +15,10 @@
 #include <vector>
 
 #include "../alp/alp-bindings.hpp"
+#include "../alp/constants.hpp"
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "../alp/constants.hpp"
+#include "../fls/compression.hpp"
 #include "verification.hpp"
 
 #ifndef DATAGENERATION_H
@@ -74,6 +75,22 @@ std::function<T()> get_random_floating_point_generator(const T min,
   std::uniform_real_distribution<T> uniform_dist(min, max);
 
   return std::bind(uniform_dist, random_engine);
+}
+
+template <typename T>
+std::unique_ptr<T> generate_one_zero_column(const size_t count,
+                                            const T offset = 1) {
+  auto column = allocate_column<T>(count);
+  T *column_p = column.get();
+
+  for (size_t i = 0; i < count; ++i) {
+    column_p[i] = offset;
+  }
+
+  auto generator = get_random_number_generator<size_t>(0, count - 1);
+  column_p[generator()] = 0;
+
+  return column;
 }
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
@@ -170,9 +187,9 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
 
   auto base_generator = get_random_floating_point_generator<T>(0.0, 1000.0);
 
-  const auto exceptions_per_vector = 30;
+  const uint16_t exceptions_per_vector = 30;
   auto exception_picker =
-      get_random_number_generator<int32_t>(0, consts::VALUES_PER_VECTOR);
+      get_random_number_generator<uint16_t>(0, consts::VALUES_PER_VECTOR);
   auto exception_generator = generation::get_random_floating_point_generator(
       std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 
@@ -222,7 +239,7 @@ void fill_array_with_random_data(T *array, const size_t count,
 template <typename T>
 alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
-                           const int32_t exceptions_per_vec) {
+                           const uint16_t exceptions_per_vec) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
@@ -233,19 +250,20 @@ generate_alp_datastructure(const size_t count,
   int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
   int32_t max_bit_width = sizeof(T) == 4 ? 32 : 64;
 
-	// Note we halve the frac and fact because otherwise you 
-	// will have integer overflow in the decoding for some combinations
+  // Note we halve the frac and fact because otherwise you
+  // will have integer overflow in the decoding for some combinations
   fill_array_with_random_data<uint8_t>(data->exponents, n_vecs, 0,
-                                       frac_arr_size/2);
+                                       static_cast<uint8_t>(frac_arr_size / 2));
   fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
-                                       fact_arr_size/2);
+                                       static_cast<uint8_t>(fact_arr_size / 2));
 
   fill_array_with_random_bytes(data->ffor.array, count);
   fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);
-	// Note we halve the bitwidth because otherwise you will have integer overflow
-	// and a high bitwidth is not realistic anyway for alp encoding.
-	// It can be parametrized though via the function args if needed.
-  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0, max_bit_width/2);
+  // Note we halve the bitwidth because otherwise you will have integer overflow
+  // and a high bitwidth is not realistic anyway for alp encoding.
+  // It can be parametrized though via the function args if needed.
+  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0,
+                                       static_cast<uint8_t>(max_bit_width / 2));
 
   fill_array_with_random_bytes(data->exceptions.exceptions, count);
 
@@ -329,6 +347,16 @@ get_ffor_data(const std::string dataset_name, T base) {
 }
 
 template <typename T>
+verification::DataGenerator<T, int32_t> get_bp_zero_column() {
+  return [](const int32_t value_bit_width, const size_t count) -> T * {
+    auto data = generation::generate_one_zero_column<T>(count);
+    T *out = new T[count];
+    fls::ffor(data.get(), out, value_bit_width);
+    return out;
+  };
+}
+
+template <typename T>
 verification::DataGenerator<T, int32_t>
 get_alp_data(const std::string dataset_name) {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -373,8 +401,8 @@ get_alp_datastructure(const std::string dataset_name) {
   if (dataset_name == "random") {
     return [](int32_t exceptions_per_vec,
               size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(count,
-                                                       exceptions_per_vec);
+      return generation::generate_alp_datastructure<T>(
+          count, static_cast<uint16_t>(exceptions_per_vec));
     };
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");

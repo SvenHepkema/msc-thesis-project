@@ -168,7 +168,7 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    gpu::test_alp_complete_vector_decoding<T>(out, in);
+    gpu::test::decode_complete_alp_vector<T>(out, in);
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
@@ -225,7 +225,7 @@ verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const alp::AlpRdCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    gpu::test_alprd_complete_vector_decoding<T>(out, in);
+    gpu::test::decode_complete_alprd_vector<T>(out, in);
   };
 
   std::vector<int32_t> parameters({0});

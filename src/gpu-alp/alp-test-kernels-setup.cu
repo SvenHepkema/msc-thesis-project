@@ -11,8 +11,10 @@
 
 namespace gpu {
 
+namespace test {
+
 template <typename T>
-void test_alp_complete_vector_decoding(T *__restrict out,
+void decode_complete_alp_vector(T *__restrict out,
                                        const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -38,7 +40,7 @@ void test_alp_complete_vector_decoding(T *__restrict out,
       d_exception_positions.get(), d_exception_counts.get()};
   constant_memory::load_alp_constants();
 
-  test_alp_complete_vector_decoding_global<T, UINT_T, 1,
+	kernels::global::test::decode_complete_alp_vector<T, UINT_T, 1,
                                            utils::get_values_per_lane<T>()>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -47,7 +49,7 @@ void test_alp_complete_vector_decoding(T *__restrict out,
 }
 
 template <typename T>
-void test_alprd_complete_vector_decoding(
+void decode_complete_alprd_vector(
     T *__restrict out, const alp::AlpRdCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -81,7 +83,7 @@ void test_alprd_complete_vector_decoding(
   };
   constant_memory::load_alp_constants();
 
-  test_alprd_complete_vector_decoding_global<T, UINT_T, 1,
+	kernels::global::test::decode_complete_alprd_vector<T, UINT_T, 1,
                                              utils::get_values_per_lane<T>()>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -89,13 +91,15 @@ void test_alprd_complete_vector_decoding(
   d_out.copy_to_host(out);
 }
 
+}
+
 } // namespace gpu
 
-template void gpu::test_alp_complete_vector_decoding<float>(
+template void gpu::test::decode_complete_alp_vector<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void gpu::test_alp_complete_vector_decoding<double>(
+template void gpu::test::decode_complete_alp_vector<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void gpu::test_alprd_complete_vector_decoding<float>(
+template void gpu::test::decode_complete_alprd_vector<float>(
     float *__restrict out, const alp::AlpRdCompressionData<float> *data);
-template void gpu::test_alprd_complete_vector_decoding<double>(
+template void gpu::test::decode_complete_alprd_vector<double>(
     double *__restrict out, const alp::AlpRdCompressionData<double> *data);

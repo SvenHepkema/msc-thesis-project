@@ -7,20 +7,22 @@
 #define GPU_ALP_HPP
 
 namespace gpu {
+namespace test {
 template <typename T>
-void test_alp_complete_vector_decoding(T *__restrict out, const alp::AlpCompressionData<T> *data);
+void decode_complete_alp_vector(T *__restrict out, const alp::AlpCompressionData<T> *data);
 
 template <typename T>
-void test_alprd_complete_vector_decoding(T *__restrict out, const alp::AlpRdCompressionData<T> *data);
+void decode_complete_alprd_vector(T *__restrict out, const alp::AlpRdCompressionData<T> *data);
+}
 } // namespace gpu
 
-extern template void gpu::test_alp_complete_vector_decoding<float>(float *__restrict out,
+extern template void gpu::test::decode_complete_alp_vector<float>(float *__restrict out,
                                       const alp::AlpCompressionData<float> *data);
-extern template void gpu::test_alp_complete_vector_decoding<double>(double *__restrict out,
+extern template void gpu::test::decode_complete_alp_vector<double>(double *__restrict out,
                                       const alp::AlpCompressionData<double> *data);
 
-extern template void gpu::test_alprd_complete_vector_decoding<float>(float *__restrict out,
+extern template void gpu::test::decode_complete_alprd_vector<float>(float *__restrict out,
                                       const alp::AlpRdCompressionData<float> *data);
-extern template void gpu::test_alprd_complete_vector_decoding<double>(double *__restrict out,
+extern template void gpu::test::decode_complete_alprd_vector<double>(double *__restrict out,
                                       const alp::AlpRdCompressionData<double> *data);
 #endif // GPU_ALP_HPP

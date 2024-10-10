@@ -3,13 +3,13 @@
 #include <string>
 #include <unordered_map>
 
-#include "verification.hpp"
 #include "datageneration.hpp"
+#include "verification.hpp"
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-fls/fls-test-kernels-bindings.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
+#include "../gpu-fls/fls-test-kernels-bindings.hpp"
 
 namespace verifiers {
 
@@ -27,10 +27,9 @@ verify_bitpacking(const size_t a_count, const std::string dataset_name) {
       });
 
   auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, sizeof(T) *
-                                                                         8);
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_bp_data<T>(dataset_name), compress_column,
@@ -52,10 +51,9 @@ verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
   };
 
   auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, sizeof(T) *
-                                                                         8);
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_bp_data<T>(dataset_name), compress_column,
@@ -82,10 +80,9 @@ verify_ffor(const size_t a_count, const std::string dataset_name) {
       });
 
   auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, sizeof(T) *
-                                                                         8);
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_ffor_data<T>(dataset_name, temp_base),
@@ -111,10 +108,9 @@ verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
   };
 
   auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, sizeof(T) *
-                                                                         8);
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_ffor_data<T>(dataset_name, temp_base),
@@ -124,7 +120,7 @@ verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
 template <typename T>
 verification::VerificationResult<T> verify_alp(const size_t a_count,
                                                const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *& out,
+  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
     out = new alp::AlpCompressionData<T>(count);
@@ -142,13 +138,12 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
   // So we take reduced max value bit width to ensure it always chooses
   // alp_int
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
-  auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(
-          0, max_value_bitwidth_to_test);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(
+      0, max_value_bitwidth_to_test);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alp_data<T>(dataset_name), compress_column,
@@ -172,13 +167,12 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
-  auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(
-          0, max_value_bitwidth_to_test);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(
+      0, max_value_bitwidth_to_test);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alp_data<T>(dataset_name), compress_column,
@@ -205,7 +199,7 @@ verify_alprd(const size_t a_count, const std::string dataset_name) {
 
   return verification::run_verifier_on_parameters<
       T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-      parameters, parameters, a_count,
+      parameters, parameters, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alprd_data<T>(dataset_name), compress_column,
@@ -232,7 +226,7 @@ verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
 
   return verification::run_verifier_on_parameters<
       T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-      parameters, parameters, a_count,
+      parameters, parameters, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alprd_data<T>(dataset_name), compress_column,

@@ -17,7 +17,7 @@
 #include "../alp/alp-bindings.hpp"
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "src/alp/constants.hpp"
+#include "../alp/constants.hpp"
 #include "verification.hpp"
 
 #ifndef DATAGENERATION_H

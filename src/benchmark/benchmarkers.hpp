@@ -31,11 +31,11 @@ bench_baseline(const size_t a_count, const std::string dataset_name) {
   };
 
   auto value_bit_widths =
-      verification::generate_value_bitwidth_parameterset<int32_t>(sizeof(T) *
+      verification::generate_integer_range<int32_t>(sizeof(T) *
                                                                   8 / 2);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count,
+      value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_alp_data<T>(dataset_name), compress_column,
@@ -74,11 +74,11 @@ alp::int_decode<T>(data, in);
   };
 
   auto exception_percentages =
-      verification::generate_value_bitwidth_parameterset<int32_t>(0, 70);
+      verification::generate_integer_range<int32_t>(0, 70);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      exception_percentages, exception_percentages, a_count,
+      exception_percentages, exception_percentages, a_count, a_count,
       verification::get_equal_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alp_datastructure<T>(dataset_name),

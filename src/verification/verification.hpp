@@ -44,15 +44,15 @@ template <typename T> struct Difference {
     UINT_T *original_c = reinterpret_cast<UINT_T *>(&original);
     UINT_T *other_c = reinterpret_cast<UINT_T *>(&other);
 
-		if (sizeof(U) == 8) {
-    fprintf(stderr, "[%lu] correct: %f (%016X), found: %f (%016X)\n", index,
-            original, static_cast<uint64_t>(*original_c), other,
-            static_cast<uint64_t>(*other_c));
-		} else {
-    fprintf(stderr, "[%lu] correct: %f (%08X), found: %f (%08X)\n", index,
-            original, static_cast<uint32_t>(*original_c), other,
-            static_cast<uint32_t>(*other_c));
-		}
+    if (sizeof(U) == 8) {
+      fprintf(stderr, "[%lu] correct: %f (%016lX), found: %f (%016lX)\n", index,
+              static_cast<double>(original), static_cast<uint64_t>(*original_c),
+              static_cast<double>(other), static_cast<uint64_t>(*other_c));
+    } else {
+      fprintf(stderr, "[%lu] correct: %f (%08X), found: %f (%08X)\n", index,
+              static_cast<double>(original), static_cast<uint32_t>(*original_c),
+              static_cast<double>(other), static_cast<uint32_t>(*other_c));
+    }
   }
 };
 
@@ -85,7 +85,7 @@ using DecompressColumnFunction = std::function<void(
 
 template <typename T, typename CompressionParamsType, typename DataParamsType>
 using VerificationFunction = std::function<ExecutionResult<T>(
-    CompressionParamsType, DataParamsType, size_t)>;
+    CompressionParamsType, DataParamsType, size_t, size_t)>;
 
 template <typename T>
 CompressColumnFunction<T, T, int32_t>
@@ -123,14 +123,27 @@ DecompressColumnFunction<T, T, int32_t> apply_fls_decompression_to_column(
 }
 
 template <typename T = int32_t>
-std::vector<T> generate_value_bitwidth_parameterset(T start, T end = -1) {
-  std::vector<T> value_bitwidths = {start};
+std::vector<T> generate_integer_range(const T start, const T end = -1) {
+  std::vector<T> integers = {start};
 
   for (T i{start + 1}; i <= end; i++) {
-    value_bitwidths.push_back(i);
+    integers.push_back(i);
   }
 
-  return value_bitwidths;
+  return integers;
+}
+
+template <typename T = int32_t>
+std::vector<T> generate_doubling_integer_range(const T start, const T end) {
+  std::vector<T> integers = {start};
+
+  T number = start * 2;
+  while (number <= end) {
+    integers.push_back(number);
+    number *= 2;
+  }
+
+  return integers;
 }
 
 template <typename T> bool byte_compare(const T a, const T b) {
@@ -167,22 +180,22 @@ get_equal_decompression_verifier(
         column_decompressor_a,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
         column_decompressor_b) {
-  return [datagenerator, column_decompressor_a,
-          column_decompressor_b](CompressionParamsType compression_parameters,
-                                 DataParamsType data_parameters,
-                                 size_t result_size) -> ExecutionResult<T> {
+  return [datagenerator, column_decompressor_a, column_decompressor_b](
+             CompressionParamsType compression_parameters,
+             DataParamsType data_parameters, size_t input_size,
+             size_t output_size) -> ExecutionResult<T> {
     const CompressedDataType *compressed_data =
-        datagenerator(data_parameters, result_size);
+        datagenerator(data_parameters, input_size);
 
-    T *result_a = new T[result_size];
-    T *result_b = new T[result_size];
+    T *result_a = new T[output_size];
+    T *result_b = new T[output_size];
 
     column_decompressor_a(compressed_data, result_a, compression_parameters,
-                          result_size);
+                          input_size);
     column_decompressor_b(compressed_data, result_b, compression_parameters,
-                          result_size);
+                          input_size);
 
-    auto result = compare_data<T>(result_a, result_b, result_size);
+    auto result = compare_data<T>(result_a, result_b, output_size);
 
     delete compressed_data;
     delete[] result_a;
@@ -203,19 +216,19 @@ get_compression_and_decompression_verifier(
         decompress_column) {
   return [datagenerator, compress_column,
           decompress_column](CompressionParamsType compression_parameters,
-                             DataParamsType data_parameters,
-                             size_t result_size) -> ExecutionResult<T> {
-    const T *original_data = datagenerator(data_parameters, result_size);
+                             DataParamsType data_parameters, size_t input_size,
+                             size_t output_size) -> ExecutionResult<T> {
+    const T *original_data = datagenerator(data_parameters, input_size);
     CompressedDataType *compressed_data = nullptr;
-    T *decompressed_data = new T[result_size];
+    T *decompressed_data = new T[output_size];
 
     compress_column(original_data, compressed_data, compression_parameters,
-                    result_size);
+                    input_size);
     decompress_column(compressed_data, decompressed_data,
-                      compression_parameters, result_size);
+                      compression_parameters, input_size);
 
     auto result =
-        compare_data<T>(original_data, decompressed_data, result_size);
+        compare_data<T>(original_data, decompressed_data, output_size);
 
     delete original_data;
     delete compressed_data;
@@ -245,14 +258,15 @@ template <typename T, typename CompressedT, typename CompressionParamsType,
           typename DataParamsType>
 VerificationResult<T> run_verifier_on_parameters(
     const std::vector<CompressionParamsType> compression_parameters_set,
-    const std::vector<DataParamsType> data_parameters, const size_t size,
+    const std::vector<DataParamsType> data_parameters, const size_t input_size,
+    const size_t output_size,
     const VerificationFunction<T, CompressionParamsType, DataParamsType>
         verifier) {
   auto results = std::vector<ExecutionResult<T>>();
 
   for (size_t i{0}; i < compression_parameters_set.size(); ++i) {
-    results.push_back(
-        verifier(compression_parameters_set[i], data_parameters[i], size));
+    results.push_back(verifier(compression_parameters_set[i],
+                               data_parameters[i], input_size, output_size));
   }
 
   return results;

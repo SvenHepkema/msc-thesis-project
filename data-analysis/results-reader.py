@@ -101,7 +101,7 @@ def convert_results_to_dataframe(results: Results, variation: Variation) -> pl.D
             dataframe["execution_speed"].append(run.time)
 
             if variation == Variation.ValueBitWidth:
-                dataframe["value_bit_width"].append(function_id)
+                dataframe["value_bit_width"].append(function_id + 1)
             elif variation == Variation.ExceptionCount:
                 dataframe["exception_count"].append(function_id)
 

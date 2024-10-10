@@ -351,7 +351,7 @@ verification::DataGenerator<T, int32_t> get_bp_zero_column() {
   return [](const int32_t value_bit_width, const size_t count) -> T * {
     auto data = generation::generate_one_zero_column<T>(count);
     T *out = new T[count];
-    fls::ffor(data.get(), out, value_bit_width);
+    fls::pack(data.get(), out, static_cast<uint8_t>(value_bit_width));
     return out;
   };
 }

@@ -7,6 +7,7 @@ namespace consts {
 
 constexpr int32_t REGISTER_WIDTH = 1024;
 constexpr int32_t VALUES_PER_VECTOR = 1024;
+constexpr int32_t THREADS_PER_WARP = 32;
 
 } // namespace consts
 	

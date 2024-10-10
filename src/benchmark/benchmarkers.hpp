@@ -10,23 +10,22 @@
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-//#include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
+#include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
 
 namespace benchmarkers {
 
-	/*
 template <typename T>
 verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   auto decompress_column_a = []([[maybe_unused]] const T *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
-    out = 1;
+    *out = 1;
   };
   auto decompress_column_b = [](const T *in, T *out,
                                 const int32_t value_bit_width,
                                 const size_t count) -> void {
-    fls::gpu::bench::query_bp_contains_zero(out, in, count, value_bit_width,
+    fls::gpu::bench::query_bp_contains_zero<T>(in, out, count, value_bit_width,
                                             utils::get_values_per_lane<T>());
   };
 
@@ -39,7 +38,7 @@ verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
           data::lambda::get_bp_zero_column<T>(), decompress_column_a,
           decompress_column_b));
 }
-*/
+
 
 template <typename T>
 verification::VerificationResult<T>

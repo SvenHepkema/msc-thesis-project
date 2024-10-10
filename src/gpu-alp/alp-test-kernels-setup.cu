@@ -4,18 +4,18 @@
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
 #include "../gpu-common/gpu-utils.cuh"
+#include "alp-test-kernels-bindings.hpp"
 #include "alp-test-kernels-global.cuh"
 #include "alp.cuh"
-#include "alp-test-kernels-bindings.hpp"
 #include "src/alp/config.hpp"
 
+namespace alp {
 namespace gpu {
-
 namespace test {
 
 template <typename T>
 void decode_complete_alp_vector(T *__restrict out,
-                                       const alp::AlpCompressionData<T> *data) {
+                                const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
@@ -40,8 +40,8 @@ void decode_complete_alp_vector(T *__restrict out,
       d_exception_positions.get(), d_exception_counts.get()};
   constant_memory::load_alp_constants();
 
-	kernels::global::test::decode_complete_alp_vector<T, UINT_T, 1,
-                                           utils::get_values_per_lane<T>()>
+  kernels::global::test::decode_complete_alp_vector<
+      T, UINT_T, 1, utils::get_values_per_lane<T>()>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -49,8 +49,8 @@ void decode_complete_alp_vector(T *__restrict out,
 }
 
 template <typename T>
-void decode_complete_alprd_vector(
-    T *__restrict out, const alp::AlpRdCompressionData<T> *data) {
+void decode_complete_alprd_vector(T *__restrict out,
+                                  const alp::AlpRdCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
@@ -83,23 +83,23 @@ void decode_complete_alprd_vector(
   };
   constant_memory::load_alp_constants();
 
-	kernels::global::test::decode_complete_alprd_vector<T, UINT_T, 1,
-                                             utils::get_values_per_lane<T>()>
+  kernels::global::test::decode_complete_alprd_vector<
+      T, UINT_T, 1, utils::get_values_per_lane<T>()>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
 }
 
-}
-
+} // namespace test
 } // namespace gpu
+} // namespace alp
 
-template void gpu::test::decode_complete_alp_vector<float>(
+template void alp::gpu::test::decode_complete_alp_vector<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void gpu::test::decode_complete_alp_vector<double>(
+template void alp::gpu::test::decode_complete_alp_vector<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void gpu::test::decode_complete_alprd_vector<float>(
+template void alp::gpu::test::decode_complete_alprd_vector<float>(
     float *__restrict out, const alp::AlpRdCompressionData<float> *data);
-template void gpu::test::decode_complete_alprd_vector<double>(
+template void alp::gpu::test::decode_complete_alprd_vector<double>(
     double *__restrict out, const alp::AlpRdCompressionData<double> *data);

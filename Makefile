@@ -19,10 +19,10 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/gpu-fls.o: src/gpu-fls/gpu-bindings-fls.cu
+obj/gpu-fls.o: src/gpu-fls/fls-test-kernels-setup.cu
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
-obj/gpu-alp.o: src/gpu-alp/alp-test-kernels-setup.cu obj/gpu-fls.o
+obj/gpu-alp.o: src/gpu-alp/alp-test-kernels-setup.cu 
 	nvcc $(CUDA_FLAGS) -c -o $@ $<
 
 # Executables

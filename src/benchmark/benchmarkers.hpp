@@ -10,7 +10,6 @@
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/gpu-bindings-fls.hpp"
 
 namespace benchmarkers {
 
@@ -35,11 +34,10 @@ bench_baseline(const size_t a_count, const std::string dataset_name) {
       verification::generate_value_bitwidth_parameterset<int32_t>(sizeof(T) *
                                                                   8 / 2);
 
-  return verification::run_verifier_on_parameters<T, T,
-                                                  int32_t, int32_t>(
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count,
-      verification::get_compression_and_decompression_verifier<
-          T, T, int32_t, int32_t>(
+      verification::get_compression_and_decompression_verifier<T, T, int32_t,
+                                                               int32_t>(
           data::lambda::get_alp_data<T>(dataset_name), compress_column,
           decompress_column));
 }
@@ -72,7 +70,7 @@ alp::int_decode<T>(data, in);
               [[maybe_unused]] const int32_t exception_percentage,
               [[maybe_unused]] const size_t count) -> void {
     // gpu::bench_alp_equal_to<T>(out, in, value);
-    gpu::test::decode_complete_alp_vector(out, in);
+    alp::gpu::test::decode_complete_alp_vector(out, in);
   };
 
   auto exception_percentages =

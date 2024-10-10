@@ -1,5 +1,4 @@
 #include "fls.cuh"
-#include "gpu-bindings-fls.hpp"
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
@@ -7,8 +6,13 @@
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
 
+namespace kernels {
+namespace fls {
+namespace global {
+namespace test {
+
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void bitunpack_global(const T *__restrict in, T *__restrict out,
+__global__ void bitunpack(const T *__restrict in, T *__restrict out,
                                  int32_t value_bit_width) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -27,14 +31,15 @@ __global__ void bitunpack_global(const T *__restrict in, T *__restrict out,
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     bitunpack_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
+                     UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
     out += UNPACK_N_VALUES * N_LANES;
   }
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void unffor_global(const T *__restrict in, T *__restrict out,
-                                 int32_t value_bit_width, const T*__restrict base_p) {
+__global__ void unffor(const T *__restrict in, T *__restrict out,
+                              int32_t value_bit_width,
+                              const T *__restrict base_p) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
@@ -56,5 +61,10 @@ __global__ void unffor_global(const T *__restrict in, T *__restrict out,
     out += UNPACK_N_VALUES * N_LANES;
   }
 }
+
+} // namespace test
+} // namespace global
+} // namespace fls
+} // namespace kernels
 
 #endif // FLS_GLOBAL_CUH

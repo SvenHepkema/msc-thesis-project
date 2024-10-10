@@ -8,8 +8,8 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
+#include "../gpu-fls/fls-test-kernels-bindings.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/gpu-bindings-fls.hpp"
 
 namespace verifiers {
 
@@ -48,7 +48,7 @@ verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const T *in, T *out,
                               const int32_t value_bit_width,
                               const size_t count) -> void {
-    gpu::bitunpack<T>(in, out, count, value_bit_width);
+    fls::gpu::test::bitunpack<T>(in, out, count, value_bit_width);
   };
 
   auto value_bit_widths =
@@ -107,7 +107,7 @@ verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [temp_base_p](const T *in, T *out,
                                          const int32_t value_bit_width,
                                          const size_t count) -> void {
-    gpu::unffor<T>(in, out, count, value_bit_width, temp_base_p);
+    fls::gpu::test::unffor<T>(in, out, count, value_bit_width, temp_base_p);
   };
 
   auto value_bit_widths =
@@ -168,7 +168,7 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    gpu::test::decode_complete_alp_vector<T>(out, in);
+    alp::gpu::test::decode_complete_alp_vector<T>(out, in);
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
@@ -225,7 +225,7 @@ verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const alp::AlpRdCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    gpu::test::decode_complete_alprd_vector<T>(out, in);
+    alp::gpu::test::decode_complete_alprd_vector<T>(out, in);
   };
 
   std::vector<int32_t> parameters({0});

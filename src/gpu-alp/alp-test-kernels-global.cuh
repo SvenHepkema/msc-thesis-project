@@ -5,10 +5,9 @@
 #ifndef ALP_GLOBAL_CUH
 #define ALP_GLOBAL_CUH
 
+namespace alp {
 namespace kernels {
-
 namespace global {
-
 namespace test {
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
@@ -56,8 +55,10 @@ __global__ void decode_complete_alprd_vector(T *out, AlpRdColumn<T> data) {
     out += UNPACK_N_VALUES * N_LANES;
   }
 }
+
 } // namespace test
 } // namespace global
+} // namespace alp
 } // namespace kernels
 
 #endif // ALP_GLOBAL_CUH

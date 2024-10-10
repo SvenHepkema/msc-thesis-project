@@ -167,7 +167,7 @@ def load_dataframes(filenames: str) -> pl.DataFrame:
     results: list[pl.DataFrame] = []
     for filename in files:
         df = pl.read_csv(filename)
-        df = df.with_columns(pl.lit(filename.split(".")[0]).alias("set_name"))
+        df = df.with_columns(pl.lit(filename.split("/")[-1].split(".")[0]).alias("set_name"))
         results.append(df)
 
     return pl.concat(results)

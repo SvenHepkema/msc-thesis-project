@@ -77,8 +77,7 @@ std::function<T()> get_random_floating_point_generator(const T min,
   return std::bind(uniform_dist, random_engine);
 }
 
-template <typename T>
-void make_colum_binary(T* data, const size_t count) {
+template <typename T> void make_colum_binary(T *data, const size_t count) {
   auto generate_index = get_random_number_generator<size_t>(0, count - 1);
   auto generate_presence = get_random_number_generator<size_t>(0, 1000);
 
@@ -97,7 +96,7 @@ std::unique_ptr<T> generate_binary_column(const size_t count,
     column_p[i] = offset;
   }
 
-	make_colum_binary(column_p, count);
+  make_colum_binary(column_p, count);
 
   return column;
 }
@@ -248,7 +247,8 @@ void fill_array_with_random_data(T *array, const size_t count,
 template <typename T>
 alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
-                           const uint16_t exceptions_per_vec) {
+                           const uint16_t exceptions_per_vec,
+                           const int32_t value_bit_width = -1) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
@@ -271,8 +271,15 @@ generate_alp_datastructure(const size_t count,
   // Note we halve the bitwidth because otherwise you will have integer overflow
   // and a high bitwidth is not realistic anyway for alp encoding.
   // It can be parametrized though via the function args if needed.
-  fill_array_with_random_data<uint8_t>(data->ffor.bit_widths, n_vecs, 0,
-                                       static_cast<uint8_t>(max_bit_width / 2));
+  if (value_bit_width == -1) {
+    fill_array_with_random_data<uint8_t>(
+        data->ffor.bit_widths, n_vecs, 0,
+        static_cast<uint8_t>(max_bit_width / 2));
+  } else {
+    for (size_t i{0}; i < n_vecs; ++i) {
+      data->ffor.bit_widths[i] = value_bit_width;
+    }
+  }
 
   fill_array_with_random_bytes(data->exceptions.exceptions, count);
 
@@ -425,18 +432,6 @@ get_alp_data(const std::string dataset_name) {
 
 template <typename T>
 verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_binary_alp_datastructure() {
-  return [](const int32_t value_bit_width, const size_t count) -> alp::AlpCompressionData<T> * {
-    T *data = get_alp_data<T>("random")(value_bit_width, count);
-		generation::make_colum_binary(data, count);
-    auto out = new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(data, count, out);
-		return out;
-  };
-}
-
-template <typename T>
-verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
 get_alp_datastructure(const std::string dataset_name) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
@@ -450,6 +445,16 @@ get_alp_datastructure(const std::string dataset_name) {
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");
   }
+}
+
+template <typename T>
+verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
+get_binary_alp_datastructure() {
+  return [](const int32_t value_bit_width,
+            const size_t count) -> alp::AlpCompressionData<T> * {
+      return generation::generate_alp_datastructure<T>(
+          count, static_cast<uint16_t>(20), value_bit_width);
+  };
 }
 
 template <typename T>
@@ -475,12 +480,13 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
 template <typename T>
 verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
 get_binary_alprd_datastructure() {
-  return [](const int32_t value_bit_width, const size_t count) -> alp::AlpCompressionData<T> * {
+  return [](const int32_t value_bit_width,
+            const size_t count) -> alp::AlpCompressionData<T> * {
     T *data = get_alprd_data<T>("random")(value_bit_width, count);
-		generation::make_colum_binary(data, count);
+    generation::make_colum_binary(data, count);
     auto out = new alp::AlpCompressionData<T>(count);
     alp::int_encode<T>(data, count, out);
-		return out;
+    return out;
   };
 }
 

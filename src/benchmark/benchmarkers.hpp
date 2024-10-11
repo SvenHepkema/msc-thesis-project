@@ -108,15 +108,52 @@ bench_alp_baseline(const size_t a_count,
     alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
   };
 
-  auto exception_percentage = verification::generate_integer_range<int32_t>(10);
+  auto exception_percentage =
+      verification::generate_integer_range<int32_t>(1, sizeof(T) * 4);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
       exception_percentage, exception_percentage, a_count, 1,
       verification::get_equal_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_binary_alp_datastructure<T>(),
-          decompress_column_a, decompress_column_b));
+          data::lambda::get_binary_alp_datastructure<T>(), decompress_column_a,
+          decompress_column_b));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+bench_alprd_baseline(const size_t a_count,
+                   [[maybe_unused]] const std::string dataset_name) {
+  auto decompress_column_a = [](const alp::AlpRdCompressionData<T> *in, T *out,
+                                [[maybe_unused]] const int32_t value_bit_width,
+                                [[maybe_unused]] const size_t count) -> void {
+    T *temp = new T[count];
+    alp::rd_decode<T>(temp, in);
+
+    bool none_magic = true;
+    for (size_t i{0}; i < count; ++i) {
+      none_magic &= temp[i] != consts::as<T>::MAGIC_NUMBER;
+    }
+    *out = static_cast<T>(!none_magic);
+
+    delete[] temp;
+  };
+  auto decompress_column_b = [](const alp::AlpRdCompressionData<T> *in, T *out,
+                                [[maybe_unused]] const int32_t value_bit_width,
+                                [[maybe_unused]] const size_t count) -> void {
+    alp::gpu::bench::decode_complete_alprd_vector<T>(out, in);
+  };
+
+  auto exception_percentage =
+      verification::generate_integer_range<int32_t>(1, sizeof(T) * 4);
+
+  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                                  int32_t, int32_t>(
+      exception_percentage, exception_percentage, a_count, 1,
+      verification::get_equal_decompression_verifier<
+          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+          data::lambda::get_binary_alprd_datastructure<T>(), decompress_column_a,
+          decompress_column_b));
 }
 
 } // namespace benchmarkers

@@ -74,6 +74,11 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_alp_baseline<T>(count, dataset_name);
        }},
+      {"bench_alprd_baseline",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_baseline<T>(count, dataset_name);
+       }},
   };
 };
 

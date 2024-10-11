@@ -53,20 +53,15 @@ constexpr int32_t D_FRAC_ARR_COUNT = 21;
 __constant__ int64_t D_FACT_ARRAY[D_FACT_ARR_COUNT];
 __constant__ double D_FRAC_ARRAY[D_FRAC_ARR_COUNT];
 
-template<typename T>
-__host__ void load_alp_constants() {
-  cudaMemcpyToSymbol(F_FACT_ARRAY,
-                     alp::Constants<float>::FACT_ARR,
+template <typename T> __host__ void load_alp_constants() {
+  cudaMemcpyToSymbol(F_FACT_ARRAY, alp::Constants<float>::FACT_ARR,
                      F_FACT_ARR_COUNT * sizeof(int32_t));
-  cudaMemcpyToSymbol(F_FRAC_ARRAY,
-                     alp::Constants<float>::FRAC_ARR,
+  cudaMemcpyToSymbol(F_FRAC_ARRAY, alp::Constants<float>::FRAC_ARR,
                      F_FRAC_ARR_COUNT * sizeof(float));
 
-  cudaMemcpyToSymbol(D_FACT_ARRAY,
-                     alp::Constants<double>::FACT_ARR,
+  cudaMemcpyToSymbol(D_FACT_ARRAY, alp::Constants<double>::FACT_ARR,
                      D_FACT_ARR_COUNT * sizeof(int64_t));
-  cudaMemcpyToSymbol(D_FRAC_ARRAY,
-                     alp::Constants<double>::FRAC_ARR,
+  cudaMemcpyToSymbol(D_FRAC_ARRAY, alp::Constants<double>::FRAC_ARR,
                      D_FRAC_ARR_COUNT * sizeof(double));
 }
 
@@ -101,8 +96,8 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
-                           const uint16_t vector_index, const uint16_t lane,
-                           const uint16_t start_index) {
+                      const uint16_t vector_index, const uint16_t lane,
+                      const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
@@ -138,30 +133,29 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
   auto vec_exceptions_positions =
       column.positions + consts::VALUES_PER_VECTOR * vector_index;
 
-	if (unpacking_type == UnpackingType::VectorArray) {
-		for (int i{lane}; i < exceptions_count; i += N_LANES) {
-			// WARNING Currently assumes that you are decoding an entire vector
-			// TODO Implement an if (position > startindex && position < (start_index +
-			// UNPACK_N_VALUES * n_lanes) {...}
-			auto position = vec_exceptions_positions[i];
-			out[position] = vec_exceptions[i];
-		}
-	} else if (unpacking_type == UnpackingType::LaneArray) {
-		for (int i{0}; i < exceptions_count; ++i) {
-			auto position = vec_exceptions_positions[i];
-			if (position % N_LANES == lane) {
-				out[position / N_LANES] = vec_exceptions[i];
-			}
-		}
-	}
+  if (unpacking_type == UnpackingType::VectorArray) {
+    for (int i{lane}; i < exceptions_count; i += N_LANES) {
+      // WARNING Currently assumes that you are decoding an entire vector
+      // TODO Implement an if (position > startindex && position < (start_index
+      // + UNPACK_N_VALUES * n_lanes) {...}
+      auto position = vec_exceptions_positions[i];
+      out[position] = vec_exceptions[i];
+    }
+  } else if (unpacking_type == UnpackingType::LaneArray) {
+    for (int i{0}; i < exceptions_count; ++i) {
+      auto position = vec_exceptions_positions[i];
+      if (position % N_LANES == lane) {
+        out[position / N_LANES] = vec_exceptions[i];
+      }
+    }
+  }
 }
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void unalprd(T_out *__restrict out,
-                             const AlpRdColumn<T_out> column,
-                             const uint16_t vector_index, const uint16_t lane,
-                             const uint16_t start_index) {
+__device__ void unalprd(T_out *__restrict out, const AlpRdColumn<T_out> column,
+                        const uint16_t vector_index, const uint16_t lane,
+                        const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
@@ -199,7 +193,8 @@ __device__ void unalprd(T_out *__restrict out,
   for (int i{lane}; i < utils::get_n_lanes<uint16_t>(); i += N_LANES) {
     undict_vector<uint16_t, uint16_t, UnpackingType::VectorArray, 1,
                   utils::get_values_per_lane<uint16_t>()>(
-        left_ffor_array, left_array, i, left_bitwidth, 0, &left_base, left_parts_dict);
+        left_ffor_array, left_array, i, left_bitwidth, 0, &left_base,
+        left_parts_dict);
   }
 
   // TODO Do thread local array instead of shared
@@ -217,7 +212,8 @@ __device__ void unalprd(T_out *__restrict out,
     // WARNING THIS SHOULD NOT WRITE TO GLOBAL
     // TODO write to thread local, and then patch all thread local values
     // INFO THIS IS ALSO an issue in the normal ALP kernel
-    out_ut[i] = (static_cast<UINT_T>(left_array[i]) << right_bitwidth) | right_array[i];
+    out_ut[i] =
+        (static_cast<UINT_T>(left_array[i]) << right_bitwidth) | right_array[i];
   }
 
   // Patching exceptions
@@ -227,11 +223,24 @@ __device__ void unalprd(T_out *__restrict out,
   const uint16_t *vec_exceptions_positions =
       column.positions + consts::VALUES_PER_VECTOR * vector_index;
 
-  for (int i{lane}; i < exceptions_count; i += N_LANES) {
-    const UINT_T right = right_array[vec_exceptions_positions[i]];
-    const uint16_t left = vec_exceptions[i];
-    out_ut[vec_exceptions_positions[i]] =
-        (static_cast<UINT_T>(left) << right_bitwidth) | right;
+  if (unpacking_type == UnpackingType::VectorArray) {
+    for (int i{lane}; i < exceptions_count; i += N_LANES) {
+      const auto position = vec_exceptions_positions[i];
+      const UINT_T right = right_array[position];
+      const uint16_t left = vec_exceptions[i];
+      out_ut[position] = (static_cast<UINT_T>(left) << right_bitwidth) | right;
+    }
+  } else if (unpacking_type == UnpackingType::LaneArray) {
+    for (int i{0}; i < exceptions_count; ++i) {
+      const auto position = vec_exceptions_positions[i];
+
+      if (position % N_LANES == lane) {
+        const UINT_T right = right_array[position];
+        const uint16_t left = vec_exceptions[i];
+        out_ut[position / N_LANES] =
+            (static_cast<UINT_T>(left) << right_bitwidth) | right;
+      }
+    }
   }
 }
 

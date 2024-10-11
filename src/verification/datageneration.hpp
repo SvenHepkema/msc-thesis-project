@@ -472,6 +472,18 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
   }
 }
 
+template <typename T>
+verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
+get_binary_alprd_datastructure() {
+  return [](const int32_t value_bit_width, const size_t count) -> alp::AlpCompressionData<T> * {
+    T *data = get_alprd_data<T>("random")(value_bit_width, count);
+		generation::make_colum_binary(data, count);
+    auto out = new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(data, count, out);
+		return out;
+  };
+}
+
 } // namespace lambda
 } // namespace data
 

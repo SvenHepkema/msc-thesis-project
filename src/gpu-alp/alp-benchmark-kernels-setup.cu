@@ -84,7 +84,7 @@ void decode_complete_alprd_vector(T *__restrict out,
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_blocks = n_vecs;
 
-  GPUArray<T> d_out(count);
+  GPUArray<T> d_out(1);
 
   GPUArray<uint16_t> d_left_ffor_array(count, data->left_ffor.array);
   GPUArray<uint16_t> d_left_ffor_bases(n_vecs, data->left_ffor.bases);
@@ -116,6 +116,10 @@ void decode_complete_alprd_vector(T *__restrict out,
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
+
+	if (*out != static_cast<T>(true)) {
+		*out = static_cast<T>(false);
+	}
 }
 
 } // namespace bench

@@ -78,8 +78,8 @@ std::function<T()> get_random_floating_point_generator(const T min,
 }
 
 template <typename T>
-std::unique_ptr<T> generate_one_zero_column(const size_t count,
-                                            const T offset = 1) {
+std::unique_ptr<T> generate_binary_column(const size_t count,
+                                          const T offset = 1) {
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
@@ -87,8 +87,12 @@ std::unique_ptr<T> generate_one_zero_column(const size_t count,
     column_p[i] = offset;
   }
 
-  auto generator = get_random_number_generator<size_t>(0, count - 1);
-  column_p[generator()] = 0;
+  auto generate_index = get_random_number_generator<size_t>(0, count - 1);
+  auto generate_presence = get_random_number_generator<size_t>(0, 1000);
+
+  if (generate_presence() < 500) {
+    column_p[generate_index()] = consts::as<T>::MAGIC_NUMBER;
+  }
 
   return column;
 }
@@ -346,13 +350,35 @@ get_ffor_data(const std::string dataset_name, T base) {
   }
 }
 
-template <typename T>
-verification::DataGenerator<T, int32_t> get_bp_zero_column() {
+template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
+verification::DataGenerator<T, int32_t> get_binary_columm() {
   return [](const int32_t value_bit_width, const size_t count) -> T * {
-    auto data = generation::generate_one_zero_column<T>(count);
-    T *out = new T[count];
-    fls::pack(data.get(), out, static_cast<uint8_t>(value_bit_width));
-    return out;
+    auto data = generation::generate_binary_column<T>(count);
+
+    if (value_bit_width != -1) {
+      T *out = new T[count];
+      auto n_vecs = utils::get_n_vecs_from_size(count);
+      size_t compressed_vector_size = static_cast<size_t>(
+          utils::get_compressed_vector_size<T>(value_bit_width));
+
+      for (size_t i{0}; i < n_vecs; ++i) {
+        fls::pack(data.get() + i * consts::VALUES_PER_VECTOR,
+                  out + i * compressed_vector_size,
+                  static_cast<uint8_t>(value_bit_width));
+      }
+      return out;
+    } else {
+      return data.release();
+    }
+  };
+}
+
+template <typename T,
+          std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
+verification::DataGenerator<T, int32_t> get_binary_columm() {
+  return []([[maybe_unused]] const int32_t value_bit_width,
+            const size_t count) -> T * {
+    return generation::generate_binary_column<T>(count).release();
   };
 }
 

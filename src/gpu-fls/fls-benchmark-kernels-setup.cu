@@ -77,6 +77,10 @@ void query_bp_contains_zero(const T *__restrict in, T *__restrict out,
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   device_out.copy_to_host(out);
+
+	if (*out != 1) {
+		*out = 0;
+	}
 }
 
 template <typename T>

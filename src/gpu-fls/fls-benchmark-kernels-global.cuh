@@ -31,6 +31,7 @@ query_bp_contains_zero(const T *__restrict in, T *__restrict out,
 
   in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
 
+
   T registers[N_VALUES];
   T none_zero = 1;
 
@@ -40,7 +41,7 @@ query_bp_contains_zero(const T *__restrict in, T *__restrict out,
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
-      none_zero *= registers[j] != 0;
+      none_zero *= registers[j] != consts::as<T>::MAGIC_NUMBER;
     }
   }
 

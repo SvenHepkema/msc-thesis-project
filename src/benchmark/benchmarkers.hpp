@@ -9,6 +9,7 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
+#include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
 #include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
 
@@ -17,55 +18,70 @@ namespace benchmarkers {
 template <typename T>
 verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto decompress_column_a = []([[maybe_unused]] const T *in, T *out,
-                                [[maybe_unused]] const int32_t value_bit_width,
-                                [[maybe_unused]] const size_t count) -> void {
-    *out = 1;
+  auto decompress_column_a = [](const T *in, T *out,
+                                const int32_t value_bit_width,
+                                const size_t count) -> void {
+    bool none_magic = 1;
+    T *temp = new T[1024];
+    auto n_vecs = utils::get_n_vecs_from_size(count);
+		size_t compressed_vector_size = static_cast<size_t>(
+				utils::get_compressed_vector_size<T>(value_bit_width));
+
+    for (size_t i{0}; i < n_vecs; ++i) {
+      fls::unpack(in + i * compressed_vector_size, temp,
+                  static_cast<uint8_t>(value_bit_width));
+
+      for (size_t j{0}; j < 1024; ++j) {
+        none_magic &= temp[j] != consts::as<T>::MAGIC_NUMBER;
+      }
+    }
+
+    *out = !none_magic;
+    delete[] temp;
   };
   auto decompress_column_b = [](const T *in, T *out,
                                 const int32_t value_bit_width,
                                 const size_t count) -> void {
     fls::gpu::bench::query_bp_contains_zero<T>(in, out, count, value_bit_width,
-                                            1);
+                                               1);
   };
 
   auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
+      verification::generate_integer_range<int32_t>(1); //, sizeof(T) * 8);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_bp_zero_column<T>(), decompress_column_a,
+          data::lambda::get_binary_columm<T>(), decompress_column_a,
           decompress_column_b));
 }
 
-
 template <typename T>
 verification::VerificationResult<T>
-bench_baseline(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, T *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new T[count];
-    std::memcpy(out, in, sizeof(T) * count);
+bench_float_baseline(const size_t a_count,
+                     [[maybe_unused]] const std::string dataset_name) {
+  auto decompress_column_a = [](const T *in, T *out,
+                                [[maybe_unused]] const int32_t value_bit_width,
+                                const size_t count) -> void {
+    bool none_magic = true;
+    for (size_t i{0}; i < count; ++i) {
+      none_magic &= in[i] != consts::as<T>::MAGIC_NUMBER;
+    }
+		*out = static_cast<T>(!none_magic);
+  };
+  auto decompress_column_b = [](const T *in, T *out,
+                                [[maybe_unused]] const int32_t value_bit_width,
+                                const size_t count) -> void {
+    alp::gpu::bench::decode_baseline<T>(out, in, count);
   };
 
-  auto decompress_column = [](const T *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              const size_t count) -> void {
-    std::memcpy(out, in, sizeof(T) * count);
-    // gpu::bench_baseline<T>(out, in, count);
-  };
-
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(sizeof(T) * 8 / 2);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(-1);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
-      verification::get_compression_and_decompression_verifier<T, T, int32_t,
-                                                               int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), compress_column,
-          decompress_column));
+      value_bit_widths, value_bit_widths, a_count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_columm<T>(), decompress_column_a,
+          decompress_column_b));
 }
 
 template <typename T>

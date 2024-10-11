@@ -63,16 +63,16 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return verifiers::verify_gpu_alprd<T>(count, dataset_name);
        }},
-      {"gpu_alp_exceptions",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return benchmarkers::bench_gpu_alp<T>(count, dataset_name);
-       }},
-      {"bench_alp_baseline",
+      {"bench_float_baseline",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_float_baseline<T>(
              count, dataset_name);
+       }},
+      {"bench_alp_baseline",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_baseline<T>(count, dataset_name);
        }},
   };
 };

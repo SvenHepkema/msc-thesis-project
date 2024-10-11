@@ -115,20 +115,30 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
       in, out, lane, value_bit_width, start_index, lambda);
 
   // Patch exceptions
-  auto n_lanes = utils::get_n_lanes<INT_T>();
+  constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
   auto exceptions_count = column.counts[vector_index];
 
   auto vec_exceptions =
       column.exceptions + consts::VALUES_PER_VECTOR * vector_index;
   auto vec_exceptions_positions =
       column.positions + consts::VALUES_PER_VECTOR * vector_index;
-  for (int i{lane}; i < exceptions_count; i += n_lanes) {
-    // WARNING Currently assumes that you are decoding an entire vector
-    // TODO Implement an if (position > startindex && position < (start_index +
-    // UNPACK_N_VALUES * n_lanes) {...}
-    auto position = vec_exceptions_positions[i];
-    out[position] = vec_exceptions[i];
-  }
+
+	if (unpacking_type == UnpackingType::VectorArray) {
+		for (int i{lane}; i < exceptions_count; i += N_LANES) {
+			// WARNING Currently assumes that you are decoding an entire vector
+			// TODO Implement an if (position > startindex && position < (start_index +
+			// UNPACK_N_VALUES * n_lanes) {...}
+			auto position = vec_exceptions_positions[i];
+			out[position] = vec_exceptions[i];
+		}
+	} else if (unpacking_type == UnpackingType::LaneArray) {
+		for (int i{0}; i < exceptions_count; ++i) {
+			auto position = vec_exceptions_positions[i];
+			if (position % N_LANES == lane) {
+				out[position / N_LANES] = vec_exceptions[i];
+			}
+		}
+	}
 }
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,

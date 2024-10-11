@@ -78,6 +78,16 @@ std::function<T()> get_random_floating_point_generator(const T min,
 }
 
 template <typename T>
+void make_colum_binary(T* data, const size_t count) {
+  auto generate_index = get_random_number_generator<size_t>(0, count - 1);
+  auto generate_presence = get_random_number_generator<size_t>(0, 1000);
+
+  if (generate_presence() < 500) {
+    data[generate_index()] = consts::as<T>::MAGIC_NUMBER;
+  }
+}
+
+template <typename T>
 std::unique_ptr<T> generate_binary_column(const size_t count,
                                           const T offset = 1) {
   auto column = allocate_column<T>(count);
@@ -87,12 +97,7 @@ std::unique_ptr<T> generate_binary_column(const size_t count,
     column_p[i] = offset;
   }
 
-  auto generate_index = get_random_number_generator<size_t>(0, count - 1);
-  auto generate_presence = get_random_number_generator<size_t>(0, 1000);
-
-  if (generate_presence() < 500) {
-    column_p[generate_index()] = consts::as<T>::MAGIC_NUMBER;
-  }
+	make_colum_binary(column_p, count);
 
   return column;
 }
@@ -416,6 +421,18 @@ get_alp_data(const std::string dataset_name) {
     throw std::invalid_argument(
         "This data generator only accepts 'index' & 'random'");
   }
+}
+
+template <typename T>
+verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
+get_binary_alp_datastructure() {
+  return [](const int32_t value_bit_width, const size_t count) -> alp::AlpCompressionData<T> * {
+    T *data = get_alp_data<T>("random")(value_bit_width, count);
+		generation::make_colum_binary(data, count);
+    auto out = new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(data, count, out);
+		return out;
+  };
 }
 
 template <typename T>

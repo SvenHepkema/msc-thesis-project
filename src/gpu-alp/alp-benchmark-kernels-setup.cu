@@ -41,9 +41,11 @@ void decode_complete_alp_vector(T *__restrict out,
 
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_blocks = n_vecs;
+  const auto n_warps_per_block = 2;
+  const auto n_blocks = n_vecs / n_warps_per_block;
+  const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
 
-  GPUArray<T> d_out(count);
+  GPUArray<T> d_out(1);
   GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
 
   GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
@@ -63,13 +65,13 @@ void decode_complete_alp_vector(T *__restrict out,
 
   kernels::global::bench::decode_complete_alp_vector<
       T, UINT_T, 1, utils::get_values_per_lane<T>()>
-      <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
+      <<<n_blocks, n_threads>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
 
-	if (*out != 1.0) {
-		*out = 0;
+	if (*out != static_cast<T>(true)) {
+		*out = static_cast<T>(false);
 	}
 }
 

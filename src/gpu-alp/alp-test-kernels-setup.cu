@@ -38,7 +38,7 @@ void decode_complete_alp_vector(T *__restrict out,
       d_ffor_array.get(),          d_ffor_bases.get(),      d_bit_widths.get(),
       d_exponents.get(),           d_factors.get(),         d_exceptions.get(),
       d_exception_positions.get(), d_exception_counts.get()};
-  constant_memory::load_alp_constants();
+  constant_memory::load_alp_constants<T>();
 
   kernels::global::test::decode_complete_alp_vector<
       T, UINT_T, 1, utils::get_values_per_lane<T>()>
@@ -81,7 +81,7 @@ void decode_complete_alprd_vector(T *__restrict out,
       d_left_parts_dicts.get(),    d_exceptions.get(),
       d_exception_positions.get(), d_exception_counts.get(),
   };
-  constant_memory::load_alp_constants();
+  constant_memory::load_alp_constants<T>();
 
   kernels::global::test::decode_complete_alprd_vector<
       T, UINT_T, 1, utils::get_values_per_lane<T>()>

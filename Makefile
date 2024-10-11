@@ -31,19 +31,16 @@ obj/gpu-fls-bench.o: $(FLS_BENCHMARK_FILES)
 	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-fls/fls-benchmark-kernels-setup.cu
 
 
-obj/gpu-alp.o: src/gpu-alp/alp.cu
-	nvcc $(CUDA_FLAGS) $^  -c -o $@ 
-
-obj/gpu-alp-test.o: $(ALP_TEST_FILES) obj/gpu-alp.o
+obj/gpu-alp-test.o: $(ALP_TEST_FILES) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-alp/alp-test-kernels-setup.cu 
 
-obj/gpu-alp-bench.o: $(ALP_BENCHMARK_FILES) obj/gpu-alp.o
+obj/gpu-alp-bench.o: $(ALP_BENCHMARK_FILES) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-alp/alp-benchmark-kernels-setup.cu
 
 # Executables
 
 HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
-SOURCE_FILES=src/main.cpp obj/gpu-fls-test.o obj/gpu-fls-bench.o obj/gpu-alp-test.o obj/gpu-alp-bench.o obj/gpu-alp.o $(FLS_OBJ) $(ALP_OBJ)
+SOURCE_FILES=src/main.cpp obj/gpu-fls-test.o obj/gpu-fls-bench.o obj/gpu-alp-test.o obj/gpu-alp-bench.o $(FLS_OBJ) $(ALP_OBJ)
 
 executable: $(SOURCE_FILES) $(HEADER_FILES)
 	clang++ $(SOURCE_FILES) $(OPTIMIZATION_FLAG) -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 

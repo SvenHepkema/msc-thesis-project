@@ -152,7 +152,7 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
+verify_gpu_alp_into_vec(const size_t a_count, const std::string dataset_name) {
   auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
@@ -164,6 +164,35 @@ verify_gpu_alp(const size_t a_count, const std::string dataset_name) {
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
     alp::gpu::test::decode_complete_alp_vector<T>(out, in);
+  };
+
+  int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(
+      0, max_value_bitwidth_to_test);
+
+  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                                  int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, a_count,
+      verification::get_compression_and_decompression_verifier<
+          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+          data::lambda::get_alp_data<T>(dataset_name), compress_column,
+          decompress_column));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+verify_gpu_alp_into_lane(const size_t a_count, const std::string dataset_name) {
+  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
+                            [[maybe_unused]] const int32_t value_bit_width,
+                            const size_t count) -> void {
+    out = new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(in, count, out);
+  };
+
+  auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
+                              [[maybe_unused]] const int32_t value_bit_width,
+                              [[maybe_unused]] const size_t count) -> void {
+    alp::gpu::test::decode_alp_vector_into_lane<T>(out, in);
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;

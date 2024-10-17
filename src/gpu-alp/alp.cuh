@@ -133,6 +133,8 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
   auto vec_exceptions_positions =
       column.positions + consts::VALUES_PER_VECTOR * vector_index;
 
+  const int first_pos = start_index * N_LANES + lane;
+  const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
   if (unpacking_type == UnpackingType::VectorArray) {
     for (int i{lane}; i < exceptions_count; i += N_LANES) {
       // WARNING Currently assumes that you are decoding an entire vector
@@ -144,8 +146,13 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
   } else if (unpacking_type == UnpackingType::LaneArray) {
     for (int i{0}; i < exceptions_count; ++i) {
       auto position = vec_exceptions_positions[i];
-      if (position % N_LANES == lane) {
-        out[position / N_LANES] = vec_exceptions[i];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = vec_exceptions[i];
+        }
+        if (position + 1 > last_pos) {
+          return;
+        }
       }
     }
   }

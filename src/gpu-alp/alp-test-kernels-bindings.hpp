@@ -13,6 +13,9 @@ namespace test {
 template <typename T>
 void decode_complete_alp_vector(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
+template <typename T>
+void decode_alp_vector_into_lane(T *__restrict out,
+                                const alp::AlpCompressionData<T> *data);
 
 template <typename T>
 void decode_complete_alprd_vector(T *__restrict out,
@@ -25,6 +28,11 @@ void decode_complete_alprd_vector(T *__restrict out,
 extern template void alp::gpu::test::decode_complete_alp_vector<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 extern template void alp::gpu::test::decode_complete_alp_vector<double>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+
+extern template void alp::gpu::test::decode_alp_vector_into_lane<float>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+extern template void alp::gpu::test::decode_alp_vector_into_lane<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 extern template void alp::gpu::test::decode_complete_alprd_vector<float>(

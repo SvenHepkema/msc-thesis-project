@@ -64,7 +64,7 @@ void decode_complete_alp_vector(T *__restrict out,
   constant_memory::load_alp_constants<T>();
 
   kernels::global::bench::decode_complete_alp_vector<
-      T, UINT_T, 1, utils::get_values_per_lane<T>()>
+      T, UINT_T, 1, 4>
       <<<n_blocks, n_threads>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 

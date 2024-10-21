@@ -77,7 +77,7 @@ std::function<T()> get_random_floating_point_generator(const T min,
   return std::bind(uniform_dist, random_engine);
 }
 
-template <typename T> void make_colum_binary(T *data, const size_t count) {
+template <typename T> void make_column_magic(T *data, const size_t count) {
   auto generate_index = get_random_number_generator<size_t>(0, count - 1);
   auto generate_presence = get_random_number_generator<size_t>(0, 1000);
 
@@ -87,8 +87,8 @@ template <typename T> void make_colum_binary(T *data, const size_t count) {
 }
 
 template <typename T>
-std::unique_ptr<T> generate_binary_column(const size_t count,
-                                          const T offset = 1) {
+std::unique_ptr<T> generate_magic_column(const size_t count,
+                                         const T offset = 1) {
   auto column = allocate_column<T>(count);
   T *column_p = column.get();
 
@@ -96,7 +96,7 @@ std::unique_ptr<T> generate_binary_column(const size_t count,
     column_p[i] = offset;
   }
 
-  make_colum_binary(column_p, count);
+  make_column_magic(column_p, count);
 
   return column;
 }
@@ -220,6 +220,13 @@ std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
 }
 
 template <typename T>
+void fill_array_with_constant(T *array, const size_t count, const T value) {
+  for (size_t i{0}; i < count; ++i) {
+    array[i] = value;
+  }
+}
+
+template <typename T>
 void fill_array_with_random_bytes(T *array, const size_t count) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T *out = reinterpret_cast<UINT_T *>(array);
@@ -247,7 +254,7 @@ void fill_array_with_random_data(T *array, const size_t count,
 template <typename T>
 alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
-                           const uint16_t exceptions_per_vec,
+                           const int32_t exceptions_per_vec = -1,
                            const int32_t value_bit_width = -1) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
@@ -268,6 +275,7 @@ generate_alp_datastructure(const size_t count,
 
   fill_array_with_random_bytes(data->ffor.array, count);
   fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);
+
   // Note we halve the bitwidth because otherwise you will have integer overflow
   // and a high bitwidth is not realistic anyway for alp encoding.
   // It can be parametrized though via the function args if needed.
@@ -276,9 +284,17 @@ generate_alp_datastructure(const size_t count,
         data->ffor.bit_widths, n_vecs, 0,
         static_cast<uint8_t>(max_bit_width / 2));
   } else {
-    for (size_t i{0}; i < n_vecs; ++i) {
-      data->ffor.bit_widths[i] = value_bit_width;
-    }
+    fill_array_with_constant<uint8_t>(data->ffor.bit_widths, n_vecs,
+                                      static_cast<uint8_t>(value_bit_width));
+  }
+
+  if (exceptions_per_vec == -1) {
+    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0,
+                                          20);
+  } else {
+    fill_array_with_constant<uint16_t>(
+        data->exceptions.counts, n_vecs,
+        static_cast<uint16_t>(exceptions_per_vec));
   }
 
   fill_array_with_random_bytes(data->exceptions.exceptions, count);
@@ -295,15 +311,12 @@ generate_alp_datastructure(const size_t count,
   auto rng = std::default_random_engine(random_device());
   for (size_t i{0}; i < n_vecs; ++i) {
     std::shuffle(std::begin(indices), std::end(indices), rng);
+    // We copy the entire shuffled indices to the array, as we
+    // can then change the exception count without needing to
+    // regenerate more exceptions
     std::memcpy(positions, indices.data(),
-                sizeof(uint16_t) * exceptions_per_vec);
+                sizeof(uint16_t) * consts::VALUES_PER_VECTOR);
     positions += consts::VALUES_PER_VECTOR;
-  }
-
-  // Set up the counts
-  uint16_t *counts = data->exceptions.counts;
-  for (size_t i{0}; i < n_vecs; ++i) {
-    counts[i] = exceptions_per_vec;
   }
 
   return data;
@@ -365,7 +378,7 @@ get_ffor_data(const std::string dataset_name, T base) {
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 verification::DataGenerator<T, int32_t> get_binary_columm() {
   return [](const int32_t value_bit_width, const size_t count) -> T * {
-    auto data = generation::generate_binary_column<T>(count);
+    auto data = generation::generate_magic_column<T>(count);
 
     if (value_bit_width != -1) {
       T *out = new T[count];
@@ -390,7 +403,7 @@ template <typename T,
 verification::DataGenerator<T, int32_t> get_binary_columm() {
   return []([[maybe_unused]] const int32_t value_bit_width,
             const size_t count) -> T * {
-    return generation::generate_binary_column<T>(count).release();
+    return generation::generate_magic_column<T>(count).release();
   };
 }
 
@@ -437,24 +450,26 @@ get_alp_datastructure(const std::string dataset_name) {
                 "T should be float or double");
 
   if (dataset_name == "random") {
+    return []([[__maybe_unused__]] int32_t unused,
+              size_t count) -> alp::AlpCompressionData<T> * {
+      return generation::generate_alp_datastructure<T>(count);
+    };
+  } else if (dataset_name == "exceptions_per_vec") {
     return [](int32_t exceptions_per_vec,
               size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(
-          count, static_cast<uint16_t>(exceptions_per_vec));
+      return generation::generate_alp_datastructure<T>(count,
+                                                       exceptions_per_vec);
+    };
+  } else if (dataset_name == "value_bit_width") {
+    return [](int32_t value_bit_width,
+              size_t count) -> alp::AlpCompressionData<T> * {
+      return generation::generate_alp_datastructure<T>(count, -1,
+                                                       value_bit_width);
     };
   } else {
-    throw std::invalid_argument("This data generator only accepts 'random'");
+    throw std::invalid_argument(
+        "This data generator does not accept the specified dataset_name");
   }
-}
-
-template <typename T>
-verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_binary_alp_datastructure() {
-  return [](const int32_t value_bit_width,
-            const size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(
-          count, static_cast<uint16_t>(20), value_bit_width);
-  };
 }
 
 template <typename T>
@@ -475,19 +490,6 @@ get_alprd_data([[maybe_unused]] const std::string dataset_name) {
   } else {
     throw std::invalid_argument("This data generator only accepts 'random'");
   }
-}
-
-template <typename T>
-verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_binary_alprd_datastructure() {
-  return [](const int32_t value_bit_width,
-            const size_t count) -> alp::AlpCompressionData<T> * {
-    T *data = get_alprd_data<T>("random")(value_bit_width, count);
-    generation::make_colum_binary(data, count);
-    auto out = new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(data, count, out);
-    return out;
-  };
 }
 
 } // namespace lambda

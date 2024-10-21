@@ -74,15 +74,15 @@ template <class T> struct Alp {
          return benchmarkers::bench_float_baseline<T>(
              count, dataset_name);
        }},
-      {"bench_alp_baseline",
+      {"bench_alp_exception_count",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_baseline<T>(count, dataset_name);
+         return benchmarkers::bench_alp_varying_exception_count<T>(count, dataset_name);
        }},
-      {"bench_alprd_baseline",
+      {"bench_alp_value_bit_width",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_baseline<T>(count, dataset_name);
+         return benchmarkers::bench_alp_varying_value_bit_width<T>(count, dataset_name);
        }},
   };
 };

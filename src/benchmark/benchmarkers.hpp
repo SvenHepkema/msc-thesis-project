@@ -47,7 +47,7 @@ verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
   };
 
   auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1); //, sizeof(T) * 8);
+      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, 1,
@@ -85,9 +85,8 @@ bench_float_baseline(const size_t a_count,
 }
 
 template <typename T>
-verification::VerificationResult<T>
-bench_alp_baseline(const size_t a_count,
-                   [[maybe_unused]] const std::string dataset_name) {
+verification::VerificationResult<T> bench_alp_varying_exception_count(
+    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   auto decompress_column_a = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
@@ -108,27 +107,26 @@ bench_alp_baseline(const size_t a_count,
     alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
   };
 
-  auto exception_percentage =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 4);
+  auto exception_percentages =
+      verification::generate_integer_range<int32_t>(0, 70);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      exception_percentage, exception_percentage, a_count, 1,
+      exception_percentages, exception_percentages, a_count, 1,
       verification::get_equal_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_binary_alp_datastructure<T>(), decompress_column_a,
-          decompress_column_b));
+          data::lambda::get_alp_datastructure<T>("exceptions_per_vec"),
+          decompress_column_a, decompress_column_b));
 }
 
 template <typename T>
-verification::VerificationResult<T>
-bench_alprd_baseline(const size_t a_count,
-                   [[maybe_unused]] const std::string dataset_name) {
-  auto decompress_column_a = [](const alp::AlpRdCompressionData<T> *in, T *out,
+verification::VerificationResult<T> bench_alp_varying_value_bit_width(
+    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
+  auto decompress_column_a = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
     T *temp = new T[count];
-    alp::rd_decode<T>(temp, in);
+    alp::int_decode<T>(temp, in);
 
     bool none_magic = true;
     for (size_t i{0}; i < count; ++i) {
@@ -138,22 +136,22 @@ bench_alprd_baseline(const size_t a_count,
 
     delete[] temp;
   };
-  auto decompress_column_b = [](const alp::AlpRdCompressionData<T> *in, T *out,
+  auto decompress_column_b = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::bench::decode_complete_alprd_vector<T>(out, in);
+    alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
   };
 
-  auto exception_percentage =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 4);
+  auto value_bit_widths =
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 4);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      exception_percentage, exception_percentage, a_count, 1,
+      value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_binary_alprd_datastructure<T>(), decompress_column_a,
-          decompress_column_b));
+          data::lambda::get_alp_datastructure<T>("value_bit_width"),
+          decompress_column_a, decompress_column_b));
 }
 
 } // namespace benchmarkers

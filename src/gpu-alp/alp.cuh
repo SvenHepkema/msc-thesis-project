@@ -144,15 +144,15 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
       out[position] = vec_exceptions[i];
     }
   } else if (unpacking_type == UnpackingType::LaneArray) {
-    for (int i{0}; i < exceptions_count; i ++) {
-				auto position = vec_exceptions_positions[i];
-        if (position >= first_pos) {
-          if (position <= last_pos && position % N_LANES == lane) {
-            out[(position - first_pos) / N_LANES] = vec_exceptions[i];
-          }
-          if (position + 1 > last_pos) {
-            return;
-          }
+    for (int i{0}; i < exceptions_count; i++) {
+      auto position = vec_exceptions_positions[i];
+      auto exception = vec_exceptions[i];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = exception;
+        }
+        if (position + 1 > last_pos) {
+          return;
         }
       }
     }
@@ -161,9 +161,10 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
-                      const uint16_t vector_index, const uint16_t lane,
-                      const uint16_t start_index) {
+__device__ void
+unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
+                   const uint16_t vector_index, const uint16_t lane,
+                   const uint16_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
@@ -216,11 +217,11 @@ __device__ void unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out>
     for (int i{0}; i < exceptions_count; i += SCANNER_SIZE) {
 
       for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-        scanner[j] = vec_exceptions_positions[j+i];
-			}
+        scanner[j] = vec_exceptions_positions[j + i];
+      }
 
       for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-				auto position = scanner[j];
+        auto position = scanner[j];
         if (position >= first_pos) {
           if (position <= last_pos && position % N_LANES == lane) {
             out[(position - first_pos) / N_LANES] = vec_exceptions[j + i];

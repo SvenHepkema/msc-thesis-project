@@ -18,6 +18,10 @@ void decode_complete_alp_vector(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
+void decode_multiple_alp_vectors(
+    T *__restrict out, const std::vector<alp::AlpCompressionData<T> *> data);
+
+template <typename T>
 void decode_complete_alprd_vector(T *__restrict out,
                                   const alp::AlpRdCompressionData<T> *data);
 
@@ -26,15 +30,23 @@ void decode_complete_alprd_vector(T *__restrict out,
 } // namespace alp
 
 extern template void
-alp::gpu::bench::decode_baseline<float>(float *__restrict out,
-                                        const float *in, const size_t count);
+alp::gpu::bench::decode_baseline<float>(float *__restrict out, const float *in,
+                                        const size_t count);
+extern template void alp::gpu::bench::decode_baseline<double>(
+    double *__restrict out, const double *data, const size_t count);
+
 extern template void alp::gpu::bench::decode_complete_alp_vector<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 extern template void alp::gpu::bench::decode_complete_alp_vector<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-extern template void alp::gpu::bench::decode_baseline<double>(
-    double *__restrict out, const double *data, const size_t count);
+extern template void alp::gpu::bench::decode_multiple_alp_vectors<float>(
+    float *__restrict out,
+    const std::vector<alp::AlpCompressionData<float> *> data);
+extern template void alp::gpu::bench::decode_multiple_alp_vectors<double>(
+    double *__restrict out,
+    const std::vector<alp::AlpCompressionData<double> *> data);
+
 extern template void alp::gpu::bench::decode_complete_alprd_vector<float>(
     float *__restrict out, const alp::AlpRdCompressionData<float> *data);
 extern template void alp::gpu::bench::decode_complete_alprd_vector<double>(

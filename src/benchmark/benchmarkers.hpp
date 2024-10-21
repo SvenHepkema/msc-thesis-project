@@ -120,6 +120,71 @@ verification::VerificationResult<T> bench_alp_varying_exception_count(
 }
 
 template <typename T>
+verification::VerificationResult<T>
+bench_alp_multiple_columns(const size_t a_count,
+                           [[maybe_unused]] const std::string dataset_name) {
+  verification::DecompressColumnFunction<
+      std::vector<alp::AlpCompressionData<T> *>, T, int32_t>
+      decompress_column_a =
+          [](const std::vector<alp::AlpCompressionData<T> *> *in, T *out,
+             [[maybe_unused]] const int32_t column_count,
+             [[maybe_unused]] const size_t count) -> void {
+    std::vector<alp::AlpCompressionData<T> *> input_columns = *in;
+    std::vector<T *> temps;
+
+    for (auto column : input_columns) {
+      T *temp = new T[count];
+      alp::int_decode<T>(temp, column);
+      temps.push_back(temp);
+    }
+
+    bool none_equal = true;
+    for (size_t i{0}; i < count; ++i) {
+      for (size_t j{1}; j < temps.size(); j++) {
+        none_equal &= temps[j][i] != temps[0][i];
+      }
+    }
+    *out = static_cast<T>(!none_equal);
+
+    for (auto temp : temps) {
+      delete[] temp;
+    }
+  };
+  verification::DecompressColumnFunction<
+      std::vector<alp::AlpCompressionData<T> *>, T, int32_t>
+      decompress_column_b =
+          [](const std::vector<alp::AlpCompressionData<T> *> *in, T *out,
+             [[maybe_unused]] const int32_t column_count,
+             [[maybe_unused]] const size_t count) -> void {
+    alp::gpu::bench::decode_multiple_alp_vectors<T>(out, *in);
+  };
+
+  std::vector<alp::AlpCompressionData<T> *> columns{
+      data::generation::generate_alp_datastructure<T>(a_count),
+      data::generation::generate_alp_datastructure<T>(a_count),
+      data::generation::generate_alp_datastructure<T>(a_count),
+      data::generation::generate_alp_datastructure<T>(a_count),
+  };
+  auto column_counts =
+      verification::generate_integer_range<int32_t>(2, columns.size());
+
+  verification::DataGenerator<std::vector<alp::AlpCompressionData<T> *>,
+                              int32_t>
+      data_generator =
+          [columns](int32_t column_count, [[maybe_unused]] size_t count) {
+            return new std::vector<alp::AlpCompressionData<T> *>(
+                columns.begin(), columns.begin() + column_count);
+          };
+
+  return verification::run_verifier_on_parameters<
+      T, std::vector<alp::AlpCompressionData<T> *>, int32_t, int32_t>(
+      column_counts, column_counts, a_count, 1,
+      verification::get_equal_decompression_verifier<
+          T, std::vector<alp::AlpCompressionData<T> *>, int32_t, int32_t>(
+          data_generator, decompress_column_a, decompress_column_b));
+}
+
+template <typename T>
 verification::VerificationResult<T> bench_alp_varying_value_bit_width(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   auto decompress_column_a = [](const alp::AlpCompressionData<T> *in, T *out,

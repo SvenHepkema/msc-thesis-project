@@ -1,3 +1,4 @@
+#include <__clang_cuda_runtime_wrapper.h>
 #include <cstddef>
 #include <cstdint>
 
@@ -11,6 +12,46 @@
 
 namespace alp {
 namespace gpu {
+
+template <typename T>
+AlpColumn<T> copy_alp_column_to_gpu(const alp::AlpCompressionData<T> *data) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  const auto count = data->size;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+
+  GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
+
+  GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
+  GPUArray<uint8_t> d_bit_widths(n_vecs, data->ffor.bit_widths);
+  GPUArray<uint8_t> d_exponents(n_vecs, data->exponents);
+  GPUArray<uint8_t> d_factors(n_vecs, data->factors);
+
+  GPUArray<T> d_exceptions(count, data->exceptions.exceptions);
+  GPUArray<uint16_t> d_exception_positions(count, data->exceptions.positions);
+  GPUArray<uint16_t> d_exception_counts(n_vecs, data->exceptions.counts);
+
+  return AlpColumn<T>{d_ffor_array.release(),
+                      d_ffor_bases.release(),
+                      d_bit_widths.release(),
+                      d_exponents.release(),
+                      d_factors.release(),
+                      d_exceptions.release(),
+                      d_exception_positions.release(),
+                      d_exception_counts.release()};
+}
+
+template <typename T>
+void destroy_alp_column(AlpColumn<T> &column) {
+  free_device_pointer(column.ffor_array);
+  free_device_pointer(column.ffor_bases);
+  free_device_pointer(column.bit_widths);
+  free_device_pointer(column.exponents);
+  free_device_pointer(column.factors);
+  free_device_pointer(column.exceptions);
+  free_device_pointer(column.positions);
+  free_device_pointer(column.counts);
+}
+
 namespace bench {
 
 template <typename T>
@@ -29,14 +70,16 @@ void decode_baseline(T *__restrict out, const T *in, const size_t count) {
 
   d_out.copy_to_host(out);
 
-	if (*out != static_cast<T>(true)) {
-		*out = static_cast<T>(false);
-	}
+  if (*out != static_cast<T>(true)) {
+    *out = static_cast<T>(false);
+  }
 }
 
 template <typename T>
 void decode_complete_alp_vector(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data) {
+  constexpr int32_t UNPACK_N_VECTORS = 1;
+  constexpr int32_t UNPACK_N_VALUES = 1;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
@@ -46,33 +89,73 @@ void decode_complete_alp_vector(T *__restrict out,
   const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
 
   GPUArray<T> d_out(1);
-  GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
-
-  GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
-  GPUArray<uint8_t> d_bit_widths(n_vecs, data->ffor.bit_widths);
-  GPUArray<uint8_t> d_exponents(n_vecs, data->exponents);
-  GPUArray<uint8_t> d_factors(n_vecs, data->factors);
-
-  GPUArray<T> d_exceptions(count, data->exceptions.exceptions);
-  GPUArray<uint16_t> d_exception_positions(count, data->exceptions.positions);
-  GPUArray<uint16_t> d_exception_counts(n_vecs, data->exceptions.counts);
-
-  AlpColumn<T> alp_data = {
-      d_ffor_array.get(),          d_ffor_bases.get(),      d_bit_widths.get(),
-      d_exponents.get(),           d_factors.get(),         d_exceptions.get(),
-      d_exception_positions.get(), d_exception_counts.get()};
+  AlpColumn<T> gpu_alp_column = copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
   kernels::global::bench::decode_complete_alp_vector<
-      T, UINT_T, 1, 4>
-      <<<n_blocks, n_threads>>>(d_out.get(), alp_data);
+      T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
 
-	if (*out != static_cast<T>(true)) {
-		*out = static_cast<T>(false);
-	}
+  if (*out != static_cast<T>(true)) {
+    *out = static_cast<T>(false);
+  }
+
+  destroy_alp_column(gpu_alp_column);
+}
+
+template <typename T>
+void decode_multiple_alp_vectors(
+    T *__restrict out, const std::vector<alp::AlpCompressionData<T> *> data) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  constexpr int32_t UNPACK_N_VECTORS = 1;
+  constexpr int32_t UNPACK_N_VALUES = 1;
+
+  const auto count = data[0]->size;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+  const auto n_warps_per_block = 2;
+  const auto n_blocks = n_vecs / n_warps_per_block;
+  const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
+  constant_memory::load_alp_constants<T>();
+
+  GPUArray<T> d_out(1);
+  std::vector<AlpColumn<T>> gpu_alp_columns(0);
+  for (auto column : data) {
+    gpu_alp_columns.push_back(copy_alp_column_to_gpu(column));
+  }
+  switch (gpu_alp_columns.size()) {
+  default:
+  case 2:
+    kernels::global::bench::decode_multiple_alp_vectors<
+        T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+        <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_columns[0], gpu_alp_columns[1]);
+    break;
+  case 3:
+    kernels::global::bench::decode_multiple_alp_vectors<
+        T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES><<<n_blocks, n_threads>>>(
+        d_out.get(), gpu_alp_columns[0], gpu_alp_columns[1], gpu_alp_columns[2]);
+    break;
+  case 4:
+    kernels::global::bench::decode_multiple_alp_vectors<
+        T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+        <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_columns[0], gpu_alp_columns[1],
+                                  gpu_alp_columns[2], gpu_alp_columns[3]);
+    break;
+  }
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  d_out.copy_to_host(out);
+
+  if (*out != static_cast<T>(true)) {
+    *out = static_cast<T>(false);
+  }
+
+  for (auto column : gpu_alp_columns) {
+    destroy_alp_column(column);
+  }
 }
 
 template <typename T>
@@ -117,9 +200,9 @@ void decode_complete_alprd_vector(T *__restrict out,
 
   d_out.copy_to_host(out);
 
-	if (*out != static_cast<T>(true)) {
-		*out = static_cast<T>(false);
-	}
+  if (*out != static_cast<T>(true)) {
+    *out = static_cast<T>(false);
+  }
 }
 
 } // namespace bench
@@ -132,10 +215,19 @@ template void alp::gpu::bench::decode_baseline<float>(float *__restrict out,
 template void alp::gpu::bench::decode_baseline<double>(double *__restrict out,
                                                        const double *in,
                                                        const size_t count);
+
 template void alp::gpu::bench::decode_complete_alp_vector<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::bench::decode_complete_alp_vector<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
+
+template void alp::gpu::bench::decode_multiple_alp_vectors<float>(
+    float *__restrict out,
+    const std::vector<alp::AlpCompressionData<float> *> data);
+template void alp::gpu::bench::decode_multiple_alp_vectors<double>(
+    double *__restrict out,
+    const std::vector<alp::AlpCompressionData<double> *> data);
+
 template void alp::gpu::bench::decode_complete_alprd_vector<float>(
     float *__restrict out, const alp::AlpRdCompressionData<float> *data);
 template void alp::gpu::bench::decode_complete_alprd_vector<double>(

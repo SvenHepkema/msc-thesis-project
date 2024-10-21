@@ -84,6 +84,11 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_alp_varying_value_bit_width<T>(count, dataset_name);
        }},
+      {"bench_alp_multiple_columns",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_multiple_columns<T>(count, dataset_name);
+       }},
   };
 };
 

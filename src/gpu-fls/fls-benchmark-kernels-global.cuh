@@ -35,7 +35,15 @@ query_bp_contains_zero(const T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
   T none_zero = 1;
 
+  //out += lane;
+  //auto iterator = BPUnpacker<T, T, UnpackingType::LaneArray, UNPACK_N_VALUES>(
+      //in, lane, value_bit_width);
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+		/*
+    iterator.unpack_next_into(registers);
+    bitunpack_vector<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
+                     UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
+		*/
     bitunpack_vector_new<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
                      UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
 

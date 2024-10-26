@@ -33,6 +33,7 @@ DEFAULT_COLORS = [
     "tab:orange",
     "tab:red",
     "tab:pink",
+    "tab:gray",
 ]
 
 

@@ -115,6 +115,7 @@ __global__ void decode_alp_vector_with_state(T *out, AlpColumn<T> column) {
       Unpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
                UNPACK_N_VALUES>(vector_index, lane, column);
 
+#pragma unroll
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 

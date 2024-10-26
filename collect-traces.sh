@@ -20,4 +20,4 @@ do
 		nvprof --print-gpu-trace ./bin/executable $FUNCTION $BITWIDTH random $COUNT 0 2>&1 | grep void | awk '{print $2}' >> $TMP_FILE
 done
 
-./data-analysis/results-reader.py $TMP_FILE $OUTPUT_FILE -r $REPEAT -v exception-count
+./data-analysis/results-reader.py $TMP_FILE $OUTPUT_FILE -r $REPEAT -v value-bit-width

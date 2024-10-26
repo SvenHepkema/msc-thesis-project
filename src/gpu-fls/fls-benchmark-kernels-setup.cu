@@ -31,7 +31,7 @@ void query_bp_contains_zero(const T *__restrict in, T *__restrict out,
   default:
   case 1:
     kernels::fls::global::bench::query_bp_contains_zero<
-        T, UNPACK_N_VECTORS, 1>
+        T, UNPACK_N_VECTORS, 4>
         <<<n_blocks, n_threads>>>(device_in.get(), device_out.get(),
                                   value_bit_width);
     break;

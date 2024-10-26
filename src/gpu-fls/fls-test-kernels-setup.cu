@@ -22,7 +22,7 @@ void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
   GPUArray<T> device_in(encoded_count, in);
   GPUArray<T> device_out(count);
 
-  kernels::fls::global::test::bitunpack<T, 1, utils::get_values_per_lane<T>()>
+  kernels::fls::global::test::bitunpack<T, 1, 4>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(device_in.get(), device_out.get(),
                                               value_bit_width);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());

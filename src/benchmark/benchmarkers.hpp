@@ -104,8 +104,8 @@ verification::VerificationResult<T> bench_alp_varying_exception_count(
   auto decompress_column_b = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
-		//alp::gpu::bench::decode_alp_vector_with_state<T>(out, in);
+    //alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
+		alp::gpu::bench::decode_alp_vector_with_state<T>(out, in);
   };
 
   auto exception_percentages =

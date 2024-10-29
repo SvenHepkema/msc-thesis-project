@@ -376,7 +376,7 @@ get_ffor_data(const std::string dataset_name, T base) {
 }
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
-verification::DataGenerator<T, int32_t> get_binary_columm() {
+verification::DataGenerator<T, int32_t> get_binary_column() {
   return [](const int32_t value_bit_width, const size_t count) -> T * {
     auto data = generation::generate_magic_column<T>(count);
 
@@ -400,7 +400,7 @@ verification::DataGenerator<T, int32_t> get_binary_columm() {
 
 template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
-verification::DataGenerator<T, int32_t> get_binary_columm() {
+verification::DataGenerator<T, int32_t> get_binary_column() {
   return []([[maybe_unused]] const int32_t value_bit_width,
             const size_t count) -> T * {
     return generation::generate_magic_column<T>(count).release();

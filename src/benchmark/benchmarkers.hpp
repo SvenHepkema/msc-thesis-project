@@ -16,6 +16,46 @@
 namespace benchmarkers {
 
 template <typename T>
+verification::VerificationResult<T> bench_int_baseline(
+    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
+  auto decompress_column_a = [](const T *in, T *out,
+                                const int32_t value_bit_width,
+                                const size_t count) -> void {
+    bool none_magic = 1;
+    T *temp = new T[consts::VALUES_PER_VECTOR];
+    auto n_vecs = utils::get_n_vecs_from_size(count);
+
+    for (size_t i{0}; i < n_vecs; ++i) {
+      for (size_t j{0}; j < consts::VALUES_PER_VECTOR; ++j) {
+				temp[j] = in[i * consts::VALUES_PER_VECTOR + j];
+      }
+
+      for (size_t j{0}; j < consts::VALUES_PER_VECTOR; ++j) {
+        none_magic &= temp[j] != consts::as<T>::MAGIC_NUMBER;
+      }
+    }
+
+    *out = !none_magic;
+    delete[] temp;
+  };
+  auto decompress_column_b = [](const T *in, T *out,
+                                const int32_t value_bit_width,
+                                const size_t count) -> void {
+    fls::gpu::bench::query_baseline_contains_zero<T>(in, out, count
+                                               );
+  };
+
+  auto value_bit_widths =
+      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
+
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(), decompress_column_a,
+          decompress_column_b));
+}
+
+template <typename T>
 verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   auto decompress_column_a = [](const T *in, T *out,
@@ -52,7 +92,7 @@ verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_columm<T>(), decompress_column_a,
+          data::lambda::get_binary_column<T>(), decompress_column_a,
           decompress_column_b));
 }
 
@@ -80,7 +120,7 @@ bench_float_baseline(const size_t a_count,
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_columm<T>(), decompress_column_a,
+          data::lambda::get_binary_column<T>(), decompress_column_a,
           decompress_column_b));
 }
 

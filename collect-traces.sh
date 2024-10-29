@@ -14,6 +14,7 @@ TMP_FILE=/tmp/results.txt
 rm $TMP_FILE
 touch $TMP_FILE
 
+echo ./bin/executable $FUNCTION $BITWIDTH random $COUNT 0 
 for i in $(seq 1 $REPEAT);
 do
 		echo "Starting run" $i

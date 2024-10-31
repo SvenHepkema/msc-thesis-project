@@ -38,6 +38,12 @@ template <class T> struct Fastlanes {
          return benchmarkers::bench_int_baseline<T>(
              count, dataset_name);
        }},
+      {"bench_old_fls_vbw",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_old_fls_contains_zero_value_bitwidths<T>(
+             count, dataset_name);
+       }},
       {"bench_bp_vbw",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {

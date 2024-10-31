@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -16,8 +17,9 @@
 namespace benchmarkers {
 
 template <typename T>
-verification::VerificationResult<T> bench_int_baseline(
-    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
+verification::VerificationResult<T>
+bench_int_baseline(const size_t a_count,
+                   [[maybe_unused]] const std::string dataset_name) {
   auto decompress_column_a = [](const T *in, T *out,
                                 const int32_t value_bit_width,
                                 const size_t count) -> void {
@@ -27,7 +29,7 @@ verification::VerificationResult<T> bench_int_baseline(
 
     for (size_t i{0}; i < n_vecs; ++i) {
       for (size_t j{0}; j < consts::VALUES_PER_VECTOR; ++j) {
-				temp[j] = in[i * consts::VALUES_PER_VECTOR + j];
+        temp[j] = in[i * consts::VALUES_PER_VECTOR + j];
       }
 
       for (size_t j{0}; j < consts::VALUES_PER_VECTOR; ++j) {
@@ -41,8 +43,53 @@ verification::VerificationResult<T> bench_int_baseline(
   auto decompress_column_b = [](const T *in, T *out,
                                 const int32_t value_bit_width,
                                 const size_t count) -> void {
-    fls::gpu::bench::query_baseline_contains_zero<T>(in, out, count
-                                               );
+    fls::gpu::bench::query_baseline_contains_zero<T>(in, out, count);
+  };
+
+  auto value_bit_widths =
+      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
+
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(), decompress_column_a,
+          decompress_column_b));
+}
+
+template <typename T>
+verification::VerificationResult<T> bench_old_fls_contains_zero_value_bitwidths(
+    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
+  auto decompress_column_a = [](const T *in, T *out,
+                                const int32_t value_bit_width,
+                                const size_t count) -> void {
+    bool none_magic = 1;
+    T *temp = new T[1024];
+    auto n_vecs = utils::get_n_vecs_from_size(count);
+    size_t compressed_vector_size = static_cast<size_t>(
+        utils::get_compressed_vector_size<T>(value_bit_width));
+
+    for (size_t i{0}; i < n_vecs; ++i) {
+      fls::unpack(in + i * compressed_vector_size, temp,
+                  static_cast<uint8_t>(value_bit_width));
+
+      for (size_t j{0}; j < 1024; ++j) {
+        none_magic &= temp[j] != consts::as<T>::MAGIC_NUMBER;
+      }
+    }
+
+    *out = !none_magic;
+    delete[] temp;
+  };
+  auto decompress_column_b = [](const T *in, T *out,
+                                const int32_t value_bit_width,
+                                const size_t count) -> void {
+    if (std::is_same<T, uint32_t>::value) {
+      fls::gpu::bench::query_old_fls_contains_zero<uint32_t>(
+          reinterpret_cast<const uint32_t *>(in),
+          reinterpret_cast<uint32_t *>(out), count, value_bit_width);
+    } else {
+      throw std::invalid_argument("Invalid type.");
+    }
   };
 
   auto value_bit_widths =
@@ -144,8 +191,8 @@ verification::VerificationResult<T> bench_alp_varying_exception_count(
   auto decompress_column_b = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
-    //alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
-		alp::gpu::bench::decode_alp_vector_with_state<T>(out, in);
+    // alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
+    alp::gpu::bench::decode_alp_vector_with_state<T>(out, in);
   };
 
   auto exception_percentages =

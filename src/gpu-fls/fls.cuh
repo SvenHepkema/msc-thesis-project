@@ -280,7 +280,7 @@ __device__ void unpack_vector_new(const T_in *__restrict in,
   // UNPACK_N_VALUES>(in); auto line_buffer = FixedBufferReader<T_in,
   // N_LANES>(in);
   //auto line_buffer = BufferReader<T_in, N_LANES>(in);
-  auto line_buffer = NoRefreshBufferReader<T_in, N_LANES>(in);
+  auto line_buffer = BufferReader<T_in, N_LANES>(in);
 
   out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
 

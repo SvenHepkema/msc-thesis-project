@@ -179,11 +179,13 @@ get_equal_decompression_verifier(
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
         column_decompressor_a,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
-        column_decompressor_b) {
-  return [datagenerator, column_decompressor_a, column_decompressor_b](
-             CompressionParamsType compression_parameters,
-             DataParamsType data_parameters, size_t input_size,
-             size_t output_size) -> ExecutionResult<T> {
+        column_decompressor_b,
+    const bool delete_compressed_data = true) {
+  return [datagenerator, column_decompressor_a, column_decompressor_b,
+          delete_compressed_data](CompressionParamsType compression_parameters,
+                                  DataParamsType data_parameters,
+                                  size_t input_size,
+                                  size_t output_size) -> ExecutionResult<T> {
     const CompressedDataType *compressed_data =
         datagenerator(data_parameters, input_size);
 
@@ -197,7 +199,9 @@ get_equal_decompression_verifier(
 
     auto result = compare_data<T>(result_a, result_b, output_size);
 
-    delete compressed_data;
+    if (delete_compressed_data) {
+      delete compressed_data;
+    }
     delete[] result_a;
     delete[] result_b;
 

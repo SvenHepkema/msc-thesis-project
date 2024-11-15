@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <time.h>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "../alp/alp-bindings.hpp"
@@ -306,7 +307,7 @@ generate_alp_datastructure(const size_t count,
     indices[i] = i;
   }
 
-  // Shuffle them and copy the first n to the positions array
+  // Shuffle them and copy to the positions array
   std::random_device random_device;
   auto rng = std::default_random_engine(random_device());
   for (size_t i{0}; i < n_vecs; ++i) {
@@ -314,10 +315,22 @@ generate_alp_datastructure(const size_t count,
     // We copy the entire shuffled indices to the array, as we
     // can then change the exception count without needing to
     // regenerate more exceptions
+    // See modify_alp_exception_count
     std::memcpy(positions, indices.data(),
                 sizeof(uint16_t) * consts::VALUES_PER_VECTOR);
     positions += consts::VALUES_PER_VECTOR;
   }
+
+  return data;
+}
+
+template <typename T>
+alp::AlpCompressionData<T> *
+modify_alp_exception_count(const size_t count, const int32_t exceptions_per_vec,
+                           alp::AlpCompressionData<T> *data) {
+  const size_t n_vecs = utils::get_n_vecs_from_size(count);
+  fill_array_with_constant<uint16_t>(data->exceptions.counts, n_vecs,
+                                     static_cast<uint16_t>(exceptions_per_vec));
 
   return data;
 }
@@ -470,6 +483,19 @@ get_alp_datastructure(const std::string dataset_name) {
     throw std::invalid_argument(
         "This data generator does not accept the specified dataset_name");
   }
+}
+
+template <typename T>
+std::pair<alp::AlpCompressionData<T> *,
+          verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>>
+get_alp_reusable_datastructure(const std::string dataset_name,
+                               const size_t count) {
+  auto data = data::lambda::get_alp_datastructure<T>(dataset_name)(0, count);
+
+  return std::make_pair(data, [data](int32_t exceptions_per_vec, size_t count) {
+    return data::generation::modify_alp_exception_count<T>(
+        count, exceptions_per_vec, data);
+  });
 }
 
 template <typename T>

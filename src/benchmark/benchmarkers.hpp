@@ -198,13 +198,20 @@ verification::VerificationResult<T> bench_alp_varying_exception_count(
   auto exception_percentages =
       verification::generate_integer_range<int32_t>(0, 70);
 
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                                  int32_t, int32_t>(
-      exception_percentages, exception_percentages, a_count, 1,
-      verification::get_equal_decompression_verifier<
-          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_datastructure<T>("exceptions_per_vec"),
-          decompress_column_a, decompress_column_b));
+  auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
+      "exceptions_per_vec", a_count);
+
+  auto result =
+      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                               int32_t, int32_t>(
+          exception_percentages, exception_percentages, a_count, 1,
+          verification::get_equal_decompression_verifier<
+              T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+              generator, decompress_column_a, decompress_column_b, false));
+
+  delete data;
+
+  return result;
 }
 
 template <typename T>

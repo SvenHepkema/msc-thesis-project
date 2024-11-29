@@ -75,7 +75,7 @@ void decode_alp_vector_into_lane(T *__restrict out,
       d_exception_positions.get(), d_exception_counts.get()};
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_with_state<
+  kernels::global::test::decode_alp_vector_into_lane<
       T, UINT_T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), alp_data);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());

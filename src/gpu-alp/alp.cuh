@@ -24,20 +24,6 @@ template <typename T> struct AlpColumn {
   uint16_t *counts;
 };
 
-template <typename T> struct AlpExpandedColumn {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  UINT_T *ffor_array;
-  UINT_T *ffor_bases;
-  uint8_t *bit_widths;
-  uint8_t *exponents;
-  uint8_t *factors;
-
-  T *exceptions;
-  uint16_t *packed_lane_offset_counts;
-  uint16_t *positions;
-  uint16_t *counts;
-};
 
 template <typename T> struct AlpRdColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -326,7 +312,6 @@ struct OldUnpacker {
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-
 struct Unpacker {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
@@ -372,7 +357,7 @@ struct Unpacker {
     auto lambda = [base = this->base, factor = this->factor,
                    frac10 = this->frac10](const T_in value) -> T_out {
       return static_cast<T_out>(static_cast<INT_T>(
-                 (value + base) * static_cast<UINT_T>(factor))) *
+                 (value + base) * factor)) *
              frac10;
     };
 
@@ -404,28 +389,6 @@ struct Unpacker {
   }
 };
 
-/*
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct ExpandedUnpacker {
-  const int16_t vector_index;
-  const uint16_t lane;
-  int32_t start_index = 0;
-  int32_t exception_count_within_lane;
-  //int32_t exception_offset_within_lane;
-
-  __device__ ExpandedUnpacker(const uint16_t vector_index, const uint16_t lane,
-           const AlpExpandedColumn<T_out> column)
-      : vector_index(vector_index), lane(lane) {
-                                // WARNING Does this have to be int32_t?
-                                uint16_t exception_offset_within_lane =
-static_cast<uint32_t>(column.packed_lane_offset_counts & 0x3FF); // First 10
-bits column.exceptions exception_count_within_lane =
-static_cast<int32_t>(column.packed_lane_offset_counts >> 0x1F); // 5 bits
-                        }
-
-};
-*/
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>

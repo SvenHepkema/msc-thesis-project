@@ -12,7 +12,7 @@ namespace bench {
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
-__global__ void decode_baseline(T *out, const T *in) {
+__global__ void decode_baseline(T *out, const T *in, const int n_values_in_lane) {
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
@@ -32,7 +32,7 @@ __global__ void decode_baseline(T *out, const T *in) {
   T registers[N_VALUES];
   bool none_magic = true;
 
-  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (int i = 0; i < n_values_in_lane; i += UNPACK_N_VALUES) {
 #pragma unroll
     for (int j = 0; j < UNPACK_N_VALUES; ++j) {
 #pragma unroll

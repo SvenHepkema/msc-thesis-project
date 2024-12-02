@@ -299,19 +299,26 @@ verification::VerificationResult<T> bench_alp_varying_value_bit_width(
   auto decompress_column_b = [](const alp::AlpCompressionData<T> *in, T *out,
                                 [[maybe_unused]] const int32_t value_bit_width,
                                 [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
+    //alp::gpu::bench::decode_complete_alp_vector<T>(out, in);
+    alp::gpu::bench::decode_alp_vector_with_state<T>(out, in);
   };
 
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 4);
 
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+  auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
+      "value_bit_width", a_count);
+
+  auto result = verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_datastructure<T>("value_bit_width"),
-          decompress_column_a, decompress_column_b));
+          generator,
+          decompress_column_a, decompress_column_b, false));
+
+	delete data;
+	return result;
 }
 
 } // namespace benchmarkers

@@ -64,7 +64,7 @@ void decode_baseline(T *__restrict out, const T *in, const size_t count) {
   const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
 
   kernels::global::bench::decode_baseline<T, T, 1, 1>
-      <<<n_blocks, n_threads>>>(d_out.get(), d_in.get());
+      <<<n_blocks, n_threads>>>(d_out.get(), d_in.get(), utils::get_n_lanes<T>());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);

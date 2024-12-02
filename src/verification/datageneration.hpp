@@ -290,8 +290,10 @@ generate_alp_datastructure(const size_t count,
   }
 
   if (exceptions_per_vec == -1) {
-    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0,
-                                          20);
+    //fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0, 20);
+    fill_array_with_constant<uint16_t>(
+        data->exceptions.counts, n_vecs,
+        0);
   } else {
     fill_array_with_constant<uint16_t>(
         data->exceptions.counts, n_vecs,
@@ -331,6 +333,17 @@ modify_alp_exception_count(const size_t count, const int32_t exceptions_per_vec,
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
   fill_array_with_constant<uint16_t>(data->exceptions.counts, n_vecs,
                                      static_cast<uint16_t>(exceptions_per_vec));
+
+  return data;
+}
+
+template <typename T>
+alp::AlpCompressionData<T> *
+modify_alp_value_bit_width(const size_t count, const int32_t value_bit_width,
+                           alp::AlpCompressionData<T> *data) {
+  const size_t n_vecs = utils::get_n_vecs_from_size(count);
+  fill_array_with_constant<uint8_t>(data->ffor.bit_widths, n_vecs,
+                                     static_cast<uint8_t>(value_bit_width));
 
   return data;
 }
@@ -492,10 +505,22 @@ get_alp_reusable_datastructure(const std::string dataset_name,
                                const size_t count) {
   auto data = data::lambda::get_alp_datastructure<T>(dataset_name)(0, count);
 
-  return std::make_pair(data, [data](int32_t exceptions_per_vec, size_t count) {
-    return data::generation::modify_alp_exception_count<T>(
-        count, exceptions_per_vec, data);
-  });
+  if (dataset_name == "exceptions_per_vec") {
+    return std::make_pair(
+        data, [data](int32_t exceptions_per_vec, size_t count) {
+          return data::generation::modify_alp_exception_count<T>(
+              count, exceptions_per_vec, data);
+        });
+  } else if (dataset_name == "value_bit_width") {
+    return std::make_pair(
+        data, [data](int32_t value_bit_width, size_t count) {
+          return data::generation::modify_alp_value_bit_width<T>(
+              count, value_bit_width, data);
+        });
+  } else {
+    throw std::invalid_argument(
+        "This data generator does not accept the specified dataset_name");
+  }
 }
 
 template <typename T>

@@ -22,6 +22,10 @@ void decode_alp_vector_with_state(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
+void decode_alp_vector_with_extended_state(T *__restrict out,
+                                const alp::AlpCompressionData<T> *data);
+
+template <typename T>
 void decode_multiple_alp_vectors(
     T *__restrict out, const std::vector<alp::AlpCompressionData<T> *> data);
 
@@ -47,6 +51,11 @@ extern template void alp::gpu::bench::decode_complete_alp_vector<double>(
 extern template void alp::gpu::bench::decode_alp_vector_with_state<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 extern template void alp::gpu::bench::decode_alp_vector_with_state<double>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+
+extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<float>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 extern template void alp::gpu::bench::decode_multiple_alp_vectors<float>(

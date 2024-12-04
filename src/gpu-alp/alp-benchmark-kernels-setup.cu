@@ -100,6 +100,38 @@ void decode_alp_vector_with_state(T *__restrict out,
 }
 
 template <typename T>
+void decode_alp_vector_with_extended_state(T *__restrict out,
+                                  const alp::AlpCompressionData<T> *data) {
+  constexpr int32_t UNPACK_N_VECTORS = 1;
+  constexpr int32_t UNPACK_N_VALUES = 1;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  const auto count = data->size;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+  const auto n_warps_per_block = 2;
+  const auto n_blocks = n_vecs / n_warps_per_block;
+  const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
+
+  GPUArray<T> d_out(1);
+  auto gpu_alp_column = transfer::copy_alp_extended_column_to_gpu(data);
+  constant_memory::load_alp_constants<T>();
+
+  kernels::global::bench::decode_alp_vector_with_extended_state<
+      T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  d_out.copy_to_host(out);
+
+  if (*out != static_cast<T>(true)) {
+    *out = static_cast<T>(false);
+  }
+
+	transfer::destroy_alp_column(gpu_alp_column);
+}
+
+
+template <typename T>
 void decode_multiple_alp_vectors(
     T *__restrict out, const std::vector<alp::AlpCompressionData<T> *> data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -218,6 +250,11 @@ template void alp::gpu::bench::decode_complete_alp_vector<double>(
 template void alp::gpu::bench::decode_alp_vector_with_state<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::bench::decode_alp_vector_with_state<double>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<float>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 template void alp::gpu::bench::decode_multiple_alp_vectors<float>(

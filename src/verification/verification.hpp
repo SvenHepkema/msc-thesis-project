@@ -237,7 +237,6 @@ get_compression_and_decompression_verifier(
     delete original_data;
     delete compressed_data;
     delete[] decompressed_data;
-
     return result;
   };
 }

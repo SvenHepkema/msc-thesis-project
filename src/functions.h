@@ -75,6 +75,11 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return verifiers::verify_gpu_alp_with_state<T>(count, dataset_name);
        }},
+      {"gpu_alp_extended_state",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_alp_with_extended_state<T>(count, dataset_name);
+       }},
       {"alprd",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {

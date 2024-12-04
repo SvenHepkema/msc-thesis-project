@@ -21,6 +21,10 @@ void decode_alp_vector_with_state(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
+void decode_alp_vector_with_extended_state(T *__restrict out,
+                                const alp::AlpCompressionData<T> *data);
+
+template <typename T>
 void decode_complete_alprd_vector(T *__restrict out,
                                   const alp::AlpRdCompressionData<T> *data);
 
@@ -41,6 +45,11 @@ extern template void alp::gpu::test::decode_alp_vector_into_lane<double>(
 extern template void alp::gpu::test::decode_alp_vector_with_state<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 extern template void alp::gpu::test::decode_alp_vector_with_state<double>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+
+extern template void alp::gpu::test::decode_alp_vector_with_extended_state<float>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+extern template void alp::gpu::test::decode_alp_vector_with_extended_state<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 extern template void alp::gpu::test::decode_complete_alprd_vector<float>(

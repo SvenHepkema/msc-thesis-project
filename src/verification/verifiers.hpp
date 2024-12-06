@@ -257,8 +257,6 @@ verify_gpu_alp_with_extended_state(const size_t a_count, const std::string datas
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
 
-	value_bit_widths = std::vector<int32_t>{15};
-
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, a_count,

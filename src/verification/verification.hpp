@@ -157,21 +157,14 @@ template <typename T> bool byte_compare(const T a, const T b) {
 template <typename T>
 ExecutionResult<T> compare_data(const T *a, const T *b, const size_t size) {
   auto differences = std::vector<Difference<T>>();
-	size_t counter = 0;
 
   for (size_t i{0}; i < size; ++i) {
     if (!byte_compare(a[i], b[i])) {
       differences.push_back(Difference<T>{i, a[i], b[i]});
-			++counter;
 
-      if (counter > LOG_N_MISTAKES) {
-				counter = 0;
-				i += consts::VALUES_PER_VECTOR - LOG_N_MISTAKES - 1;
-				if (i > 4000) {
-					break;
-				}
+      if (differences.size() > LOG_N_MISTAKES) {
+        break;
       }
-
     }
   }
 

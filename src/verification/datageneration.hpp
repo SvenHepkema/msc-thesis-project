@@ -316,8 +316,8 @@ generate_alp_datastructure(const size_t count,
   }
 
   if (exceptions_per_vec == -1) {
-    //fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0, 20);
-    fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 0);
+    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0, 20);
+    //fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 20);
   } else {
     fill_array_with_constant<uint16_t>(
         data->exceptions.counts, n_vecs,

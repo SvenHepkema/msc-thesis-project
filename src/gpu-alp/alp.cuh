@@ -410,7 +410,7 @@ struct Unpacker {
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct ExtendedUnpackerOld {
+struct ExtendedUnpacker {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
 
@@ -454,7 +454,7 @@ struct ExtendedUnpackerOld {
   }
 
   __device__ __forceinline__
-  ExtendedUnpackerOld(const uint16_t vector_index, const uint16_t lane,
+  ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
                       const AlpExtendedColumn<T_out> column)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
@@ -532,7 +532,7 @@ public:
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct ExtendedUnpacker {
+struct ExtendedUnpackerNew {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
 
@@ -574,7 +574,7 @@ struct ExtendedUnpacker {
   }
 
   __device__ __forceinline__
-  ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
+  ExtendedUnpackerNew(const uint16_t vector_index, const uint16_t lane,
                    const AlpExtendedColumn<T_out> column)
       : lane(lane), value_bit_width(column.bit_widths[vector_index]),
         functor(ALPFunctor<T_out>(column.ffor_bases[vector_index],

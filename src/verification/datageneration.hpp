@@ -227,28 +227,38 @@ void fill_array_with_constant(T *array, const size_t count, const T value) {
   }
 }
 
-template <typename T>
+template <typename T, size_t REPEAT=1>
 void fill_array_with_random_bytes(T *array, const size_t count) {
+	// WARNING Does not check if count % REPEAT == 0
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T *out = reinterpret_cast<UINT_T *>(array);
   auto generator = get_random_number_generator<UINT_T>(
       std::numeric_limits<UINT_T>::min(), std::numeric_limits<UINT_T>::max());
 
-  for (size_t i{0}; i < count; ++i) {
-    out[i] = generator();
+  for (size_t i{0}; i < count; i += REPEAT) {
+    UINT_T value = generator();
+
+    for (size_t r{0}; r < REPEAT; ++r) {
+      out[i + r] = value;
+    }
   }
 }
 
-template <typename T>
+template <typename T, size_t REPEAT=1>
 void fill_array_with_random_data(T *array, const size_t count,
                                  const T min = std::numeric_limits<T>::min(),
                                  const T max = std::numeric_limits<T>::max()) {
+	// WARNING Does not check if count % REPEAT == 0
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T *out = reinterpret_cast<UINT_T *>(array);
   auto generator = get_random_number_generator<UINT_T>(min, max);
 
-  for (size_t i{0}; i < count; ++i) {
-    out[i] = generator();
+  for (size_t i{0}; i < count; i += REPEAT) {
+    UINT_T value = generator();
+
+    for (size_t r{0}; r < REPEAT; ++r) {
+      out[i + r] = value;
+    }
   }
 }
 
@@ -257,6 +267,7 @@ alp::AlpCompressionData<T> *
 generate_alp_datastructure(const size_t count,
                            const int32_t exceptions_per_vec = -1,
                            const int32_t value_bit_width = -1) {
+	constexpr size_t REPEAT = 4;
   using UINT_T = typename utils::same_width_uint<T>::type;
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
@@ -269,19 +280,19 @@ generate_alp_datastructure(const size_t count,
 
   // Note we halve the frac and fact because otherwise you
   // will have integer overflow in the decoding for some combinations
-  fill_array_with_random_data<uint8_t>(data->exponents, n_vecs, 0,
+  fill_array_with_random_data<uint8_t, REPEAT>(data->exponents, n_vecs, 0,
                                        static_cast<uint8_t>(frac_arr_size / 2));
-  fill_array_with_random_data<uint8_t>(data->factors, n_vecs, 0,
+  fill_array_with_random_data<uint8_t, REPEAT>(data->factors, n_vecs, 0,
                                        static_cast<uint8_t>(fact_arr_size / 2));
 
-  fill_array_with_random_bytes(data->ffor.array, count);
-  fill_array_with_random_data<UINT_T>(data->ffor.bases, n_vecs, 2, 20);
+  fill_array_with_random_bytes<UINT_T, REPEAT>(data->ffor.array, count);
+  fill_array_with_random_data<UINT_T, REPEAT>(data->ffor.bases, n_vecs, 2, 20);
 
   // Note we halve the bitwidth because otherwise you will have integer overflow
   // and a high bitwidth is not realistic anyway for alp encoding.
   // It can be parametrized though via the function args if needed.
   if (value_bit_width == -1) {
-    fill_array_with_random_data<uint8_t>(
+    fill_array_with_random_data<uint8_t, REPEAT>(
         data->ffor.bit_widths, n_vecs, 0,
         static_cast<uint8_t>(max_bit_width / 2));
   } else {
@@ -290,8 +301,9 @@ generate_alp_datastructure(const size_t count,
   }
 
   if (exceptions_per_vec == -1) {
-    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0, 20);
-    //fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 20);
+    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0,
+                                          20);
+    // fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 20);
   } else {
     fill_array_with_constant<uint16_t>(
         data->exceptions.counts, n_vecs,
@@ -341,7 +353,7 @@ modify_alp_value_bit_width(const size_t count, const int32_t value_bit_width,
                            alp::AlpCompressionData<T> *data) {
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
   fill_array_with_constant<uint8_t>(data->ffor.bit_widths, n_vecs,
-                                     static_cast<uint8_t>(value_bit_width));
+                                    static_cast<uint8_t>(value_bit_width));
 
   return data;
 }
@@ -510,11 +522,10 @@ get_alp_reusable_datastructure(const std::string dataset_name,
               count, exceptions_per_vec, data);
         });
   } else if (dataset_name == "value_bit_width") {
-    return std::make_pair(
-        data, [data](int32_t value_bit_width, size_t count) {
-          return data::generation::modify_alp_value_bit_width<T>(
-              count, value_bit_width, data);
-        });
+    return std::make_pair(data, [data](int32_t value_bit_width, size_t count) {
+      return data::generation::modify_alp_value_bit_width<T>(
+          count, value_bit_width, data);
+    });
   } else {
     throw std::invalid_argument(
         "This data generator does not accept the specified dataset_name");

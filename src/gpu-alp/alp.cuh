@@ -509,6 +509,29 @@ struct ExtendedUnpackerOld {
   }
 };
 
+template <typename T>
+struct ALPFunctor {
+private:
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  UINT_T base;
+  INT_T factor;
+  T frac10;
+
+public:
+  __device__ __forceinline__ ALPFunctor(const UINT_T base,
+                                        const uint8_t factor_index,
+                                        const uint8_t frac10_index)
+      : base(base),
+        factor(constant_memory::get_fact_arr<INT_T>()[factor_index]),
+        frac10(constant_memory::get_frac_arr<T>()[frac10_index]) {}
+
+  T __device__ __forceinline__ operator()(UINT_T value) const {
+    return static_cast<T>(static_cast<INT_T>((value + base) * factor)) * frac10;
+  }
+};
+
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
@@ -519,10 +542,8 @@ struct ExtendedUnpacker {
   int32_t start_index = 0;
 
   T_in *in;
-  UINT_T base;
   uint8_t value_bit_width;
-  INT_T factor;
-  T_out frac10;
+  const ALPFunctor<T_out> functor;
 
   uint16_t vec_exceptions_count_in_lane;
   uint16_t *vec_exceptions_positions;
@@ -544,28 +565,9 @@ struct ExtendedUnpacker {
     }
   }
 
-  void __device__ __forceinline__ read_next_exception_branchless() {
-    next_exception_pos = vec_exceptions_positions[exception_index];
-    next_exception = vec_exceptions[exception_index];
-
-    bool has_unread_exceptions =
-        exception_index + 1 < vec_exceptions_count_in_lane;
-    exception_index += has_unread_exceptions;
-    next_exception_pos -= 1025 * (!has_unread_exceptions);
-  }
-
-  __device__ __forceinline__
-  ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
-                      const AlpExtendedColumn<T_out> column)
-      : lane(lane) {
-    in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-    value_bit_width = column.bit_widths[vector_index];
-    base = column.ffor_bases[vector_index];
-    factor =
-        constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    frac10 =
-        constant_memory::get_frac_arr<T_out>()[column.exponents[vector_index]];
-
+  void __device__ __forceinline__
+  initialize_exceptions(const uint16_t vector_index, const uint16_t lane,
+                        const AlpExtendedColumn<T_out> column) {
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
     auto offset_count = column.offsets_counts[vector_index * N_LANES + lane];
     vec_exceptions_count_in_lane = offset_count >> 10;
@@ -579,21 +581,26 @@ struct ExtendedUnpacker {
     read_next_exception();
   }
 
+  __device__ __forceinline__
+  ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
+                   const AlpExtendedColumn<T_out> column)
+      : lane(lane),
+        functor(column.ffor_bases[vector_index], column.factors[vector_index],
+                column.exponents[vector_index]) {
+    in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
+    value_bit_width = column.bit_widths[vector_index];
+    initialize_exceptions(vector_index, lane, column);
+  }
+
   __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
     static_assert((std::is_same<T_in, uint32_t>::value &&
                    std::is_same<T_out, float>::value) ||
                       (std::is_same<T_in, uint64_t>::value &&
                        std::is_same<T_out, double>::value),
                   "Wrong type arguments");
-    auto lambda = [base = this->base, factor = this->factor,
-                   frac10 = this->frac10](const T_in value) -> T_out {
-      return static_cast<T_out>(static_cast<INT_T>((value + base) * factor)) *
-             frac10;
-    };
-
     unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
                   UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
-                                   lambda);
+                                   functor);
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
 
     // Patch exceptions
@@ -609,8 +616,6 @@ struct ExtendedUnpacker {
     start_index += UNPACK_N_VALUES;
   }
 };
-
-
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>

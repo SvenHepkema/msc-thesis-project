@@ -531,30 +531,39 @@ public:
   }
 };
 
-template <typename T> struct SimpleALPExceptionPatcher {
+template <typename T, unsigned UNPACK_N_VECTORS>
+struct SimpleALPExceptionPatcher {
 private:
-  uint16_t count;
-  uint16_t *positions;
-  T *exceptions;
+  uint16_t count[UNPACK_N_VECTORS];
+  uint16_t *positions[UNPACK_N_VECTORS];
+  T *exceptions[UNPACK_N_VECTORS];
 
 public:
-  __device__ __forceinline__
-  SimpleALPExceptionPatcher(const uint16_t offset_count,
-                      uint16_t *vec_exceptions_positions, T *vec_exceptions)
-      : count(offset_count >> 10),
-        positions(vec_exceptions_positions + (offset_count & 0x3FF)),
-        exceptions(vec_exceptions + (offset_count & 0x3FF))
+  __device__ __forceinline__ SimpleALPExceptionPatcher(
+      const uint16_t *offset_counts, uint16_t *vec_exceptions_positions,
+      T *vec_exceptions) {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      auto offset_count = offset_counts[v * utils::get_n_lanes<T>()];
+      count[v] = offset_count >> 10;
 
-  {}
+			auto v_offset = v * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+      positions[v] = vec_exceptions_positions + v_offset;
+      exceptions[v] = vec_exceptions + v_offset;
+    }
+  }
 
   void __device__ __forceinline__ patch_if_needed(T *out,
                                                   const int32_t position) {
-    if (count > 0) {
-      if (position == *positions) {
-        *out = *exceptions;
-        ++positions;
-        ++exceptions;
-        --count;
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      if (count[v] > 0) {
+        if (position == *(positions[v])) {
+          out[v] = *(exceptions[v]);
+          ++(positions[v]);
+          ++(exceptions[v]);
+          --(count[v]);
+        }
       }
     }
   }
@@ -565,28 +574,28 @@ private:
   uint16_t count;
   uint16_t *positions;
   T *exceptions;
-	uint16_t next_position;
+  uint16_t next_position;
 
 public:
-  __device__ __forceinline__
-  PrefetchPositionALPExceptionPatcher(const uint16_t offset_count,
-                      uint16_t *vec_exceptions_positions, T *vec_exceptions)
+  __device__ __forceinline__ PrefetchPositionALPExceptionPatcher(
+      const uint16_t offset_count, uint16_t *vec_exceptions_positions,
+      T *vec_exceptions)
       : count(offset_count >> 10),
         positions(vec_exceptions_positions + (offset_count & 0x3FF)),
         exceptions(vec_exceptions + (offset_count & 0x3FF))
 
   {
-		next_position = *positions;
-	}
+    next_position = *positions;
+  }
 
   void __device__ __forceinline__ patch_if_needed(T *out,
                                                   const int32_t position) {
     if (count > 0 && position == next_position) {
-        *out = *exceptions;
-        ++positions;
-        ++exceptions;
-        --count;
-				next_position = *positions;
+      *out = *exceptions;
+      ++positions;
+      ++exceptions;
+      --count;
+      next_position = *positions;
     }
   }
 };
@@ -645,7 +654,7 @@ struct ExtendedUnpacker {
   uint8_t value_bit_width;
 
   const ALPFunctor<T_out> alp_functor;
-  PrefetchAllALPExceptionPatcher<T_out> patcher;
+  SimpleALPExceptionPatcher<T_out, UNPACK_N_VECTORS> patcher;
 
   __device__ __forceinline__
   ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
@@ -656,8 +665,8 @@ struct ExtendedUnpacker {
                     column.factors[vector_index],
                     column.exponents[vector_index]),
         patcher(
-            column.offsets_counts[vector_index * utils::get_n_lanes<T_out>() +
-                                  lane],
+            column.offsets_counts + (vector_index * utils::get_n_lanes<T_out>() +
+                                  lane),
             column.positions + consts::VALUES_PER_VECTOR * vector_index,
             column.exceptions + consts::VALUES_PER_VECTOR * vector_index)
 
@@ -671,8 +680,8 @@ struct ExtendedUnpacker {
 
   __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
     unpack_vector_alp<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
-                                   alp_functor);
+                      UNPACK_N_VALUES>(in, out, lane, value_bit_width,
+                                       start_index, alp_functor);
 
     patcher.patch_if_needed(out,
                             start_index * utils::get_n_lanes<T_out>() + lane);

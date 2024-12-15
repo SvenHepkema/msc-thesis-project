@@ -537,6 +537,35 @@ private:
   uint16_t *positions;
   T *exceptions;
 
+public:
+  __device__ __forceinline__
+  ALPExceptionPatcher(const uint16_t offset_count,
+                      uint16_t *vec_exceptions_positions, T *vec_exceptions)
+      : count(offset_count >> 10),
+        positions(vec_exceptions_positions + (offset_count & 0x3FF)),
+        exceptions(vec_exceptions + (offset_count & 0x3FF))
+
+  {}
+
+  void __device__ __forceinline__ patch_if_needed(T *out,
+                                                  const int32_t position) {
+    if (count > 0) {
+      if (position == *positions) {
+        *out = *exceptions;
+        ++positions;
+        ++exceptions;
+        --count;
+      }
+    }
+  }
+};
+
+template <typename T> struct PrefetchALPExceptionPatcher {
+private:
+  uint16_t count;
+  uint16_t *positions;
+  T *exceptions;
+
   uint16_t index = 0;
   uint16_t next_position;
   T next_exception;
@@ -554,9 +583,9 @@ public:
     }
   }
 
-  __device__ __forceinline__
-  ALPExceptionPatcher(const uint16_t offset_count,
-                      uint16_t *vec_exceptions_positions, T *vec_exceptions)
+  __device__ __forceinline__ PrefetchALPExceptionPatcher(
+      const uint16_t offset_count, uint16_t *vec_exceptions_positions,
+      T *vec_exceptions)
       : count(offset_count >> 10),
         positions(vec_exceptions_positions + (offset_count & 0x3FF)),
         exceptions(vec_exceptions + (offset_count & 0x3FF))
@@ -577,7 +606,8 @@ public:
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
-  const uint16_t lane; // INFO Can be removed if unpack_vector function is adjusted
+  const uint16_t
+      lane; // INFO Can be removed if unpack_vector function is adjusted
   int32_t start_index = 0;
 
   T_in *in;

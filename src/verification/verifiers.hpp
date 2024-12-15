@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "datageneration.hpp"
 #include "verification.hpp"
@@ -287,6 +288,40 @@ verify_gpu_alp_with_extended_state(const size_t a_count, const std::string datas
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alp_data<T>(dataset_name), compress_column,
           decompress_column));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+verify_gpu_alp_with_extended_state_multivec(const size_t a_count, const std::string dataset_name) {
+  auto decompress_column_cpu = [](const alp::AlpCompressionData<T> *in, T *out,
+                              [[maybe_unused]] const int32_t value_bit_width,
+                              [[maybe_unused]] const size_t count) -> void {
+    alp::int_decode<T>(out, in);
+  };
+
+  auto decompress_column_gpu = [](const alp::AlpCompressionData<T> *in, T *out,
+                              [[maybe_unused]] const int32_t value_bit_width,
+                              [[maybe_unused]] const size_t count) -> void {
+    alp::gpu::test::decode_alp_vector_with_extended_state<T, 4>(out, in);
+  };
+
+  int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(
+      0, max_value_bitwidth_to_test);
+
+  auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
+      "value_bit_width", a_count);
+
+  auto result = verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                                  int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, a_count,
+      verification::get_equal_decompression_verifier<
+          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+          generator, decompress_column_cpu,
+          decompress_column_gpu, false));
+
+	delete data;
+	return result;
 }
 
 template <typename T>

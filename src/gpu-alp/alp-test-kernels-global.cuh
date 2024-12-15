@@ -1,6 +1,7 @@
 #include "alp.cuh"
 
 #include "../common/utils.hpp"
+#include <cstdint>
 
 #ifndef ALP_TEST_KERNELS_GLOBAL_CUH
 #define ALP_TEST_KERNELS_GLOBAL_CUH
@@ -94,8 +95,8 @@ __global__ void decode_alp_vector_with_state(T *out, AlpColumn<T> data) {
   }
 }
 
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
+
+template <typename T, typename UINT_T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<T> data) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -104,12 +105,13 @@ __global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<
 
   const int16_t lane = threadIdx.x % N_LANES;
   const int32_t block_index = blockIdx.x;
-  constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-  const int16_t vector_index =
-      block_index * n_vectors_per_block + (threadIdx.x / N_LANES);
+	constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
+  const int16_t vector_index = 
+		block_index * n_vectors_per_block + (threadIdx.x / N_LANES);
+
+  out += vector_index * consts::VALUES_PER_VECTOR;
 
   T registers[N_VALUES];
-  out += vector_index * consts::VALUES_PER_VECTOR;
 
   auto iterator =
       ExtendedUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
@@ -118,11 +120,12 @@ __global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 
-    for (int i = 0; i < UNPACK_N_VALUES; i++) {
-      out[lane + i * N_LANES] = registers[i];
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+        out[lane + (i + w) * N_LANES + v * consts::VALUES_PER_VECTOR] =
+            registers[w + v * UNPACK_N_VALUES];
+      }
     }
-
-    out += UNPACK_N_VALUES * N_LANES;
   }
 }
 

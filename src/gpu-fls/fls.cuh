@@ -342,8 +342,8 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
   T_in line_buffer[UNPACK_N_VECTORS];
   T_in buffer_offset_mask;
 
-  int32_t encoded_vector_offset =
-      utils::get_compressed_vector_size<T_in>(value_bit_width);
+  int32_t encoded_vector_offset = consts::VALUES_PER_VECTOR;
+      // utils::get_compressed_vector_size<T_in>(value_bit_width);
 
   in += lane;
 

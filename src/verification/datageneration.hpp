@@ -245,6 +245,21 @@ void fill_array_with_random_bytes(T *array, const size_t count) {
 }
 
 template <typename T, size_t REPEAT=1>
+void fill_array_with_sequence(T *array, const size_t count, T start) {
+	// WARNING Does not check if count % REPEAT == 0
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  UINT_T *out = reinterpret_cast<UINT_T *>(array);
+
+  for (size_t i{0}; i < count; i += REPEAT) {
+    for (size_t r{0}; r < REPEAT; ++r) {
+      out[i + r] = start;
+    }
+
+		++start;
+  }
+}
+
+template <typename T, size_t REPEAT=1>
 void fill_array_with_random_data(T *array, const size_t count,
                                  const T min = std::numeric_limits<T>::min(),
                                  const T max = std::numeric_limits<T>::max()) {
@@ -285,7 +300,7 @@ generate_alp_datastructure(const size_t count,
   fill_array_with_random_data<uint8_t, REPEAT>(data->factors, n_vecs, 0,
                                        static_cast<uint8_t>(fact_arr_size / 2));
 
-  fill_array_with_random_bytes<UINT_T, REPEAT>(data->ffor.array, count);
+  fill_array_with_random_bytes<UINT_T>(data->ffor.array, count);
   fill_array_with_random_data<UINT_T, REPEAT>(data->ffor.bases, n_vecs, 2, 20);
 
   // Note we halve the bitwidth because otherwise you will have integer overflow
@@ -301,9 +316,8 @@ generate_alp_datastructure(const size_t count,
   }
 
   if (exceptions_per_vec == -1) {
-    fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0,
-                                          20);
-    // fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 20);
+    //fill_array_with_random_data<uint16_t>(data->exceptions.counts, n_vecs, 0, 20);
+    fill_array_with_constant<uint16_t>( data->exceptions.counts, n_vecs, 0);
   } else {
     fill_array_with_constant<uint16_t>(
         data->exceptions.counts, n_vecs,

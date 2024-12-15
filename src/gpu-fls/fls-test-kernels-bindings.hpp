@@ -8,7 +8,7 @@ namespace fls {
 namespace gpu {
 namespace test {
 
-template <typename T>
+template <typename T, unsigned UNPACK_N_VECTORS=1>
 void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
                const int32_t value_bit_width);
 
@@ -21,16 +21,30 @@ void unffor(const T *__restrict in, T *__restrict out, const size_t count,
 } // namespace fls
 
 extern template void
-fls::gpu::test::bitunpack<uint8_t>(const uint8_t *__restrict in,
+fls::gpu::test::bitunpack<uint8_t, 1>(const uint8_t *__restrict in,
                                    uint8_t *__restrict out, const size_t count,
                                    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint16_t>(
+extern template void fls::gpu::test::bitunpack<uint16_t, 1>(
     const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint32_t>(
+extern template void fls::gpu::test::bitunpack<uint32_t, 1>(
     const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint64_t>(
+extern template void fls::gpu::test::bitunpack<uint64_t, 1>(
+    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+
+extern template void
+fls::gpu::test::bitunpack<uint8_t, 4>(const uint8_t *__restrict in,
+                                   uint8_t *__restrict out, const size_t count,
+                                   const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint16_t, 4>(
+    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint32_t, 4>(
+    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint64_t, 4>(
     const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 

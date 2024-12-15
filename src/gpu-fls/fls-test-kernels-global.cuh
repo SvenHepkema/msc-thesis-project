@@ -29,10 +29,19 @@ __global__ void bitunpack(const T *__restrict in, T *__restrict out,
   out += (block_index * n_vectors_per_block + vector_index) *
          consts::VALUES_PER_VECTOR;
 
+  constexpr auto N_VALUES = UNPACK_N_VECTORS * UNPACK_N_VALUES;
+  T registers[N_VALUES];
+
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    bitunpack_vector_new<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                         UNPACK_N_VALUES>(in, out, lane, value_bit_width, i);
-    out += UNPACK_N_VALUES * N_LANES;
+    bitunpack_vector<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
+                     UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
+
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+        out[lane + (i + w) * N_LANES + v * consts::VALUES_PER_VECTOR] =
+            registers[w + v * UNPACK_N_VALUES];
+      }
+    }
   }
 }
 

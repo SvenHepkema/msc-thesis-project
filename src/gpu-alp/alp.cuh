@@ -531,7 +531,7 @@ public:
   }
 };
 
-template <typename T> struct ALPExceptionPatcher {
+template <typename T> struct SimpleALPExceptionPatcher {
 private:
   uint16_t count;
   uint16_t *positions;
@@ -539,7 +539,7 @@ private:
 
 public:
   __device__ __forceinline__
-  ALPExceptionPatcher(const uint16_t offset_count,
+  SimpleALPExceptionPatcher(const uint16_t offset_count,
                       uint16_t *vec_exceptions_positions, T *vec_exceptions)
       : count(offset_count >> 10),
         positions(vec_exceptions_positions + (offset_count & 0x3FF)),
@@ -560,7 +560,38 @@ public:
   }
 };
 
-template <typename T> struct PrefetchALPExceptionPatcher {
+template <typename T> struct PrefetchPositionALPExceptionPatcher {
+private:
+  uint16_t count;
+  uint16_t *positions;
+  T *exceptions;
+	uint16_t next_position;
+
+public:
+  __device__ __forceinline__
+  PrefetchPositionALPExceptionPatcher(const uint16_t offset_count,
+                      uint16_t *vec_exceptions_positions, T *vec_exceptions)
+      : count(offset_count >> 10),
+        positions(vec_exceptions_positions + (offset_count & 0x3FF)),
+        exceptions(vec_exceptions + (offset_count & 0x3FF))
+
+  {
+		next_position = *positions;
+	}
+
+  void __device__ __forceinline__ patch_if_needed(T *out,
+                                                  const int32_t position) {
+    if (count > 0 && position == next_position) {
+        *out = *exceptions;
+        ++positions;
+        ++exceptions;
+        --count;
+				next_position = *positions;
+    }
+  }
+};
+
+template <typename T> struct PrefetchAllALPExceptionPatcher {
 private:
   uint16_t count;
   uint16_t *positions;
@@ -583,7 +614,7 @@ public:
     }
   }
 
-  __device__ __forceinline__ PrefetchALPExceptionPatcher(
+  __device__ __forceinline__ PrefetchAllALPExceptionPatcher(
       const uint16_t offset_count, uint16_t *vec_exceptions_positions,
       T *vec_exceptions)
       : count(offset_count >> 10),
@@ -614,7 +645,7 @@ struct ExtendedUnpacker {
   uint8_t value_bit_width;
 
   const ALPFunctor<T_out> alp_functor;
-  ALPExceptionPatcher<T_out> patcher;
+  PrefetchAllALPExceptionPatcher<T_out> patcher;
 
   __device__ __forceinline__
   ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,

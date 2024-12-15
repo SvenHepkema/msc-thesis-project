@@ -322,6 +322,7 @@ __device__ void unpack_vector_new(const T_in *__restrict in,
     out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
   }
 }
+
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename lambda_T>
@@ -342,8 +343,95 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
   T_in line_buffer[UNPACK_N_VECTORS];
   T_in buffer_offset_mask;
 
+	// WARNING This causes quite some latency, test replacing it with a
+	// constant memory table lookup
+	// INFO Constant memory table lookup might be applicable in more places 
+	// in this function.
+  int32_t encoded_vector_offset = 
+		utils::get_compressed_vector_size<T_in>(value_bit_width);
+
+  in += lane;
+
+#pragma unroll
+  for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+    line_buffer[v] = *(in + n_input_line * N_LANES + v * encoded_vector_offset);
+  }
+  out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
+  n_input_line++;
+
+  T_in value[UNPACK_N_VECTORS];
+
+#pragma unroll
+  for (int i = 0; i < UNPACK_N_VALUES; ++i) {
+    bool line_buffer_is_empty = buffer_offset == LANE_BIT_WIDTH;
+    if (line_buffer_is_empty) {
+#pragma unroll
+      for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+        line_buffer[v] =
+            *(in + n_input_line * N_LANES + v * encoded_vector_offset);
+      }
+      ++n_input_line;
+      buffer_offset -= LANE_BIT_WIDTH;
+    }
+
+#pragma unroll
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+      value[v] =
+          (line_buffer[v] & (value_mask << buffer_offset)) >> buffer_offset;
+    }
+    buffer_offset += value_bit_width;
+
+    bool value_continues_on_next_line = buffer_offset > LANE_BIT_WIDTH;
+    if (value_continues_on_next_line) {
+#pragma unroll
+      for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+        line_buffer[v] =
+            *(in + n_input_line * N_LANES + v * encoded_vector_offset);
+      }
+      ++n_input_line;
+      buffer_offset -= LANE_BIT_WIDTH;
+
+      buffer_offset_mask =
+          (T_in{1} << static_cast<T_in>(buffer_offset)) - T_in{1};
+#pragma unroll
+      for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+        value[v] |= (line_buffer[v] & buffer_offset_mask)
+                    << (value_bit_width - buffer_offset);
+      }
+    }
+
+#pragma unroll
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+      *(out + v * UNPACK_N_VALUES) = lambda(value[v]);
+    }
+    out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
+  }
+}
+
+template <typename T_in, typename T_out, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename lambda_T>
+__device__ void unpack_vector_alp(const T_in *__restrict in, T_out *__restrict out,
+                              const uint16_t lane,
+                              const uint16_t value_bit_width,
+                              const uint16_t start_index, lambda_T lambda) {
+  static_assert(std::is_unsigned<T_in>::value,
+                "Packing function only supports unsigned types. Cast signed "
+                "arrays to unsigned equivalent.");
+  constexpr uint8_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T_in>();
+  constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
+  uint16_t preceding_bits = (start_index * value_bit_width);
+  uint16_t buffer_offset = preceding_bits % LANE_BIT_WIDTH;
+  uint16_t n_input_line = preceding_bits / LANE_BIT_WIDTH;
+  T_in value_mask = utils::set_first_n_bits<T_in>(value_bit_width);
+
+  T_in line_buffer[UNPACK_N_VECTORS];
+  T_in buffer_offset_mask;
+
+	// WARNING TODO Fix this with proper indexing into an offset array,
+	// and then copying the approach from normal unpack with 
+	// utils::get_compressed_vector_offset(vbw of UNPACK_N_VECTORS)
   int32_t encoded_vector_offset = consts::VALUES_PER_VECTOR;
-      // utils::get_compressed_vector_size<T_in>(value_bit_width);
 
   in += lane;
 

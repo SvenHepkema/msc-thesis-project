@@ -670,7 +670,7 @@ struct ExtendedUnpacker {
   }
 
   __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
-    unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
+    unpack_vector_alp<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
                   UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
                                    alp_functor);
 

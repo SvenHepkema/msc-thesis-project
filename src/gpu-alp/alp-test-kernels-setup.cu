@@ -166,6 +166,10 @@ template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 1>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
+template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 2>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 2>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
 template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 4>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 4>(

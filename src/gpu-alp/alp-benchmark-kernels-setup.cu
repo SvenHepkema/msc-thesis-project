@@ -99,17 +99,16 @@ void decode_alp_vector_with_state(T *__restrict out,
 	transfer::destroy_alp_column(gpu_alp_column);
 }
 
-template <typename T>
+template <typename T, unsigned UNPACK_N_VECTORS = 1>
 void decode_alp_vector_with_extended_state(T *__restrict out,
                                   const alp::AlpCompressionData<T> *data) {
-  constexpr int32_t UNPACK_N_VECTORS = 1;
   constexpr int32_t UNPACK_N_VALUES = 1;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_warps_per_block = 2;
-  const auto n_blocks = n_vecs / n_warps_per_block;
+  const auto n_blocks = n_vecs / (n_warps_per_block * UNPACK_N_VECTORS);
   const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
 
   GPUArray<T> d_out(1);
@@ -252,9 +251,17 @@ template void alp::gpu::bench::decode_alp_vector_with_state<float>(
 template void alp::gpu::bench::decode_alp_vector_with_state<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-template void alp::gpu::bench::decode_alp_vector_with_extended_state<float>(
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::bench::decode_alp_vector_with_extended_state<double>(
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 1>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 2>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 2>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 4>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 4>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 template void alp::gpu::bench::decode_multiple_alp_vectors<float>(

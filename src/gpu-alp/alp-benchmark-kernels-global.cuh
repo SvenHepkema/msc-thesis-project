@@ -161,7 +161,7 @@ __global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
-    }
+		}
   }
 
   if (!none_magic) {

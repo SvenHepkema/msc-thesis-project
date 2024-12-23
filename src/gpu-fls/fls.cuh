@@ -615,7 +615,7 @@ struct BPFunctor {
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename OutputProcessor>
 struct BitUnpacker {
-  PrefetchLoader<T_in> loader;
+  SimpleLoader<T_in> loader;
   Masker<T_in> masker;
   const OutputProcessor processor;
 

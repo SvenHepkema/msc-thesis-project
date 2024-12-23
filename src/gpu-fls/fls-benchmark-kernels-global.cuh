@@ -140,6 +140,48 @@ query_bp_contains_zero(const T *__restrict in, T *__restrict out,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void
+query_bp_stateful_contains_zero(const T *__restrict in, T *__restrict out,
+                       int32_t value_bit_width) {
+  const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
+  constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
+  constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
+
+  const int16_t lane = threadIdx.x % N_LANES;
+  const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
+  const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
+  const int32_t block_index = blockIdx.x;
+
+  constexpr int32_t vectors_per_warp =  1 * UNPACK_N_VECTORS;
+  const int32_t vectors_per_block =  warps_per_block * vectors_per_warp;
+  const int32_t vector_index = vectors_per_block * block_index + warp_index * vectors_per_warp;
+
+  in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
+
+
+  T registers[N_VALUES];
+  T none_zero = 1;
+
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  BitUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+              BPFunctor<UINT_T, T>>
+      iterator(in , lane, value_bit_width, BPFunctor<UINT_T, T>());
+  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+    iterator.unpack_into(registers);
+
+#pragma unroll
+    for (int j = 0; j < N_VALUES; ++j) {
+      none_zero *= registers[j] != consts::as<T>::MAGIC_NUMBER;
+    }
+  }
+
+	if (!none_zero) {
+		*out = 1;
+	}
+}
+
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
+__global__ void
 query_ffor_contains_zero(const T *__restrict in, T *__restrict out,
                        int32_t value_bit_width, const T *__restrict base_p) {
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;

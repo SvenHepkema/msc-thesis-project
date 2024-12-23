@@ -540,7 +540,9 @@ template <typename T> struct SimpleLoader {
   T line_buffer;
   const T *in;
 
-  __device__ __forceinline__ SimpleLoader(const T *in) : in(in){};
+  __device__ __forceinline__ SimpleLoader(const T *in) : in(in){
+		next_line();
+	};
 
   __device__ __forceinline__ T get() { return line_buffer; }
 
@@ -549,6 +551,28 @@ template <typename T> struct SimpleLoader {
     in += utils::get_n_lanes<T>();
   }
 };
+
+template <typename T> struct PrefetchLoader {
+  T line_buffer;
+  T prefetch_buffer;
+  const T *in;
+
+  __device__ __forceinline__ PrefetchLoader(const T *a_in) : in(a_in){
+    line_buffer = *in;
+    in += utils::get_n_lanes<T>();
+    prefetch_buffer = *in;
+    in += utils::get_n_lanes<T>();
+	};
+
+  __device__ __forceinline__ T get() { return line_buffer; }
+
+  __device__ __forceinline__ void next_line() {
+    line_buffer = prefetch_buffer;
+    prefetch_buffer = *in;
+    in += utils::get_n_lanes<T>();
+  }
+};
+
 
 template <typename T> struct Masker {
   const uint16_t value_bit_width;
@@ -591,7 +615,7 @@ struct BPFunctor {
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename OutputProcessor>
 struct BitUnpacker {
-  SimpleLoader<T_in> loader;
+  PrefetchLoader<T_in> loader;
   Masker<T_in> masker;
   const OutputProcessor processor;
 
@@ -599,9 +623,7 @@ struct BitUnpacker {
                                          const uint16_t lane,
                                          const uint16_t value_bit_width,
                                          OutputProcessor processor)
-      : loader(in + lane), masker(value_bit_width), processor(processor) {
-    loader.next_line();
-  }
+      : loader(in + lane), masker(value_bit_width), processor(processor) { }
 
   __device__ __forceinline__ void unpack_into(T_out *__restrict out) {
     T_in value;

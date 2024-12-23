@@ -536,4 +536,94 @@ undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
       in, out, lane, value_bit_width, start_index, lambda);
 }
 
+template <typename T> struct SimpleLoader {
+  T line_buffer;
+  const T *in;
+
+  __device__ __forceinline__ SimpleLoader(const T *in) : in(in){};
+
+  __device__ __forceinline__ T get() { return line_buffer; }
+
+  __device__ __forceinline__ void next_line() {
+    line_buffer = *in;
+    in += utils::get_n_lanes<T>();
+  }
+};
+
+template <typename T> struct Masker {
+  const uint16_t value_bit_width;
+  const T value_mask;
+  uint16_t buffer_offset = 0;
+
+  __device__ __forceinline__ Masker(const uint16_t value_bit_width)
+      : value_bit_width(value_bit_width),
+        value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
+
+  __device__ __forceinline__ T mask_and_increment(T value) {
+    value = (value & (value_mask << buffer_offset)) >> buffer_offset;
+    buffer_offset += value_bit_width;
+		return value;
+  };
+
+  __device__ __forceinline__ void next_line() {
+    buffer_offset -= utils::get_lane_bitwidth<T>();
+  }
+  __device__ __forceinline__ bool is_buffer_empty() {
+    return buffer_offset == utils::get_lane_bitwidth<T>();
+  };
+
+  __device__ __forceinline__ bool does_value_continue_on_next_line() {
+    return buffer_offset > utils::get_lane_bitwidth<T>();
+  }
+
+  __device__ __forceinline__ T mask_remaining_value(T value) {
+    T buffer_offset_mask = (T{1} << static_cast<T>(buffer_offset)) - T{1};
+    return (value & buffer_offset_mask) << (value_bit_width - buffer_offset);
+  }
+};
+
+template<typename T_in, typename T_out>
+struct BPFunctor {
+	__device__ __forceinline__ BPFunctor() {};
+	__device__ __forceinline__ T_out operator()(const T_in value) const { return value; }
+};
+
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES, typename OutputProcessor>
+struct BitUnpacker {
+  SimpleLoader<T_in> loader;
+  Masker<T_in> masker;
+  const OutputProcessor processor;
+
+  __device__ __forceinline__ BitUnpacker(const T_in *__restrict in,
+                                         const uint16_t lane,
+                                         const uint16_t value_bit_width,
+                                         OutputProcessor processor)
+      : loader(in + lane), masker(value_bit_width), processor(processor) {
+    loader.next_line();
+  }
+
+  __device__ __forceinline__ void unpack_into(T_out *__restrict out) {
+    T_in value;
+
+#pragma unroll
+    for (int i = 0; i < UNPACK_N_VALUES; ++i) {
+      if (masker.is_buffer_empty()) {
+        loader.next_line();
+        masker.next_line();
+      }
+
+      value = masker.mask_and_increment(loader.get());
+
+      if (masker.does_value_continue_on_next_line()) {
+        loader.next_line();
+        masker.next_line();
+        value |= masker.mask_remaining_value(loader.get());
+      }
+
+      *(out + i) = processor(value);
+    }
+  }
+};
+
 #endif // FLS_CUH

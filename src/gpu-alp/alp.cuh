@@ -537,24 +537,25 @@ private:
   uint16_t count[UNPACK_N_VECTORS];
   uint16_t *positions[UNPACK_N_VECTORS];
   T *exceptions[UNPACK_N_VECTORS];
+  uint16_t position;
 
 public:
   __device__ __forceinline__ SimpleALPExceptionPatcher(
       const uint16_t *offset_counts, uint16_t *vec_exceptions_positions,
-      T *vec_exceptions) {
+      T *vec_exceptions, const uint16_t lane)
+      : position(lane) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       auto offset_count = offset_counts[v * utils::get_n_lanes<T>()];
       count[v] = offset_count >> 10;
 
-			auto v_offset = v * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+      auto v_offset = v * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
       positions[v] = vec_exceptions_positions + v_offset;
       exceptions[v] = vec_exceptions + v_offset;
     }
   }
 
-  void __device__ __forceinline__ patch_if_needed(T *out,
-                                                  const int32_t position) {
+  void __device__ __forceinline__ patch_if_needed(T *out) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       if (count[v] > 0) {
@@ -564,6 +565,7 @@ public:
           ++(exceptions[v]);
           --(count[v]);
         }
+        position += utils::get_n_lanes<T>();
       }
     }
   }
@@ -646,29 +648,27 @@ public:
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
-  const uint16_t
-      lane; // INFO Can be removed if unpack_vector function is adjusted
-  int32_t start_index = 0;
-
   T_in *in;
   uint8_t value_bit_width;
 
-  const ALPFunctor<T_out> alp_functor;
+  BitUnpacker<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T_out>>
+      bit_unpacker;
   SimpleALPExceptionPatcher<T_out, UNPACK_N_VECTORS> patcher;
 
   __device__ __forceinline__
   ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
                    const AlpExtendedColumn<T_out> column)
-      : lane(lane), value_bit_width(column.bit_widths[vector_index]),
+      : value_bit_width(column.bit_widths[vector_index]),
         in(column.ffor_array + consts::VALUES_PER_VECTOR * vector_index),
-        alp_functor(column.ffor_bases[vector_index],
-                    column.factors[vector_index],
-                    column.exponents[vector_index]),
-        patcher(
-            column.offsets_counts + (vector_index * utils::get_n_lanes<T_out>() +
-                                  lane),
-            column.positions + consts::VALUES_PER_VECTOR * vector_index,
-            column.exceptions + consts::VALUES_PER_VECTOR * vector_index)
+        patcher(column.offsets_counts +
+                    (vector_index * utils::get_n_lanes<T_out>() + lane),
+                column.positions + consts::VALUES_PER_VECTOR * vector_index,
+                column.exceptions + consts::VALUES_PER_VECTOR * vector_index,
+                lane),
+        bit_unpacker(in, lane, value_bit_width,
+                     ALPFunctor<T_out>(column.ffor_bases[vector_index],
+                                       column.factors[vector_index],
+                                       column.exponents[vector_index]))
 
   {
     static_assert((std::is_same<T_in, uint32_t>::value &&
@@ -679,14 +679,8 @@ struct ExtendedUnpacker {
   }
 
   __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
-    unpack_vector_alp<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
-                      UNPACK_N_VALUES>(in, out, lane, value_bit_width,
-                                       start_index, alp_functor);
-
-    patcher.patch_if_needed(out,
-                            start_index * utils::get_n_lanes<T_out>() + lane);
-
-    start_index += UNPACK_N_VALUES;
+    bit_unpacker.unpack_into(out);
+    patcher.patch_if_needed(out);
   }
 };
 

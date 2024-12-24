@@ -6,7 +6,6 @@ import sys
 import argparse
 import logging
 import enum
-from pandas._libs.tslibs.fields import get_start_end_field
 
 import polars as pl
 import matplotlib.pyplot as plt

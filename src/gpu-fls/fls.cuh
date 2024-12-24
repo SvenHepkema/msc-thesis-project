@@ -187,12 +187,12 @@ struct NoRefreshBufferReader {
   __device__ __forceinline__ NoRefreshBufferReader(const T *ptr) {
     static_assert(BUFFER_SIZE == 4, "Buffer[4] reader has wrong size");
 #pragma unroll
-      for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
-        buffer[i] = *(ptr + i * OFFSET);
-        if (i == 0) {
-          current = buffer[i];
-        }
+    for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
+      buffer[i] = *(ptr + i * OFFSET);
+      if (i == 0) {
+        current = buffer[i];
       }
+    }
   };
 };
 
@@ -279,7 +279,7 @@ __device__ void unpack_vector_new(const T_in *__restrict in,
   // auto line_buffer = BufferReaderWithCurrent<T_in, N_LANES,
   // UNPACK_N_VALUES>(in); auto line_buffer = FixedBufferReader<T_in,
   // N_LANES>(in);
-  //auto line_buffer = BufferReader<T_in, N_LANES>(in);
+  // auto line_buffer = BufferReader<T_in, N_LANES>(in);
   auto line_buffer = BufferReader<T_in, N_LANES>(in);
 
   out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
@@ -343,12 +343,12 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
   T_in line_buffer[UNPACK_N_VECTORS];
   T_in buffer_offset_mask;
 
-	// WARNING This causes quite some latency, test replacing it with a
-	// constant memory table lookup
-	// INFO Constant memory table lookup might be applicable in more places 
-	// in this function.
-  int32_t encoded_vector_offset = 
-		utils::get_compressed_vector_size<T_in>(value_bit_width);
+  // WARNING This causes quite some latency, test replacing it with a
+  // constant memory table lookup
+  // INFO Constant memory table lookup might be applicable in more places
+  // in this function.
+  int32_t encoded_vector_offset =
+      utils::get_compressed_vector_size<T_in>(value_bit_width);
 
   in += lane;
 
@@ -411,10 +411,10 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename lambda_T>
-__device__ void unpack_vector_alp(const T_in *__restrict in, T_out *__restrict out,
-                              const uint16_t lane,
-                              const uint16_t value_bit_width,
-                              const uint16_t start_index, lambda_T lambda) {
+__device__ void unpack_vector_alp(const T_in *__restrict in,
+                                  T_out *__restrict out, const uint16_t lane,
+                                  const uint16_t value_bit_width,
+                                  const uint16_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -428,9 +428,9 @@ __device__ void unpack_vector_alp(const T_in *__restrict in, T_out *__restrict o
   T_in line_buffer[UNPACK_N_VECTORS];
   T_in buffer_offset_mask;
 
-	// WARNING TODO Fix this with proper indexing into an offset array,
-	// and then copying the approach from normal unpack with 
-	// utils::get_compressed_vector_offset(vbw of UNPACK_N_VECTORS)
+  // WARNING TODO Fix this with proper indexing into an offset array,
+  // and then copying the approach from normal unpack with
+  // utils::get_compressed_vector_offset(vbw of UNPACK_N_VECTORS)
   int32_t encoded_vector_offset = consts::VALUES_PER_VECTOR;
 
   in += lane;
@@ -536,45 +536,32 @@ undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
       in, out, lane, value_bit_width, start_index, lambda);
 }
 
-template <typename T> struct SimpleLoader {
-  T line_buffer;
+template <typename T, unsigned UNPACK_N_VECTORS> struct SimpleLoader {
+  T buffers[UNPACK_N_VECTORS];
   const T *in;
+  int32_t encoded_vector_offset;
 
-  __device__ __forceinline__ SimpleLoader(const T *in) : in(in){
-		next_line();
-	};
+  __device__ __forceinline__ SimpleLoader(const T *in,
+                                          const uint16_t value_bit_width)
+      : in(in), encoded_vector_offset(
+                    // consts::VALUES_PER_VECTOR
+                    utils::get_compressed_vector_size<T>(value_bit_width)) {
+    next_line();
+  };
 
-  __device__ __forceinline__ T get() { return line_buffer; }
+  __device__ __forceinline__ const T *get() const { return buffers; }
 
   __device__ __forceinline__ void next_line() {
-    line_buffer = *in;
+
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      buffers[v] = *(in + v * encoded_vector_offset);
+    }
     in += utils::get_n_lanes<T>();
   }
 };
 
-template <typename T> struct PrefetchLoader {
-  T line_buffer;
-  T prefetch_buffer;
-  const T *in;
-
-  __device__ __forceinline__ PrefetchLoader(const T *a_in) : in(a_in){
-    line_buffer = *in;
-    in += utils::get_n_lanes<T>();
-    prefetch_buffer = *in;
-    in += utils::get_n_lanes<T>();
-	};
-
-  __device__ __forceinline__ T get() { return line_buffer; }
-
-  __device__ __forceinline__ void next_line() {
-    line_buffer = prefetch_buffer;
-    prefetch_buffer = *in;
-    in += utils::get_n_lanes<T>();
-  }
-};
-
-
-template <typename T> struct Masker {
+template <typename T, unsigned UNPACK_N_VECTORS> struct Masker {
   const uint16_t value_bit_width;
   const T value_mask;
   uint16_t buffer_offset = 0;
@@ -583,50 +570,61 @@ template <typename T> struct Masker {
       : value_bit_width(value_bit_width),
         value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
 
-  __device__ __forceinline__ T mask_and_increment(T value) {
-    value = (value & (value_mask << buffer_offset)) >> buffer_offset;
+  __device__ __forceinline__ void mask_and_increment(T *values,
+                                                     const T *buffers) {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      values[v] = (buffers[v] & (value_mask << buffer_offset)) >> buffer_offset;
+    }
     buffer_offset += value_bit_width;
-		return value;
-  };
+  }
 
   __device__ __forceinline__ void next_line() {
     buffer_offset -= utils::get_lane_bitwidth<T>();
   }
-  __device__ __forceinline__ bool is_buffer_empty() {
+  __device__ __forceinline__ bool is_buffer_empty() const {
     return buffer_offset == utils::get_lane_bitwidth<T>();
-  };
+  }
 
-  __device__ __forceinline__ bool does_value_continue_on_next_line() {
+  __device__ __forceinline__ bool continues_on_next_line() const {
     return buffer_offset > utils::get_lane_bitwidth<T>();
   }
 
-  __device__ __forceinline__ T mask_remaining_value(T value) {
+  __device__ __forceinline__ void
+  mask_and_insert_remaining_value(T *values, const T *buffers) const {
     T buffer_offset_mask = (T{1} << static_cast<T>(buffer_offset)) - T{1};
-    return (value & buffer_offset_mask) << (value_bit_width - buffer_offset);
+
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      values[v] |= (buffers[v] & buffer_offset_mask)
+                   << (value_bit_width - buffer_offset);
+    }
   }
 };
 
-template<typename T_in, typename T_out>
-struct BPFunctor {
-	__device__ __forceinline__ BPFunctor() {};
-	__device__ __forceinline__ T_out operator()(const T_in value) const { return value; }
+template <typename T_in, typename T_out> struct BPFunctor {
+  __device__ __forceinline__ BPFunctor(){};
+  __device__ __forceinline__ T_out operator()(const T_in value) const {
+    return value;
+  }
 };
 
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename OutputProcessor>
 struct BitUnpacker {
-  SimpleLoader<T_in> loader;
-  Masker<T_in> masker;
+  SimpleLoader<T_in, UNPACK_N_VECTORS> loader;
+  Masker<T_in, UNPACK_N_VECTORS> masker;
   const OutputProcessor processor;
 
   __device__ __forceinline__ BitUnpacker(const T_in *__restrict in,
                                          const uint16_t lane,
                                          const uint16_t value_bit_width,
                                          OutputProcessor processor)
-      : loader(in + lane), masker(value_bit_width), processor(processor) { }
+      : loader(in + lane, value_bit_width), masker(value_bit_width),
+        processor(processor) {}
 
   __device__ __forceinline__ void unpack_into(T_out *__restrict out) {
-    T_in value;
+    T_in values[UNPACK_N_VECTORS];
 
 #pragma unroll
     for (int i = 0; i < UNPACK_N_VALUES; ++i) {
@@ -635,15 +633,18 @@ struct BitUnpacker {
         masker.next_line();
       }
 
-      value = masker.mask_and_increment(loader.get());
+      masker.mask_and_increment(values, loader.get());
 
-      if (masker.does_value_continue_on_next_line()) {
+      if (masker.continues_on_next_line()) {
         loader.next_line();
         masker.next_line();
-        value |= masker.mask_remaining_value(loader.get());
+        masker.mask_and_insert_remaining_value(values, loader.get());
       }
 
-      *(out + i) = processor(value);
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+        *(out + i + v * UNPACK_N_VALUES) = processor(values[v]);
+      }
     }
   }
 };

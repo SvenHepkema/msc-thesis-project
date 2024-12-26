@@ -197,68 +197,12 @@ struct NoRefreshBufferReader {
 };
 
 template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VALUES>
-struct BPUnpacker {
-  const T_in *__restrict in;
-  const uint16_t value_bit_width;
-  BufferReader<T_in, utils::get_n_lanes<T_in>()> line_buffer;
-  uint16_t buffer_offset = 0;
-
-  __device__ __forceinline__ BPUnpacker(const T_in *__restrict in,
-                                        const uint16_t lane,
-                                        const uint16_t value_bit_width)
-      : line_buffer(in + lane), value_bit_width(value_bit_width){};
-
-  __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
-    // out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
-    static_assert(std::is_unsigned<T_in>::value,
-                  "Packing function only supports unsigned types. Cast signed "
-                  "arrays to unsigned equivalent.");
-    constexpr uint8_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T_in>();
-    constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
-    const T_in value_mask = utils::set_first_n_bits<T_in>(value_bit_width);
-
-    T_in buffer_offset_mask;
-
-    T_in value;
-
-#pragma unroll
-    for (int i = 0; i < UNPACK_N_VALUES; ++i) {
-      bool line_buffer_is_empty = buffer_offset == LANE_BIT_WIDTH;
-      if (line_buffer_is_empty) {
-        line_buffer.next();
-        buffer_offset -= LANE_BIT_WIDTH;
-      }
-
-      value =
-          (line_buffer.get() & (value_mask << buffer_offset)) >> buffer_offset;
-      buffer_offset += value_bit_width;
-
-      bool value_continues_on_next_line = buffer_offset > LANE_BIT_WIDTH;
-      if (value_continues_on_next_line) {
-        line_buffer.next();
-        buffer_offset -= LANE_BIT_WIDTH;
-
-        buffer_offset_mask =
-            (T_in{1} << static_cast<T_in>(buffer_offset)) - T_in{1};
-        value |= (line_buffer.get() & buffer_offset_mask)
-                 << (value_bit_width - buffer_offset);
-      }
-
-      *(out) = value;
-      out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
-    }
-  }
-};
-
-
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
           unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename lambda_T>
-__device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
-                              const uint16_t lane,
-                              const uint16_t value_bit_width,
-                              const uint16_t start_index, lambda_T lambda) {
+__device__ void unpack_vector_old(const T_in *__restrict in,
+                                  T_out *__restrict out, const uint16_t lane,
+                                  const uint16_t value_bit_width,
+                                  const uint16_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -420,50 +364,14 @@ __device__ void unpack_vector_alp(const T_in *__restrict in,
   }
 }
 
-template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
-__device__ void
-bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-                 const uint16_t value_bit_width, const uint16_t start_index) {
-  auto lambda = [=](const T value) -> T { return value; };
-  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-      in, out, lane, value_bit_width, start_index, lambda);
-}
-
-template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
-__device__ void
-unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index,
-              const T *__restrict a_base_p) {
-  T base = *a_base_p;
-  auto lambda = [base](const T value) -> T { return value + base; };
-  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-      in, out, lane, value_bit_width, start_index, lambda);
-}
-
-template <typename T, typename T_dict, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-__device__ void
-undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index,
-              const T *__restrict a_base_p, const T_dict *__restrict dict) {
-  T base = *a_base_p;
-  auto lambda = [base, dict](const T value) -> T { return dict[value + base]; };
-  unpack_vector<T, T_dict, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-      in, out, lane, value_bit_width, start_index, lambda);
-}
-
 template <typename T, unsigned UNPACK_N_VECTORS> struct SimpleLoader {
   T buffers[UNPACK_N_VECTORS];
   const T *in;
-  int32_t encoded_vector_offset;
+  int32_t vector_offset;
 
   __device__ __forceinline__ SimpleLoader(const T *in,
-                                          const uint16_t value_bit_width)
-      : in(in), encoded_vector_offset(
-                    // consts::VALUES_PER_VECTOR
-                    utils::get_compressed_vector_size<T>(value_bit_width)) {
+                                          const int32_t vector_offset)
+      : in(in), vector_offset(vector_offset) {
     next_line();
   };
 
@@ -473,7 +381,7 @@ template <typename T, unsigned UNPACK_N_VECTORS> struct SimpleLoader {
 
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      buffers[v] = *(in + v * encoded_vector_offset);
+      buffers[v] = *(in + v * vector_offset);
     }
     in += utils::get_n_lanes<T>();
   }
@@ -486,6 +394,11 @@ template <typename T, unsigned UNPACK_N_VECTORS> struct Masker {
 
   __device__ __forceinline__ Masker(const uint16_t value_bit_width)
       : value_bit_width(value_bit_width),
+        value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
+
+  __device__ __forceinline__ Masker(const uint16_t buffer_offset,
+                                    const uint16_t value_bit_width)
+      : buffer_offset(buffer_offset), value_bit_width(value_bit_width),
         value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
 
   __device__ __forceinline__ void mask_and_increment(T *values,
@@ -538,8 +451,9 @@ struct BitUnpacker {
                                          const uint16_t lane,
                                          const uint16_t value_bit_width,
                                          OutputProcessor processor)
-      : loader(in + lane, value_bit_width), masker(value_bit_width),
-        processor(processor) {}
+      : loader(in + lane,
+               utils::get_compressed_vector_size<T_in>(value_bit_width)),
+        masker(value_bit_width), processor(processor) {}
 
   __device__ __forceinline__ void unpack_into(T_out *__restrict out) {
     T_in values[UNPACK_N_VECTORS];
@@ -566,5 +480,84 @@ struct BitUnpacker {
     }
   }
 };
+
+template <typename T_in, typename T_out, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename lambda_T>
+__device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
+                              const uint16_t lane,
+                              const uint16_t value_bit_width,
+                              const uint16_t start_index, lambda_T lambda) {
+  static_assert(std::is_unsigned<T_in>::value,
+                "Packing function only supports unsigned types. Cast signed "
+                "arrays to unsigned equivalent.");
+  constexpr uint8_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<T_in>();
+  constexpr uint32_t N_LANES = utils::get_n_lanes<T_in>();
+  uint16_t preceding_bits = (start_index * value_bit_width);
+  uint16_t buffer_offset = preceding_bits % LANE_BIT_WIDTH;
+  uint16_t n_input_line = preceding_bits / LANE_BIT_WIDTH;
+
+  SimpleLoader<T_in, UNPACK_N_VECTORS> loader(
+      in + n_input_line * N_LANES + lane,
+      utils::get_compressed_vector_size<T_in>(value_bit_width));
+  Masker<T_in, UNPACK_N_VECTORS> masker(buffer_offset, value_bit_width);
+
+  T_in values[UNPACK_N_VECTORS];
+
+#pragma unroll
+  for (int i = 0; i < UNPACK_N_VALUES; ++i) {
+    if (masker.is_buffer_empty()) {
+      loader.next_line();
+      masker.next_line();
+    }
+
+    masker.mask_and_increment(values, loader.get());
+
+    if (masker.continues_on_next_line()) {
+      loader.next_line();
+      masker.next_line();
+      masker.mask_and_insert_remaining_value(values, loader.get());
+    }
+
+#pragma unroll
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+      *(out + i + v * UNPACK_N_VALUES) = lambda(values[v]);
+    }
+  }
+}
+
+template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
+__device__ void
+bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
+                 const uint16_t value_bit_width, const uint16_t start_index) {
+  auto lambda = [=](const T value) -> T { return value; };
+  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
+}
+
+template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
+__device__ void
+unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
+              const uint16_t value_bit_width, const uint16_t start_index,
+              const T *__restrict a_base_p) {
+  T base = *a_base_p;
+  auto lambda = [base](const T value) -> T { return value + base; };
+  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
+}
+
+template <typename T, typename T_dict, UnpackingType unpacking_type,
+          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void
+undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
+              const uint16_t value_bit_width, const uint16_t start_index,
+              const T *__restrict a_base_p, const T_dict *__restrict dict) {
+  T base = *a_base_p;
+  auto lambda = [base, dict](const T value) -> T { return dict[value + base]; };
+  unpack_vector<T, T_dict, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
+}
 
 #endif // FLS_CUH

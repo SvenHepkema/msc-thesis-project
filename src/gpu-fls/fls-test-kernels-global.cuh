@@ -74,7 +74,8 @@ __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
 
     for (int v = 0; v < UNPACK_N_VECTORS; v++) {
       for (int i = 0; i < UNPACK_N_VALUES; i++) {
-        out[lane + i * N_LANES + v * consts::VALUES_PER_VECTOR] = registers[i + v * UNPACK_N_VALUES];
+        out[lane + i * N_LANES + v * consts::VALUES_PER_VECTOR] =
+            registers[i + v * UNPACK_N_VALUES];
       }
     }
 

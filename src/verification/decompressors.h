@@ -1,6 +1,13 @@
 #include <cstdint>
 
 #include "verification.hpp"
+#include "../alp/alp-bindings.hpp"
+#include "../fls/compression.hpp"
+#include "../gpu-alp/alp-test-kernels-bindings.hpp"
+#include "../gpu-fls/fls-test-kernels-bindings.hpp"
+
+#ifndef DECOMPRESSOR_H
+#define DECOMPRESSOR_H
 
 template <typename CompressedT, typename T, typename CompressionParamsType>
 using DecompressVectorFunction =
@@ -21,7 +28,7 @@ void apply_fls_decompression_to_column(
   }
 }
 
-template <typename T> struct BPDecompressorFn {
+template <typename T> struct BP_FLS_DecompressorFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     apply_fls_decompression_to_column<T>(
@@ -31,3 +38,12 @@ template <typename T> struct BPDecompressorFn {
         });
   }
 };
+
+template <typename T, unsigned N_VECTORS_AT_A_TIME> struct BP_GPU_DecompressorFn {
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    fls::gpu::test::bitunpack<T, N_VECTORS_AT_A_TIME>(a_in, a_out, a_count, a_value_bit_width);
+  }
+};
+
+#endif // DECOMPRESSOR_H

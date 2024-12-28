@@ -20,64 +20,41 @@ namespace verifiers {
 template <typename T>
 verification::VerificationResult<T>
 verify_bitpacking(const size_t a_count, const std::string dataset_name) {
-
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), BPCompressorFn<T>(),
-          BPDecompressorFn<T>()));
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLS_CompressorFn<T>(),
+          BP_FLS_DecompressorFn<T>()));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
+  auto value_bit_widths =
+      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, a_count,
+      verification::get_compression_and_decompression_verifier<T, T, int32_t,
+                                                               int32_t>(
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLS_CompressorFn<T>(),
+          BP_GPU_DecompressorFn<T, 1>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_bitpacking_multivec(const size_t a_count,
                                const std::string dataset_name) {
-  auto decompress_column_cpu =
-      verification::apply_fls_decompression_to_column<T>(
-          [](const T *in, T *out, const int32_t value_bit_width) -> void {
-            fls::unpack(in, out, static_cast<uint8_t>(value_bit_width));
-          });
-  auto decompress_column_gpu = [](const T *in, T *out,
-                                  const int32_t value_bit_width,
-                                  const size_t count) -> void {
-    fls::gpu::test::bitunpack<T, 4>(in, out, count, value_bit_width);
-  };
-
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), decompress_column_cpu,
-          decompress_column_gpu));
-}
-
-template <typename T>
-verification::VerificationResult<T>
-verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = verification::apply_fls_compression_to_column<T>(
-      [](const T *in, T *out, const int32_t value_bit_width) -> void {
-        fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
-      });
-
-  auto decompress_column = [](const T *in, T *out,
-                              const int32_t value_bit_width,
-                              const size_t count) -> void {
-    fls::gpu::test::bitunpack<T>(in, out, count, value_bit_width);
-  };
-
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
-  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
-      verification::get_compression_and_decompression_verifier<T, T, int32_t,
-                                                               int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_bp_data<T>(dataset_name),
+          BP_FLS_DecompressorFn<T>(), BP_GPU_DecompressorFn<T, 4>()));
 }
 
 template <typename T>

@@ -115,23 +115,37 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_float_baseline<T>(count, dataset_name);
        }},
-      {"bench_alp_exception_count",
+      {"bench_alp_ec_stateless",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_varying_exception_count<T>(
-             count, dataset_name);
+         return benchmarkers::bench_alp_ec_stateless<T>(count, dataset_name);
        }},
-      {"bench_alp_value_bit_width",
+      {"bench_alp_ec_stateful",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_varying_value_bit_width<T>(
-             count, dataset_name);
+         return benchmarkers::bench_alp_ec_stateful<T>(count, dataset_name);
        }},
-      {"bench_alp_multiple_columns",
+      {"bench_alp_ec_stateful_extended",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_multiple_columns<T>(count,
-                                                            dataset_name);
+         return benchmarkers::bench_alp_ec_stateful_extended<T>(count,
+                                                                dataset_name);
+       }},
+      {"bench_alp_vbw_stateless",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_vbw_stateless<T>(count, dataset_name);
+       }},
+      {"bench_alp_vbw_stateful",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_vbw_stateful<T>(count, dataset_name);
+       }},
+      {"bench_alp_vbw_stateful_extended",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return benchmarkers::bench_alp_vbw_stateful_extended<T>(count,
+                                                                 dataset_name);
        }},
   };
 };

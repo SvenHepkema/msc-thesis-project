@@ -2,6 +2,7 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
+#include "../gpu-common/gpu-device-utils.cuh"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
@@ -14,31 +15,23 @@ namespace test {
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack(const T *__restrict in, T *__restrict out,
                           int32_t value_bit_width) {
-  constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
-  constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
+  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const int16_t lane = mapping.get_lane();
+  const int32_t vector_index = mapping.get_vector_index();
 
-  const int16_t lane = threadIdx.x % N_LANES;
-  const int16_t vector_index = threadIdx.x / N_LANES;
-  const int32_t block_index = blockIdx.x;
+  in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
+  out += vector_index * consts::VALUES_PER_VECTOR;
 
-  constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-
-  in += (n_vectors_per_block * block_index + vector_index) *
-        utils::get_compressed_vector_size<T>(value_bit_width);
-  out += (block_index * n_vectors_per_block + vector_index) *
-         consts::VALUES_PER_VECTOR;
-
-  constexpr auto N_VALUES = UNPACK_N_VECTORS * UNPACK_N_VALUES;
   T registers[N_VALUES];
 
-  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     bitunpack_vector<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
                      UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
 
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       for (int w{0}; w < UNPACK_N_VALUES; ++w) {
-        out[lane + (i + w) * N_LANES + v * consts::VALUES_PER_VECTOR] =
+        out[lane + (i + w) * mapping.N_LANES + v * consts::VALUES_PER_VECTOR] =
             registers[w + v * UNPACK_N_VALUES];
       }
     }
@@ -48,16 +41,10 @@ __global__ void bitunpack(const T *__restrict in, T *__restrict out,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
                                      int32_t value_bit_width) {
-  constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
-  constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
-
-  const int16_t lane = threadIdx.x % N_LANES;
-  const int32_t block_index = blockIdx.x;
-  constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-  const int16_t vector_index =
-      block_index * n_vectors_per_block + (threadIdx.x / N_LANES);
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const int16_t lane = mapping.get_lane();
+  const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
   out += vector_index * consts::VALUES_PER_VECTOR;
@@ -69,42 +56,34 @@ __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
                         utils::get_compressed_vector_size<T>(value_bit_width),
                lane, value_bit_width, BPFunctor<UINT_T, T>());
 
-  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_into(registers);
 
     for (int v = 0; v < UNPACK_N_VECTORS; v++) {
       for (int i = 0; i < UNPACK_N_VALUES; i++) {
-        out[lane + i * N_LANES + v * consts::VALUES_PER_VECTOR] =
+        out[lane + i * mapping.N_LANES + v * consts::VALUES_PER_VECTOR] =
             registers[i + v * UNPACK_N_VALUES];
       }
     }
 
-    out += UNPACK_N_VALUES * N_LANES;
+    out += UNPACK_N_VALUES * mapping.N_LANES;
   }
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void unffor(const T *__restrict in, T *__restrict out,
                        int32_t value_bit_width, const T *__restrict base_p) {
-  constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
-  constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const int16_t lane = mapping.get_lane();
+  const int32_t vector_index = mapping.get_vector_index();
 
-  const int16_t lane = threadIdx.x % N_LANES;
-  const int16_t vector_index = threadIdx.x / N_LANES;
-  const int32_t block_index = blockIdx.x;
+  in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
+  out += vector_index * consts::VALUES_PER_VECTOR;
 
-  constexpr int32_t n_vectors_per_block = UNPACK_N_VECTORS;
-
-  in += (n_vectors_per_block * block_index + vector_index) *
-        utils::get_compressed_vector_size<T>(value_bit_width);
-  out += (block_index * n_vectors_per_block + vector_index) *
-         consts::VALUES_PER_VECTOR;
-
-  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     unffor_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
                   UNPACK_N_VALUES>(in, out, lane, value_bit_width, i, base_p);
-    out += UNPACK_N_VALUES * N_LANES;
+    out += UNPACK_N_VALUES * mapping.N_LANES;
   }
 }
 

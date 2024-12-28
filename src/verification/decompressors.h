@@ -55,6 +55,16 @@ template <typename T> struct FFOR_FLSDecompressorFn {
   }
 };
 
+template <typename T> struct ALP_FLSDecompressorFn {
+  void operator()
+
+      (const alp::AlpCompressionData<T> *in, T *out,
+       [[maybe_unused]] const int32_t value_bit_width,
+       [[maybe_unused]] const size_t count) {
+    alp::int_decode<T>(out, in);
+  }
+};
+
 template <typename T, unsigned N_VECTORS_AT_A_TIME>
 struct BP_GPUStatelessDecompressorFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
@@ -69,6 +79,18 @@ template <typename T> struct BP_GPUStatefulDecompressorFn {
                   const size_t a_count) {
     fls::gpu::test::bitunpack_with_state<T>(a_in, a_out, a_count,
                                             a_value_bit_width);
+  }
+};
+
+template <typename T> struct FFOR_GPUStatelessDecompressorFn {
+  T base;
+
+  FFOR_GPUStatelessDecompressorFn(T a_base) : base(a_base) {}
+
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    T *base_p = &base;
+    fls::gpu::test::unffor<T>(a_in, a_out, a_count, a_value_bit_width, base_p);
   }
 };
 

@@ -127,21 +127,21 @@ template <typename T> struct ALP_CPUAnyValueIsMagicQueryFn {
 template <typename T> struct ALP_GPUStatelessAnyValueIsMagicQueryFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   const int32_t a_value_bit_width, const size_t a_count) {
-    alp::gpu::bench::decode_complete_alp_vector<T>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in);
   }
 };
 
 template <typename T> struct ALP_GPUStatefulAnyValueIsMagicQueryFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   const int32_t a_value_bit_width, const size_t a_count) {
-    alp::gpu::bench::decode_alp_vector_with_state<T>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in);
   }
 };
 
 template <typename T> struct ALP_GPUStatefulExtendedAnyValueIsMagicQueryFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   const int32_t a_value_bit_width, const size_t a_count) {
-    alp::gpu::bench::decode_alp_vector_with_extended_state<T, 1>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(a_out, a_in);
   }
 };
 

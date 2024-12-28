@@ -14,15 +14,15 @@ template <typename T>
 void decode_baseline(T *__restrict out, const T *in, const size_t count);
 
 template <typename T>
-void decode_complete_alp_vector(T *__restrict out,
+void contains_magic_stateless(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
-void decode_alp_vector_with_state(T *__restrict out,
+void contains_magic_stateful(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T, unsigned UNPACK_N_VECTORS>
-void decode_alp_vector_with_extended_state(T *__restrict out,
+void contains_magic_stateful_extended(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
@@ -40,27 +40,27 @@ alp::gpu::bench::decode_baseline<float>(float *__restrict out, const float *in,
 extern template void alp::gpu::bench::decode_baseline<double>(
     double *__restrict out, const double *data, const size_t count);
 
-extern template void alp::gpu::bench::decode_complete_alp_vector<float>(
+extern template void alp::gpu::bench::contains_magic_stateless<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_complete_alp_vector<double>(
+extern template void alp::gpu::bench::contains_magic_stateless<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-extern template void alp::gpu::bench::decode_alp_vector_with_state<float>(
+extern template void alp::gpu::bench::contains_magic_stateful<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_state<double>(
+extern template void alp::gpu::bench::contains_magic_stateful<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 1>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 1>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<double, 1>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 2>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<float, 2>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 2>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<double, 2>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<float, 4>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<float, 4>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_alp_vector_with_extended_state<double, 4>(
+extern template void alp::gpu::bench::contains_magic_stateful_extended<double, 4>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 extern template void alp::gpu::bench::decode_multiple_alp_vectors<float>(

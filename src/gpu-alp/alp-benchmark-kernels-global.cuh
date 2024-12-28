@@ -56,7 +56,7 @@ __global__ void decode_baseline(T *out, const T *in, const int n_values_in_lane)
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
-__global__ void decode_complete_alp_vector(T *out, AlpColumn<T> data) {
+__global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -91,7 +91,7 @@ __global__ void decode_complete_alp_vector(T *out, AlpColumn<T> data) {
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_with_state(T *out, AlpColumn<T> column) {
+__global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -131,7 +131,7 @@ __global__ void decode_alp_vector_with_state(T *out, AlpColumn<T> column) {
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<T> column) {
+__global__ void contains_magic_stateful_extended(T *out, AlpExtendedColumn<T> column) {
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();

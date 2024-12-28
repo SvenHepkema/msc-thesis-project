@@ -110,7 +110,6 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   T registers[N_VALUES];
   bool none_magic = true;
 
-	constexpr int BUFFER_SIZE = 2;
   auto iterator =
       OldUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
                UNPACK_N_VALUES>(vector_index, lane, column);
@@ -150,7 +149,6 @@ __global__ void contains_magic_stateful_extended(T *out, AlpExtendedColumn<T> co
   T registers[N_VALUES];
   bool none_magic = true;
 
-	constexpr int BUFFER_SIZE = 2;
   auto iterator =
       ExtendedUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
                UNPACK_N_VALUES>(vector_index, lane, column);

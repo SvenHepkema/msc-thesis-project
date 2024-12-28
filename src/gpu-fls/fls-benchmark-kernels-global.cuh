@@ -61,7 +61,6 @@ query_old_fls_contains_zero(const T *__restrict in, T *__restrict out,
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
 
-  const int16_t lane = threadIdx.x % N_LANES;
   const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
   const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
   const int32_t block_index = blockIdx.x;
@@ -76,6 +75,7 @@ query_old_fls_contains_zero(const T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
   T none_zero = 1;
 
+  //const int16_t lane = threadIdx.x % N_LANES;
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
 		oldfls::original::unpack(in, registers, value_bit_width);
 		//oldfls::adjusted::unpack(in + lane, registers, value_bit_width);

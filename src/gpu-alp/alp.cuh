@@ -428,7 +428,7 @@ struct ExtendedUnpackerOld {
   T_out *vec_exceptions;
 
   uint16_t exception_index = 0;
-  uint16_t next_exception_pos;
+  int16_t next_exception_pos;
   T_out next_exception;
 
   void __device__ __forceinline__ read_next_exception() {
@@ -609,7 +609,7 @@ private:
   T *exceptions;
 
   uint16_t index = 0;
-  uint16_t next_position;
+  int16_t next_position;
   T next_exception;
 
 public:

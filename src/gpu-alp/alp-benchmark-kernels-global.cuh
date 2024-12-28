@@ -24,7 +24,7 @@ __global__ void decode_baseline(T *out, const T *in,
   T registers[N_VALUES];
   bool none_magic = true;
 
-  for (int i = 0; i < n_values_in_lane; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < n_values_in_lane; i += UNPACK_N_VALUES) {
 #pragma unroll
     for (int j = 0; j < UNPACK_N_VALUES; ++j) {
 #pragma unroll
@@ -59,7 +59,7 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   T registers[N_VALUES];
   bool none_magic = true;
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data,
                                                         vector_index, lane, i);
 #pragma unroll
@@ -87,7 +87,7 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   auto iterator = OldUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       vector_index, lane, column);
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 
 #pragma unroll
@@ -117,7 +117,7 @@ __global__ void contains_magic_stateful_extended(T *out,
       ExtendedUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
           vector_index, lane, column);
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 
 #pragma unroll

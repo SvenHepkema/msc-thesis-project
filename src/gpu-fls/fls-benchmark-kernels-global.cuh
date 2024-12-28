@@ -25,7 +25,7 @@ __global__ void query_baseline_contains_zero(const T *__restrict in,
   T registers[UNPACK_N_VALUES];
   T none_zero = 1;
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
 #pragma unroll
     for (int j = 0; j < UNPACK_N_VALUES; ++j) {
       registers[j] = in[(j + i) * mapping.N_LANES];
@@ -56,7 +56,7 @@ __global__ void query_old_fls_contains_zero(const T *__restrict in,
   T none_zero = 1;
 
   // const lane_t lane = threadIdx.x % N_LANES;
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     oldfls::original::unpack(in, registers, value_bit_width);
     // oldfls::adjusted::unpack(in + lane, registers, value_bit_width);
 
@@ -85,7 +85,7 @@ __global__ void query_bp_contains_zero(const T *__restrict in,
   T none_zero = 1;
   lane_t lane = mapping.get_lane();
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
                                                            value_bit_width, i);
 
@@ -118,7 +118,7 @@ __global__ void query_bp_stateful_contains_zero(const T *__restrict in,
   BitUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
               BPFunctor<UINT_T, T>>
       iterator(in, lane, value_bit_width, BPFunctor<UINT_T, T>());
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_into(registers);
 
 #pragma unroll
@@ -146,7 +146,7 @@ query_ffor_contains_zero(const T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
   T none_zero = 1;
 
-  for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     unffor_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, registers, lane, value_bit_width, i, base_p);
 

@@ -89,12 +89,17 @@ template <class T> struct Alp {
       {"gpu_alp_extended_state",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_with_extended_state<T>(count, dataset_name);
+         return verifiers::verify_gpu_alp_stateful_extended<T>(count, dataset_name);
        }},
-      {"gpu_alp_extended_state_multivec",
+      {"gpu_alp_extended_state_2vec",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_with_extended_state_multivec<T>(count, dataset_name);
+         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 2>(count, dataset_name);
+       }},
+      {"gpu_alp_extended_state_4vec",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 4>(count, dataset_name);
        }},
       {"alprd",
        [](const size_t count, const std::string dataset_name)

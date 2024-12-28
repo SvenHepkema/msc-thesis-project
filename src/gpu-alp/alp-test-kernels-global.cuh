@@ -74,7 +74,7 @@ __global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> data) {
 
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_with_extended_state(T *out, AlpExtendedColumn<T> data) {
+__global__ void decode_alp_vector_stateful_extended(T *out, AlpExtendedColumn<T> data) {
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;

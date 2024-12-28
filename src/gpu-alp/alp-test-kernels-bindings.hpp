@@ -18,7 +18,7 @@ void decode_alp_vector_stateful(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T, unsigned UNPACK_N_VECTORS = 1>
-void decode_alp_vector_with_extended_state(T *__restrict out,
+void decode_alp_vector_stateful_extended(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data);
 
 template <typename T>
@@ -39,13 +39,17 @@ extern template void alp::gpu::test::decode_alp_vector_stateful<float>(
 extern template void alp::gpu::test::decode_alp_vector_stateful<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-extern template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 1>(
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 1>(
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 1>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-extern template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 4>(
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 2>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-extern template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 4>(
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 2>(
+    double *__restrict out, const alp::AlpCompressionData<double> *data);
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 4>(
+    float *__restrict out, const alp::AlpCompressionData<float> *data);
+extern template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 4>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
 extern template void alp::gpu::test::decode_complete_alprd_vector<float>(

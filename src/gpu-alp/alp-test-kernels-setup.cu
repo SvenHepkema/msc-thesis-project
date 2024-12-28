@@ -6,18 +6,17 @@
 #include "../gpu-common/gpu-utils.cuh"
 #include "alp-test-kernels-bindings.hpp"
 #include "alp-test-kernels-global.cuh"
+#include "alp-utils.cuh"
 #include "alp.cuh"
 #include "src/alp/config.hpp"
-#include "alp-utils.cuh"
 
 namespace alp {
 namespace gpu {
 namespace test {
 
-
 template <typename T>
 void decode_alp_vector_stateless(T *__restrict out,
-                                const alp::AlpCompressionData<T> *data) {
+                                 const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
@@ -28,13 +27,12 @@ void decode_alp_vector_stateless(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_stateless<
-      T, UINT_T, 1, 1>
+  kernels::global::test::decode_alp_vector_stateless<T, UINT_T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
 
 template <typename T>
@@ -50,18 +48,17 @@ void decode_alp_vector_stateful(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_stateful<
-      T, UINT_T, 1, 1>
+  kernels::global::test::decode_alp_vector_stateful<T, UINT_T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS>
-void decode_alp_vector_with_extended_state(T *__restrict out,
-                                const alp::AlpCompressionData<T> *data) {
+void decode_alp_vector_stateful_extended(
+    T *__restrict out, const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
@@ -73,13 +70,13 @@ void decode_alp_vector_with_extended_state(T *__restrict out,
   auto gpu_alp_column = transfer::copy_alp_extended_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_with_extended_state<
+  kernels::global::test::decode_alp_vector_stateful_extended<
       T, UINT_T, UNPACK_N_VECTORS, 1>
       <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
 
 template <typename T>
@@ -137,17 +134,17 @@ template void alp::gpu::test::decode_alp_vector_stateful<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::test::decode_alp_vector_stateful<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 1>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 1>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 1>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 2>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 2>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 2>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 2>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 4>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 4>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_alp_vector_with_extended_state<double, 4>(
+template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 4>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 template void alp::gpu::test::decode_complete_alprd_vector<float>(
     float *__restrict out, const alp::AlpRdCompressionData<float> *data);

@@ -56,11 +56,9 @@ template <typename T> struct FFOR_FLSDecompressorFn {
 };
 
 template <typename T> struct ALP_FLSDecompressorFn {
-  void operator()
-
-      (const alp::AlpCompressionData<T> *in, T *out,
-       [[maybe_unused]] const int32_t value_bit_width,
-       [[maybe_unused]] const size_t count) {
+  void operator()(const alp::AlpCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
     alp::int_decode<T>(out, in);
   }
 };
@@ -93,5 +91,30 @@ template <typename T> struct FFOR_GPUStatelessDecompressorFn {
     fls::gpu::test::unffor<T>(a_in, a_out, a_count, a_value_bit_width, base_p);
   }
 };
+
+template <typename T> struct ALP_GPUStatelessDecompressorFn {
+  void operator()(const alp::AlpCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    alp::gpu::test::decode_alp_vector_stateless<T>(out, in);
+  }
+};
+
+template <typename T> struct ALP_GPUStatefulDecompressorFn {
+  void operator()(const alp::AlpCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    alp::gpu::test::decode_alp_vector_stateful<T>(out, in);
+  }
+};
+
+template <typename T, unsigned N_VECTORS_AT_A_TIME> struct ALP_GPUStatefulExtendedDecompressorFn {
+  void operator()(const alp::AlpCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    alp::gpu::test::decode_alp_vector_stateful_extended<T, N_VECTORS_AT_A_TIME>(out, in);
+  }
+};
+
 
 #endif // DECOMPRESSOR_H

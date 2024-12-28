@@ -48,21 +48,20 @@ verify_gpu_bp_stateless(const size_t a_count, const std::string dataset_name) {
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_bp_stateful_multivec(const size_t a_count,
-                               const std::string dataset_name) {
+                                const std::string dataset_name) {
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
 
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name),
-          BP_FLSDecompressorFn<T>(), BP_GPUStatelessDecompressorFn<T, 4>()));
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLSDecompressorFn<T>(),
+          BP_GPUStatelessDecompressorFn<T, 4>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bp_stateful(const size_t a_count,
-                                 const std::string dataset_name) {
+verify_gpu_bp_stateful(const size_t a_count, const std::string dataset_name) {
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
 
@@ -101,7 +100,8 @@ verify_gpu_unffor(const size_t a_count, const std::string dataset_name) {
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_ffor_data<T>(dataset_name, base),
-          FFOR_FLSCompressorFn<T>(base), FFOR_GPUStatelessDecompressorFn<T>(base)));
+          FFOR_FLSCompressorFn<T>(base),
+          FFOR_GPUStatelessDecompressorFn<T>(base)));
 }
 
 template <typename T>
@@ -127,19 +127,6 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_alp_stateless(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(in, count, out);
-  };
-
-  auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_stateless<T>(out, in);
-  };
-
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
@@ -149,27 +136,13 @@ verify_gpu_alp_stateless(const size_t a_count, const std::string dataset_name) {
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_alp_data<T>(dataset_name), ALP_FLSCompressorFn<T>(),
+          ALP_GPUStatelessDecompressorFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp_stateful(const size_t a_count,
-                          const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(in, count, out);
-  };
-
-  auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_stateful<T>(out, in);
-  };
-
+verify_gpu_alp_stateful(const size_t a_count, const std::string dataset_name) {
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
@@ -179,27 +152,14 @@ verify_gpu_alp_stateful(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_alp_data<T>(dataset_name), ALP_FLSCompressorFn<T>(),
+          ALP_GPUStatefulDecompressorFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp_with_extended_state(const size_t a_count,
-                                   const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(in, count, out);
-  };
-
-  auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_with_extended_state<T>(out, in);
-  };
-
+verify_gpu_alp_stateful_extended(const size_t a_count,
+                                 const std::string dataset_name) {
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
@@ -209,28 +169,14 @@ verify_gpu_alp_with_extended_state(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_alp_data<T>(dataset_name), ALP_FLSCompressorFn<T>(),
+          ALP_GPUStatefulExtendedDecompressorFn<T, 1>()));
 }
 
-template <typename T>
+template <typename T, unsigned UNPACK_N_VECTORS_AT_A_TIME>
 verification::VerificationResult<T>
-verify_gpu_alp_with_extended_state_multivec(const size_t a_count,
-                                            const std::string dataset_name) {
-  auto decompress_column_cpu =
-      [](const alp::AlpCompressionData<T> *in, T *out,
-         [[maybe_unused]] const int32_t value_bit_width,
-         [[maybe_unused]] const size_t count) -> void {
-    alp::int_decode<T>(out, in);
-  };
-
-  auto decompress_column_gpu =
-      [](const alp::AlpCompressionData<T> *in, T *out,
-         [[maybe_unused]] const int32_t value_bit_width,
-         [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_with_extended_state<T, 4>(out, in);
-  };
-
+verify_gpu_alp_stateful_extended_multivec(const size_t a_count,
+                                          const std::string dataset_name) {
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
@@ -238,13 +184,15 @@ verify_gpu_alp_with_extended_state_multivec(const size_t a_count,
   auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
       "value_bit_width", a_count);
 
-  auto result =
-      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                               int32_t, int32_t>(
-          value_bit_widths, value_bit_widths, a_count, a_count,
-          verification::get_equal_decompression_verifier<
-              T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-              generator, decompress_column_cpu, decompress_column_gpu, false));
+  auto result = verification::run_verifier_on_parameters<
+      T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, a_count,
+      verification::get_equal_decompression_verifier<
+          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+          generator, ALP_FLSDecompressorFn<T>(),
+          ALP_GPUStatefulExtendedDecompressorFn<T,
+                                                UNPACK_N_VECTORS_AT_A_TIME>(),
+          false));
 
   delete data;
   return result;

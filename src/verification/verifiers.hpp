@@ -126,7 +126,7 @@ verification::VerificationResult<T> verify_alp(const size_t a_count,
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp_into_lane(const size_t a_count, const std::string dataset_name) {
+verify_gpu_alp_stateless(const size_t a_count, const std::string dataset_name) {
   auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
                             const size_t count) -> void {
@@ -137,7 +137,7 @@ verify_gpu_alp_into_lane(const size_t a_count, const std::string dataset_name) {
   auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_into_lane<T>(out, in);
+    alp::gpu::test::decode_alp_vector_stateless<T>(out, in);
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
@@ -155,7 +155,7 @@ verify_gpu_alp_into_lane(const size_t a_count, const std::string dataset_name) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp_with_state(const size_t a_count,
+verify_gpu_alp_stateful(const size_t a_count,
                           const std::string dataset_name) {
   auto compress_column = [](const T *in, alp::AlpCompressionData<T> *&out,
                             [[maybe_unused]] const int32_t value_bit_width,
@@ -167,7 +167,7 @@ verify_gpu_alp_with_state(const size_t a_count,
   auto decompress_column = [](const alp::AlpCompressionData<T> *in, T *out,
                               [[maybe_unused]] const int32_t value_bit_width,
                               [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_alp_vector_with_state<T>(out, in);
+    alp::gpu::test::decode_alp_vector_stateful<T>(out, in);
   };
 
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;

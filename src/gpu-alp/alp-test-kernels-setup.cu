@@ -16,7 +16,7 @@ namespace test {
 
 
 template <typename T>
-void decode_alp_vector_into_lane(T *__restrict out,
+void decode_alp_vector_stateless(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -28,7 +28,7 @@ void decode_alp_vector_into_lane(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_into_lane<
+  kernels::global::test::decode_alp_vector_stateless<
       T, UINT_T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -38,7 +38,7 @@ void decode_alp_vector_into_lane(T *__restrict out,
 }
 
 template <typename T>
-void decode_alp_vector_with_state(T *__restrict out,
+void decode_alp_vector_stateful(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data) {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -50,7 +50,7 @@ void decode_alp_vector_with_state(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_with_state<
+  kernels::global::test::decode_alp_vector_stateful<
       T, UINT_T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -129,13 +129,13 @@ void decode_complete_alprd_vector(T *__restrict out,
 } // namespace gpu
 } // namespace alp
 
-template void alp::gpu::test::decode_alp_vector_into_lane<float>(
+template void alp::gpu::test::decode_alp_vector_stateless<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_alp_vector_into_lane<double>(
+template void alp::gpu::test::decode_alp_vector_stateless<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
-template void alp::gpu::test::decode_alp_vector_with_state<float>(
+template void alp::gpu::test::decode_alp_vector_stateful<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_alp_vector_with_state<double>(
+template void alp::gpu::test::decode_alp_vector_stateful<double>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 template void alp::gpu::test::decode_alp_vector_with_extended_state<float, 1>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);

@@ -1,4 +1,4 @@
-COMPRESSIONS_TO_VERIFY="alp gpu_alp_lane gpu_alp_state gpu_alp_extended_state alprd gpu_alprd"
+COMPRESSIONS_TO_VERIFY="alp gpu_alp_stateless gpu_alp_stateful gpu_alp_extended_state alprd gpu_alprd"
 VECTOR_COUNT=1024
 
 LOG_FILE=/tmp/log

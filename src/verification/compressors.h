@@ -1,16 +1,6 @@
-#include <cstddef>
 #include <cstdint>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
-#include "datageneration.hpp"
 #include "verification.hpp"
-
-#include "../alp/alp-bindings.hpp"
-#include "../fls/compression.hpp"
-#include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-test-kernels-bindings.hpp"
 
 template <typename T, typename CompressedT, typename CompressionParamsType>
 using CompressVectorFunction =
@@ -33,7 +23,7 @@ void apply_fls_compression_to_column(
   }
 }
 
-template <typename T> struct FLSCompressionFn {
+template <typename T> struct BPCompressorFn {
   void operator()(const T *a_in, T *&a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     apply_fls_compression_to_column<T>(

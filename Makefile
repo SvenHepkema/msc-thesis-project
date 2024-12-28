@@ -8,7 +8,7 @@ WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-co
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr 
 
-FLS_TEST_FILES=src/gpu-fls/fls-test-kernels-bindings.hpp src/gpu-fls/fls-test-kernels-global.cuh src/gpu-fls/fls-test-kernels-setup.cu src/gpu-fls/fls.cuh
+FLS_TEST_FILES=src/gpu-fls/fls-test-kernels-bindings.hpp src/gpu-fls/fls-test-kernels-global.cuh src/gpu-fls/fls-test-kernels-setup.cu src/gpu-fls/fls.cuh 
 FLS_BENCHMARK_FILES=src/gpu-fls/fls-benchmark-kernels-bindings.hpp src/gpu-fls/fls-benchmark-kernels-global.cuh src/gpu-fls/fls-benchmark-kernels-setup.cu src/gpu-fls/fls.cuh
 ALP_TEST_FILES=src/gpu-alp/alp-test-kernels-bindings.hpp src/gpu-alp/alp-test-kernels-global.cuh src/gpu-alp/alp-test-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh
 ALP_BENCHMARK_FILES=src/gpu-alp/alp-benchmark-kernels-bindings.hpp src/gpu-alp/alp-benchmark-kernels-global.cuh src/gpu-alp/alp-benchmark-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh
@@ -39,7 +39,7 @@ obj/gpu-alp-bench.o: $(ALP_BENCHMARK_FILES)
 
 # Executables
 
-HEADER_FILES=$(wildcard src/*.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
+HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
 SOURCE_FILES=src/main.cpp obj/gpu-fls-test.o obj/gpu-fls-bench.o obj/gpu-alp-test.o obj/gpu-alp-bench.o $(FLS_OBJ) $(ALP_OBJ)
 
 executable: $(SOURCE_FILES) $(HEADER_FILES)

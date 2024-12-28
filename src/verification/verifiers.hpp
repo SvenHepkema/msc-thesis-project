@@ -21,19 +21,14 @@ template <typename T>
 verification::VerificationResult<T>
 verify_bitpacking(const size_t a_count, const std::string dataset_name) {
 
-  auto decompress_column = verification::apply_fls_decompression_to_column<T>(
-      [](const T *in, T *out, const int32_t value_bit_width) -> void {
-        fls::unpack(in, out, static_cast<uint8_t>(value_bit_width));
-      });
-
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), FLSCompressionFn<T>(),
-          decompress_column));
+          data::lambda::get_bp_data<T>(dataset_name), BPCompressorFn<T>(),
+          BPDecompressorFn<T>()));
 }
 
 template <typename T>

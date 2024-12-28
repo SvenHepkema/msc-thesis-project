@@ -198,32 +198,5 @@ verify_gpu_alp_stateful_extended_multivec(const size_t a_count,
   return result;
 }
 
-template <typename T>
-verification::VerificationResult<T>
-verify_alprd(const size_t a_count, const std::string dataset_name) {
-  std::vector<int32_t> parameters({0});
-
-  return verification::run_verifier_on_parameters<
-      T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-      parameters, parameters, a_count, a_count,
-      verification::get_compression_and_decompression_verifier<
-          T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alprd_data<T>(dataset_name), ALPrd_FLSCompressorFn<T>(),
-          ALPrd_FLSDecompressorFn<T>()));
-}
-
-template <typename T>
-verification::VerificationResult<T>
-verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
-  std::vector<int32_t> parameters({0});
-
-  return verification::run_verifier_on_parameters<
-      T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-      parameters, parameters, a_count, a_count,
-      verification::get_compression_and_decompression_verifier<
-          T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alprd_data<T>(dataset_name), ALPrd_FLSCompressorFn<T>(),
-          ALPrd_GPUStatelessDecompressorFn<T>()));
-}
 
 } // namespace verifiers

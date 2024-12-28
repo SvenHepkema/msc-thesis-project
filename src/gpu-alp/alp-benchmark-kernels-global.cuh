@@ -299,40 +299,6 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
     *out = 1.0;
   }
 }
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
-__global__ void decode_complete_alprd_vector(T *out, AlpRdColumn<T> data) {
-  const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
-  constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
-  constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
-
-  const int16_t lane = threadIdx.x % N_LANES;
-  const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
-  const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
-  const int32_t block_index = blockIdx.x;
-
-  constexpr int32_t vectors_per_warp = 1 * UNPACK_N_VECTORS;
-  const int32_t vectors_per_block = warps_per_block * vectors_per_warp;
-  const int32_t vector_index =
-      vectors_per_block * block_index + warp_index * vectors_per_warp;
-
-  T registers[N_VALUES];
-  bool none_magic = true;
-
-  for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalprd<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-            UNPACK_N_VALUES>(registers, data, vector_index, lane, i);
-#pragma unroll
-    for (int j = 0; j < N_VALUES; ++j) {
-      none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
-    }
-  }
-
-  if (!none_magic) {
-    *out = 1.0;
-  }
-}
 
 } // namespace bench
 } // namespace global

@@ -29,9 +29,6 @@ template <typename T>
 void decode_multiple_alp_vectors(
     T *__restrict out, const std::vector<alp::AlpCompressionData<T> *> data);
 
-template <typename T>
-void decode_complete_alprd_vector(T *__restrict out,
-                                  const alp::AlpRdCompressionData<T> *data);
 
 } // namespace bench
 } // namespace gpu
@@ -73,8 +70,4 @@ extern template void alp::gpu::bench::decode_multiple_alp_vectors<double>(
     double *__restrict out,
     const std::vector<alp::AlpCompressionData<double> *> data);
 
-extern template void alp::gpu::bench::decode_complete_alprd_vector<float>(
-    float *__restrict out, const alp::AlpRdCompressionData<float> *data);
-extern template void alp::gpu::bench::decode_complete_alprd_vector<double>(
-    double *__restrict out, const alp::AlpRdCompressionData<double> *data);
 #endif // ALP_BENCHMARK_KERNELS_BINDINGS_HPP

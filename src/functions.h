@@ -110,16 +110,6 @@ template <class T> struct Alp {
          return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 4>(
              count, dataset_name);
        }},
-      {"alprd",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_alprd<T>(count, dataset_name);
-       }},
-      {"gpu_alprd",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alprd<T>(count, dataset_name);
-       }},
       {"bench_float_baseline",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {

@@ -118,20 +118,4 @@ struct ALP_GPUStatefulExtendedDecompressorFn {
   }
 };
 
-template <typename T> struct ALPrd_FLSDecompressorFn {
-  void operator()(const alp::AlpRdCompressionData<T> *in, T *out,
-                  [[maybe_unused]] const int32_t value_bit_width,
-                  [[maybe_unused]] const size_t count) {
-    alp::rd_decode<T>(out, in);
-  }
-};
-
-template <typename T> struct ALPrd_GPUStatelessDecompressorFn {
-  void operator()(const alp::AlpRdCompressionData<T> *in, T *out,
-                  [[maybe_unused]] const int32_t value_bit_width,
-                  [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_complete_alprd_vector<T>(out, in);
-  }
-};
-
 #endif // DECOMPRESSOR_H

@@ -52,8 +52,4 @@ extern template void alp::gpu::test::decode_alp_vector_stateful_extended<float, 
 extern template void alp::gpu::test::decode_alp_vector_stateful_extended<double, 4>(
     double *__restrict out, const alp::AlpCompressionData<double> *data);
 
-extern template void alp::gpu::test::decode_complete_alprd_vector<float>(
-    float *__restrict out, const alp::AlpRdCompressionData<float> *data);
-extern template void alp::gpu::test::decode_complete_alprd_vector<double>(
-    double *__restrict out, const alp::AlpRdCompressionData<double> *data);
 #endif // ALP_TEST_KERNELS_BINDINGS_HPP

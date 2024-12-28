@@ -26,8 +26,8 @@ verify_bitpacking(const size_t a_count, const std::string dataset_name) {
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), BP_FLS_CompressorFn<T>(),
-          BP_FLS_DecompressorFn<T>()));
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLSCompressorFn<T>(),
+          BP_FLSDecompressorFn<T>()));
 }
 
 template <typename T>
@@ -39,8 +39,8 @@ verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), BP_FLS_CompressorFn<T>(),
-          BP_GPU_DecompressorFn<T, 1>()));
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLSCompressorFn<T>(),
+          BP_GPUStatelessDecompressorFn<T, 1>()));
 }
 
 template <typename T>
@@ -54,24 +54,13 @@ verify_gpu_bitpacking_multivec(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_bp_data<T>(dataset_name),
-          BP_FLS_DecompressorFn<T>(), BP_GPU_DecompressorFn<T, 4>()));
+          BP_FLSDecompressorFn<T>(), BP_GPUStatelessDecompressorFn<T, 4>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_bitpacking_with_state(const size_t a_count,
                                  const std::string dataset_name) {
-  auto compress_column = verification::apply_fls_compression_to_column<T>(
-      [](const T *in, T *out, const int32_t value_bit_width) -> void {
-        fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
-      });
-
-  auto decompress_column = [](const T *in, T *out,
-                              const int32_t value_bit_width,
-                              const size_t count) -> void {
-    fls::gpu::test::bitunpack_with_state<T>(in, out, count, value_bit_width);
-  };
-
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
 
@@ -79,28 +68,14 @@ verify_gpu_bitpacking_with_state(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_bp_data<T>(dataset_name), BP_FLSCompressorFn<T>(),
+          BP_GPUStatefulDecompressorFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_ffor(const size_t a_count, const std::string dataset_name) {
-  T temp_base = 125;
-  T *temp_base_p = &temp_base;
-
-  auto compress_column = verification::apply_fls_compression_to_column<T>(
-      [temp_base_p](const T *in, T *out,
-                    const int32_t value_bit_width) -> void {
-        fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), temp_base_p);
-      });
-
-  auto decompress_column = verification::apply_fls_decompression_to_column<T>(
-      [temp_base_p](const T *in, T *out,
-                    const int32_t value_bit_width) -> void {
-        fls::unffor(in, out, static_cast<uint8_t>(value_bit_width),
-                    temp_base_p);
-      });
+  T base = 125;
 
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
@@ -108,8 +83,8 @@ verify_ffor(const size_t a_count, const std::string dataset_name) {
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_ffor_data<T>(dataset_name, temp_base),
-          compress_column, decompress_column));
+          data::lambda::get_ffor_data<T>(dataset_name, base),
+          FFOR_FLSCompressorFn<T>(base), FFOR_FLSDecompressorFn<T>(base)));
 }
 
 template <typename T>

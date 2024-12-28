@@ -1,10 +1,10 @@
 #include <cstdint>
 
-#include "verification.hpp"
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
 #include "../gpu-fls/fls-test-kernels-bindings.hpp"
+#include "verification.hpp"
 
 #ifndef DECOMPRESSOR_H
 #define DECOMPRESSOR_H
@@ -28,7 +28,7 @@ void apply_fls_decompression_to_column(
   }
 }
 
-template <typename T> struct BP_FLS_DecompressorFn {
+template <typename T> struct BP_FLSDecompressorFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     apply_fls_decompression_to_column<T>(
@@ -39,10 +39,36 @@ template <typename T> struct BP_FLS_DecompressorFn {
   }
 };
 
-template <typename T, unsigned N_VECTORS_AT_A_TIME> struct BP_GPU_DecompressorFn {
+template <typename T> struct FFOR_FLSDecompressorFn {
+  T base;
+
+  FFOR_FLSDecompressorFn(T a_base) : base(a_base) {}
+
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    fls::gpu::test::bitunpack<T, N_VECTORS_AT_A_TIME>(a_in, a_out, a_count, a_value_bit_width);
+    T *base_p = &base;
+    apply_fls_decompression_to_column<T>(
+        a_in, a_out, a_value_bit_width, a_count,
+        [base_p](const T *in, T *out, const int32_t value_bit_width) -> void {
+          fls::unffor(in, out, static_cast<uint8_t>(value_bit_width), base_p);
+        });
+  }
+};
+
+template <typename T, unsigned N_VECTORS_AT_A_TIME>
+struct BP_GPUStatelessDecompressorFn {
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    fls::gpu::test::bitunpack<T, N_VECTORS_AT_A_TIME>(a_in, a_out, a_count,
+                                                      a_value_bit_width);
+  }
+};
+
+template <typename T> struct BP_GPUStatefulDecompressorFn {
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    fls::gpu::test::bitunpack_with_state<T>(a_in, a_out, a_count,
+                                            a_value_bit_width);
   }
 };
 

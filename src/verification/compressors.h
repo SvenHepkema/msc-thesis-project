@@ -7,6 +7,9 @@
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
 #include "../gpu-fls/fls-test-kernels-bindings.hpp"
 
+#ifndef COMPRESSORS_H
+#define COMPRESSORS_H
+
 template <typename T, typename CompressedT, typename CompressionParamsType>
 using CompressVectorFunction =
     std::function<void(const T *, CompressedT *, CompressionParamsType)>;
@@ -28,7 +31,7 @@ void apply_fls_compression_to_column(
   }
 }
 
-template <typename T> struct BP_FLS_CompressorFn {
+template <typename T> struct BP_FLSCompressorFn {
   void operator()(const T *a_in, T *&a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     apply_fls_compression_to_column<T>(
@@ -38,3 +41,21 @@ template <typename T> struct BP_FLS_CompressorFn {
         });
   }
 };
+
+template <typename T> struct FFOR_FLSCompressorFn {
+  T base;
+
+  FFOR_FLSCompressorFn(T a_base) : base(a_base) {}
+
+  void operator()(const T *a_in, T *&a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    T *base_p = &base;
+    apply_fls_compression_to_column<T>(
+        a_in, a_out, a_value_bit_width, a_count,
+        [base_p](const T *in, T *out, const int32_t value_bit_width) -> void {
+          fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), base_p);
+        });
+  }
+};
+
+#endif // COMPRESSORS_H

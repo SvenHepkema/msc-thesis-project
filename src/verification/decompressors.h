@@ -63,12 +63,12 @@ template <typename T> struct ALP_FLSDecompressorFn {
   }
 };
 
-template <typename T, unsigned N_VECTORS_AT_A_TIME>
+template <typename T, unsigned UNPACK_N_VECTORS>
 struct BP_GPUStatelessDecompressorFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    fls::gpu::test::bitunpack<T, N_VECTORS_AT_A_TIME>(a_in, a_out, a_count,
-                                                      a_value_bit_width);
+    fls::gpu::test::bitunpack<T, UNPACK_N_VECTORS>(a_in, a_out, a_count,
+                                                   a_value_bit_width);
   }
 };
 
@@ -108,12 +108,12 @@ template <typename T> struct ALP_GPUStatefulDecompressorFn {
   }
 };
 
-template <typename T, unsigned N_VECTORS_AT_A_TIME>
+template <typename T, unsigned UNPACK_N_VECTORS>
 struct ALP_GPUStatefulExtendedDecompressorFn {
   void operator()(const alp::AlpCompressionData<T> *in, T *out,
                   [[maybe_unused]] const int32_t value_bit_width,
                   [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_alp_vector_stateful_extended<T, N_VECTORS_AT_A_TIME>(
+    alp::gpu::test::decode_alp_vector_stateful_extended<T, UNPACK_N_VECTORS>(
         out, in);
   }
 };

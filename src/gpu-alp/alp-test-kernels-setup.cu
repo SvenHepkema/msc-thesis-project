@@ -14,27 +14,6 @@ namespace alp {
 namespace gpu {
 namespace test {
 
-template <typename T>
-void decode_complete_alp_vector(T *__restrict out,
-                                const alp::AlpCompressionData<T> *data) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  const auto count = data->size;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_blocks = n_vecs;
-
-  GPUArray<T> d_out(count);
-  AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
-  constant_memory::load_alp_constants<T>();
-
-  kernels::global::test::decode_complete_alp_vector<
-      T, UINT_T, 1, utils::get_values_per_lane<T>()>
-      <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
-  CUDA_SAFE_CALL(cudaDeviceSynchronize());
-
-  d_out.copy_to_host(out);
-	transfer::destroy_alp_column(gpu_alp_column);
-}
 
 template <typename T>
 void decode_alp_vector_into_lane(T *__restrict out,
@@ -150,10 +129,6 @@ void decode_complete_alprd_vector(T *__restrict out,
 } // namespace gpu
 } // namespace alp
 
-template void alp::gpu::test::decode_complete_alp_vector<float>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
-template void alp::gpu::test::decode_complete_alp_vector<double>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
 template void alp::gpu::test::decode_alp_vector_into_lane<float>(
     float *__restrict out, const alp::AlpCompressionData<float> *data);
 template void alp::gpu::test::decode_alp_vector_into_lane<double>(

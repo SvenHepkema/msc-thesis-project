@@ -76,12 +76,7 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return verifiers::verify_alp<T>(count, dataset_name);
        }},
-      {"gpu_alp_vec",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_into_vec<T>(count, dataset_name);
-       }},
-      {"gpu_alp_lane",
+     {"gpu_alp_lane",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verifiers::verify_gpu_alp_into_lane<T>(count, dataset_name);

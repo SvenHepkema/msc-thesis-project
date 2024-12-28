@@ -12,15 +12,14 @@
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
 #include "../gpu-fls/fls-test-kernels-bindings.hpp"
 
+#include "./compressors.h"
+#include "./decompressors.h"
+
 namespace verifiers {
 
 template <typename T>
 verification::VerificationResult<T>
 verify_bitpacking(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = verification::apply_fls_compression_to_column<T>(
-      [](const T *in, T *out, const int32_t value_bit_width) -> void {
-        fls::pack(in, out, static_cast<uint8_t>(value_bit_width));
-      });
 
   auto decompress_column = verification::apply_fls_decompression_to_column<T>(
       [](const T *in, T *out, const int32_t value_bit_width) -> void {
@@ -33,7 +32,7 @@ verify_bitpacking(const size_t a_count, const std::string dataset_name) {
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), compress_column,
+          data::lambda::get_bp_data<T>(dataset_name), FLSCompressionFn<T>(),
           decompress_column));
 }
 

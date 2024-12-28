@@ -26,8 +26,8 @@ __global__ void bitunpack(const T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    bitunpack_vector<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-                     UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
+    bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
+                                                           value_bit_width, i);
 
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       for (int w{0}; w < UNPACK_N_VALUES; ++w) {
@@ -81,8 +81,8 @@ __global__ void unffor(const T *__restrict in, T *__restrict out,
   out += vector_index * consts::VALUES_PER_VECTOR;
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unffor_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, i, base_p);
+    unffor_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        in, out, lane, value_bit_width, i, base_p);
     out += UNPACK_N_VALUES * mapping.N_LANES;
   }
 }

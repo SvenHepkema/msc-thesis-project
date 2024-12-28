@@ -86,8 +86,8 @@ __global__ void query_bp_contains_zero(const T *__restrict in,
   int16_t lane = mapping.get_lane();
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    bitunpack_vector<T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-                     UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i);
+    bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
+                                                           value_bit_width, i);
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
@@ -147,9 +147,8 @@ query_ffor_contains_zero(const T *__restrict in, T *__restrict out,
   T none_zero = 1;
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unffor_vector<T, UnpackingType::VectorArray, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, registers, lane, value_bit_width, i,
-                                   base_p);
+    unffor_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        in, registers, lane, value_bit_width, i, base_p);
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {

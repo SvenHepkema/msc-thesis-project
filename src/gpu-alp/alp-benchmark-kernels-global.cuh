@@ -60,8 +60,8 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   bool none_magic = true;
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers, data, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data,
+                                                        vector_index, lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
@@ -84,9 +84,8 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   T registers[N_VALUES];
   bool none_magic = true;
 
-  auto iterator =
-      OldUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(vector_index, lane, column);
+  auto iterator = OldUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      vector_index, lane, column);
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
@@ -115,8 +114,8 @@ __global__ void contains_magic_stateful_extended(T *out,
   bool none_magic = true;
 
   auto iterator =
-      ExtendedUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-                       UNPACK_N_VALUES>(vector_index, lane, column);
+      ExtendedUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+          vector_index, lane, column);
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
@@ -156,10 +155,10 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_0, column_0, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_1, column_1, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_0, column_0, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_1, column_1, vector_index, lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_equal &= registers_column_0[j] != registers_column_1[j];
@@ -196,12 +195,12 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_0, column_0, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_1, column_1, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_2, column_2, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_0, column_0, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_1, column_1, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_2, column_2, vector_index, lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_equal &= registers_column_0[j] != registers_column_1[j] &&
@@ -241,14 +240,14 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_0, column_0, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_1, column_1, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_2, column_2, vector_index, lane, i);
-    unalp<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-          UNPACK_N_VALUES>(registers_column_3, column_3, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_0, column_0, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_1, column_1, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_2, column_2, vector_index, lane, i);
+    unalp<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        registers_column_3, column_3, vector_index, lane, i);
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {

@@ -114,8 +114,8 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 // execution time. Check # executed instructions tho.
 // WARNING
 // WARNING
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
                       const uint16_t vector_index, const uint16_t lane,
                       const uint16_t start_index) {
@@ -142,7 +142,7 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
            frac10;
   };
 
-  unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 
   // Patch exceptions
@@ -156,32 +156,22 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
 
   const int first_pos = start_index * N_LANES + lane;
   const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
-  if (unpacking_type == UnpackingType::VectorArray) {
-    for (int i{lane}; i < exceptions_count; i += N_LANES) {
-      // WARNING Currently assumes that you are decoding an entire vector
-      // TODO Implement an if (position > startindex && position < (start_index
-      // + UNPACK_N_VALUES * n_lanes) {...}
-      auto position = vec_exceptions_positions[i];
-      out[position] = vec_exceptions[i];
-    }
-  } else if (unpacking_type == UnpackingType::LaneArray) {
-    for (int i{0}; i < exceptions_count; i++) {
-      auto position = vec_exceptions_positions[i];
-      auto exception = vec_exceptions[i];
-      if (position >= first_pos) {
-        if (position <= last_pos && position % N_LANES == lane) {
-          out[(position - first_pos) / N_LANES] = exception;
-        }
-        if (position + 1 > last_pos) {
-          return;
-        }
+  for (int i{0}; i < exceptions_count; i++) {
+    auto position = vec_exceptions_positions[i];
+    auto exception = vec_exceptions[i];
+    if (position >= first_pos) {
+      if (position <= last_pos && position % N_LANES == lane) {
+        out[(position - first_pos) / N_LANES] = exception;
+      }
+      if (position + 1 > last_pos) {
+        return;
       }
     }
   }
 }
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 __device__ void
 unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
                    const uint16_t vector_index, const uint16_t lane,
@@ -209,7 +199,7 @@ unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
            frac10;
   };
 
-  unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 
   // Patch exceptions
@@ -223,41 +213,31 @@ unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
 
   const int first_pos = start_index * N_LANES + lane;
   const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
-  if (unpacking_type == UnpackingType::VectorArray) {
-    for (int i{lane}; i < exceptions_count; i += N_LANES) {
-      // WARNING Currently assumes that you are decoding an entire vector
-      // TODO Implement an if (position > startindex && position < (start_index
-      // + UNPACK_N_VALUES * n_lanes) {...}
-      auto position = vec_exceptions_positions[i];
-      out[position] = vec_exceptions[i];
+  constexpr int32_t SCANNER_SIZE = 1;
+  uint16_t scanner[SCANNER_SIZE];
+
+  for (int i{0}; i < exceptions_count; i += SCANNER_SIZE) {
+
+    for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
+      scanner[j] = vec_exceptions_positions[j + i];
     }
-  } else if (unpacking_type == UnpackingType::LaneArray) {
-    constexpr int32_t SCANNER_SIZE = 1;
-    uint16_t scanner[SCANNER_SIZE];
 
-    for (int i{0}; i < exceptions_count; i += SCANNER_SIZE) {
-
-      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-        scanner[j] = vec_exceptions_positions[j + i];
-      }
-
-      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-        auto position = scanner[j];
-        if (position >= first_pos) {
-          if (position <= last_pos && position % N_LANES == lane) {
-            out[(position - first_pos) / N_LANES] = vec_exceptions[j + i];
-          }
-          if (position + 1 > last_pos) {
-            return;
-          }
+    for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
+      auto position = scanner[j];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = vec_exceptions[j + i];
+        }
+        if (position + 1 > last_pos) {
+          return;
         }
       }
     }
   }
 }
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 
 struct OldUnpacker {
   const int16_t vector_index;
@@ -292,9 +272,8 @@ struct OldUnpacker {
              frac10;
     };
 
-    unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
-                                   lambda);
+    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
@@ -308,30 +287,23 @@ struct OldUnpacker {
     const int first_pos = start_index * N_LANES + lane;
     const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
     start_index += UNPACK_N_VALUES;
-    if (unpacking_type == UnpackingType::VectorArray) {
-      for (int i{lane}; i < exceptions_count; i += N_LANES) {
-        auto position = vec_exceptions_positions[i];
-        out[position] = vec_exceptions[i];
-      }
-    } else if (unpacking_type == UnpackingType::LaneArray) {
-      for (; exception_index < exceptions_count; exception_index++) {
-        auto position = vec_exceptions_positions[exception_index];
-        auto exception = vec_exceptions[exception_index];
-        if (position >= first_pos) {
-          if (position <= last_pos && position % N_LANES == lane) {
-            out[(position - first_pos) / N_LANES] = exception;
-          }
-          if (position + 1 > last_pos) {
-            return;
-          }
+    for (; exception_index < exceptions_count; exception_index++) {
+      auto position = vec_exceptions_positions[exception_index];
+      auto exception = vec_exceptions[exception_index];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = exception;
+        }
+        if (position + 1 > last_pos) {
+          return;
         }
       }
     }
   }
 };
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 struct Unpacker {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
@@ -380,36 +352,33 @@ struct Unpacker {
              frac10;
     };
 
-    unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
-                                   lambda);
+    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
 
     const int first_pos = start_index * N_LANES + lane;
     const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
+
     start_index += UNPACK_N_VALUES;
-    if (unpacking_type == UnpackingType::VectorArray) {
-    } else if (unpacking_type == UnpackingType::LaneArray) {
-      for (; exception_index < vec_exceptions_count; exception_index++) {
-        auto position = vec_exceptions_positions[exception_index];
-        auto exception = vec_exceptions[exception_index];
-        if (position >= first_pos) {
-          if (position <= last_pos && position % N_LANES == lane) {
-            out[(position - first_pos) / N_LANES] = exception;
-          }
-          if (position + 1 > last_pos) {
-            return;
-          }
+    for (; exception_index < vec_exceptions_count; exception_index++) {
+      auto position = vec_exceptions_positions[exception_index];
+      auto exception = vec_exceptions[exception_index];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = exception;
+        }
+        if (position + 1 > last_pos) {
+          return;
         }
       }
     }
   }
 };
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 struct ExtendedUnpackerOld {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
@@ -490,9 +459,8 @@ struct ExtendedUnpackerOld {
              frac10;
     };
 
-    unpack_vector<T_in, T_out, unpacking_type, UNPACK_N_VECTORS,
-                  UNPACK_N_VALUES>(in, out, lane, value_bit_width, start_index,
-                                   lambda);
+    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+        in, out, lane, value_bit_width, start_index, lambda);
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
 
     // Patch exceptions
@@ -645,8 +613,8 @@ public:
   }
 };
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
   T_in *in;
   uint8_t value_bit_width;

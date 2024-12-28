@@ -8,197 +8,8 @@
 #ifndef FLS_CUH
 #define FLS_CUH
 
-enum UnpackingType { LaneArray, VectorArray };
-
-template <typename T, uint32_t OFFSET = 1, uint8_t BUFFER_SIZE = 4>
-struct FlexibleBufferReader {
-  T buffer[BUFFER_SIZE];
-  const T *ptr;
-  uint8_t index = BUFFER_SIZE;
-
-  __device__ __forceinline__ T get() { return buffer[index]; }
-
-  __device__ __forceinline__ void next() {
-    if (index >= BUFFER_SIZE) {
-      index = 0;
-
-#pragma unroll
-      for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
-        buffer[i] = *(ptr + i * OFFSET);
-      }
-
-      ptr += BUFFER_SIZE * OFFSET;
-    } else {
-      ++index;
-    }
-  }
-
-  __device__ __forceinline__ FlexibleBufferReader(const T *ptr) : ptr(ptr) {
-    next();
-  };
-};
-
-template <typename T, uint32_t OFFSET = 1, uint8_t BUFFER_SIZE = 4>
-struct FlexibleBufferReaderWithCurrent {
-  T buffer[BUFFER_SIZE];
-  T current;
-  const T *ptr;
-  uint8_t index = BUFFER_SIZE;
-
-  __device__ __forceinline__ T get() { return current; }
-
-  __device__ __forceinline__ void next() {
-    if (index >= BUFFER_SIZE) {
-      index = 0;
-
-#pragma unroll
-      for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
-        buffer[i] = *(ptr + i * OFFSET);
-      }
-
-      ptr += BUFFER_SIZE * OFFSET;
-    }
-
-    current = buffer[index];
-    ++index;
-  }
-
-  __device__ __forceinline__ FlexibleBufferReaderWithCurrent(const T *ptr)
-      : ptr(ptr) {
-    next();
-  };
-};
-
-template <typename T, uint32_t OFFSET = 1> struct FixedBufferReader {
-  T buffer[4];
-  const T *ptr;
-  uint8_t index = 4;
-
-  __device__ __forceinline__ T get() {
-    switch (index) {
-    case 0:
-      return buffer[0];
-    case 1:
-      return buffer[1];
-    case 2:
-      return buffer[2];
-    case 3:
-      return buffer[3];
-    }
-  }
-
-  __device__ __forceinline__ void next() {
-    if (index >= 4) {
-      index = 0;
-
-#pragma unroll
-      for (unsigned i{0}; i < 4; ++i) {
-        buffer[i] = *(ptr + i * OFFSET);
-      }
-
-      ptr += 4 * OFFSET;
-    } else {
-      index++;
-    }
-  }
-
-  __device__ __forceinline__ FixedBufferReader(const T *ptr) : ptr(ptr) {
-    next();
-  };
-};
-
-template <typename T, uint32_t OFFSET = 1, uint8_t BUFFER_SIZE = 4>
-struct BufferReader {
-  T buffer[BUFFER_SIZE];
-  T current;
-  const T *ptr;
-  uint8_t index = BUFFER_SIZE;
-
-  __device__ __forceinline__ T get() { return current; }
-
-  __device__ __forceinline__ void next() {
-    switch (index) {
-    case 0:
-      current = buffer[0];
-      index = 1;
-      break;
-    case 1:
-      current = buffer[1];
-      index = 2;
-      break;
-    case 2:
-      current = buffer[2];
-      index = 3;
-      break;
-    case 3:
-      current = buffer[3];
-      index = 4;
-      break;
-    default:
-#pragma unroll
-      for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
-        buffer[i] = *(ptr + i * OFFSET);
-        if (i == 0) {
-          current = buffer[i];
-        }
-      }
-
-      ptr += BUFFER_SIZE * OFFSET;
-      index = 0;
-      break;
-    }
-  }
-
-  __device__ __forceinline__ BufferReader(const T *ptr) : ptr(ptr) {
-    static_assert(BUFFER_SIZE == 4, "Buffer[4] reader has wrong size");
-    next();
-  };
-};
-
-template <typename T, uint32_t OFFSET = 1, uint8_t BUFFER_SIZE = 4>
-struct NoRefreshBufferReader {
-  T buffer[BUFFER_SIZE];
-  T current;
-  uint8_t index = 0;
-
-  __device__ __forceinline__ T get() { return current; }
-
-  __device__ __forceinline__ void next() {
-    switch (index) {
-    case 0:
-      current = buffer[0];
-      index = 1;
-      break;
-    case 1:
-      current = buffer[1];
-      index = 2;
-      break;
-    case 2:
-      current = buffer[2];
-      index = 3;
-      break;
-    case 3:
-      current = buffer[3];
-      index = 4;
-      break;
-    }
-  }
-
-  __device__ __forceinline__ NoRefreshBufferReader(const T *ptr) {
-    static_assert(BUFFER_SIZE == 4, "Buffer[4] reader has wrong size");
-#pragma unroll
-    for (unsigned i{0}; i < BUFFER_SIZE; ++i) {
-      buffer[i] = *(ptr + i * OFFSET);
-      if (i == 0) {
-        current = buffer[i];
-      }
-    }
-  };
-};
-
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename lambda_T>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector_old(const T_in *__restrict in,
                                   T_out *__restrict out, const uint16_t lane,
                                   const uint16_t value_bit_width,
@@ -229,7 +40,6 @@ __device__ void unpack_vector_old(const T_in *__restrict in,
   for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
     line_buffer[v] = *(in + n_input_line * N_LANES + v * encoded_vector_offset);
   }
-  out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
   n_input_line++;
 
   T_in value[UNPACK_N_VECTORS];
@@ -277,13 +87,12 @@ __device__ void unpack_vector_old(const T_in *__restrict in,
     for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
       *(out + v * UNPACK_N_VALUES) = lambda(value[v]);
     }
-    out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
+    ++out;
   }
 }
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename lambda_T>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector_alp(const T_in *__restrict in,
                                   T_out *__restrict out, const uint16_t lane,
                                   const uint16_t value_bit_width,
@@ -312,7 +121,6 @@ __device__ void unpack_vector_alp(const T_in *__restrict in,
   for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
     line_buffer[v] = *(in + n_input_line * N_LANES + v * encoded_vector_offset);
   }
-  out += unpacking_type == UnpackingType::VectorArray ? lane : 0;
   n_input_line++;
 
   T_in value[UNPACK_N_VECTORS];
@@ -360,7 +168,7 @@ __device__ void unpack_vector_alp(const T_in *__restrict in,
     for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
       *(out + v * UNPACK_N_VALUES) = lambda(value[v]);
     }
-    out += unpacking_type == UnpackingType::VectorArray ? N_LANES : 1;
+    ++out;
   }
 }
 
@@ -481,9 +289,8 @@ struct BitUnpacker {
   }
 };
 
-template <typename T_in, typename T_out, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename lambda_T>
+template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
                               const uint16_t lane,
                               const uint16_t value_bit_width,
@@ -526,37 +333,35 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
   }
 }
 
-template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 __device__ void
 bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
                  const uint16_t value_bit_width, const uint16_t start_index) {
   auto lambda = [=](const T value) -> T { return value; };
-  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 }
 
-template <typename T, UnpackingType unpacking_type, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 __device__ void
 unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
               const uint16_t value_bit_width, const uint16_t start_index,
               const T *__restrict a_base_p) {
   T base = *a_base_p;
   auto lambda = [base](const T value) -> T { return value + base; };
-  unpack_vector<T, T, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 }
 
-template <typename T, typename T_dict, UnpackingType unpacking_type,
-          unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+template <typename T, typename T_dict, unsigned UNPACK_N_VECTORS,
+          unsigned UNPACK_N_VALUES>
 __device__ void
 undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
               const uint16_t value_bit_width, const uint16_t start_index,
               const T *__restrict a_base_p, const T_dict *__restrict dict) {
   T base = *a_base_p;
   auto lambda = [base, dict](const T value) -> T { return dict[value + base]; };
-  unpack_vector<T, T_dict, unpacking_type, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T, T_dict, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 }
 

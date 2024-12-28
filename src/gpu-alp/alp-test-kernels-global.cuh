@@ -1,8 +1,8 @@
 #include <cstdint>
 
-#include "alp.cuh"
 #include "../common/utils.hpp"
 #include "../gpu-common/gpu-device-utils.cuh"
+#include "alp.cuh"
 
 #ifndef ALP_TEST_KERNELS_GLOBAL_CUH
 #define ALP_TEST_KERNELS_GLOBAL_CUH
@@ -61,9 +61,10 @@ __global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> data) {
   }
 }
 
-
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_stateful_extended(T *out, AlpExtendedColumn<T> data) {
+template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
+          int UNPACK_N_VALUES>
+__global__ void decode_alp_vector_stateful_extended(T *out,
+                                                    AlpExtendedColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const int16_t lane = mapping.get_lane();
@@ -75,7 +76,7 @@ __global__ void decode_alp_vector_stateful_extended(T *out, AlpExtendedColumn<T>
 
   auto iterator =
       ExtendedUnpacker<UINT_T, T, UnpackingType::LaneArray, UNPACK_N_VECTORS,
-               UNPACK_N_VALUES>(vector_index, lane, data);
+                       UNPACK_N_VALUES>(vector_index, lane, data);
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);

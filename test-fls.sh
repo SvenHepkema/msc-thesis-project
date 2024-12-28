@@ -1,4 +1,4 @@
-COMPRESSIONS_TO_VERIFY="bp ffor gpu_bp gpu_bp_state gpu_bp_multivec gpu_unffor"
+COMPRESSIONS_TO_VERIFY="bp ffor gpu_bp_stateless gpu_bp_stateless_multivec gpu_bp_stateful gpu_unffor"
 VECTOR_COUNT=1024
 
 LOG_FILE=/tmp/log

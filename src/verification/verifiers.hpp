@@ -33,7 +33,7 @@ verify_bitpacking(const size_t a_count, const std::string dataset_name) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
+verify_gpu_bp_stateless(const size_t a_count, const std::string dataset_name) {
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
 
@@ -47,7 +47,7 @@ verify_gpu_bitpacking(const size_t a_count, const std::string dataset_name) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bitpacking_multivec(const size_t a_count,
+verify_gpu_bp_stateful_multivec(const size_t a_count,
                                const std::string dataset_name) {
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
@@ -61,7 +61,7 @@ verify_gpu_bitpacking_multivec(const size_t a_count,
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bitpacking_with_state(const size_t a_count,
+verify_gpu_bp_stateful(const size_t a_count,
                                  const std::string dataset_name) {
   auto value_bit_widths =
       verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);

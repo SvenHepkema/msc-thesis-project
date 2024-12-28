@@ -17,20 +17,20 @@ template <class T> struct Fastlanes {
            -> verification::VerificationResult<T> {
          return verifiers::verify_bitpacking<T>(count, dataset_name);
        }},
-      {"gpu_bp",
+      {"gpu_bp_stateless",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bitpacking<T>(count, dataset_name);
+         return verifiers::verify_gpu_bp_stateless<T>(count, dataset_name);
        }},
-      {"gpu_bp_state",
+      {"gpu_bp_stateless_multivec",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bitpacking_with_state<T>(count, dataset_name);
+         return verifiers::verify_gpu_bp_stateful_multivec<T>(count, dataset_name);
        }},
-      {"gpu_bp_multivec",
+      {"gpu_bp_stateful",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bitpacking_multivec<T>(count, dataset_name);
+         return verifiers::verify_gpu_bp_stateful<T>(count, dataset_name);
        }},
       {"ffor",
        [](const size_t count, const std::string dataset_name)

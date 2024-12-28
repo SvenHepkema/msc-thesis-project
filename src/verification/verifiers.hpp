@@ -45,7 +45,7 @@ verify_gpu_bp_stateless(const size_t a_count, const std::string dataset_name) {
           BP_GPUStatelessDecompressorFn<T, 1>()));
 }
 
-template <typename T>
+template <typename T, unsigned N_VECTORS_AT_A_TIME>
 verification::VerificationResult<T>
 verify_gpu_bp_stateful_multivec(const size_t a_count,
                                 const std::string dataset_name) {
@@ -56,7 +56,7 @@ verify_gpu_bp_stateful_multivec(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, a_count,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_bp_data<T>(dataset_name), BP_FLSDecompressorFn<T>(),
-          BP_GPUStatelessDecompressorFn<T, 4>()));
+          BP_GPUStatelessDecompressorFn<T, N_VECTORS_AT_A_TIME>()));
 }
 
 template <typename T>

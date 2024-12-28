@@ -50,6 +50,19 @@ extern template void fls::gpu::test::bitunpack_with_state<uint64_t, 1>(
     const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 
+extern template void fls::gpu::test::bitunpack<uint8_t, 2>(
+    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint16_t, 2>(
+    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint32_t, 2>(
+    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void fls::gpu::test::bitunpack<uint64_t, 2>(
+    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+
 extern template void fls::gpu::test::bitunpack<uint8_t, 4>(
     const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
     const int32_t value_bit_width);

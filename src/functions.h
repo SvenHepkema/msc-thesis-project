@@ -22,10 +22,17 @@ template <class T> struct Fastlanes {
            -> verification::VerificationResult<T> {
          return verifiers::verify_gpu_bp_stateless<T>(count, dataset_name);
        }},
-      {"gpu_bp_stateless_multivec",
+      {"gpu_bp_stateless_2vec",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp_stateful_multivec<T>(count, dataset_name);
+         return verifiers::verify_gpu_bp_stateful_multivec<T, 2>(count,
+                                                                 dataset_name);
+       }},
+      {"gpu_bp_stateless_4vec",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verifiers::verify_gpu_bp_stateful_multivec<T, 2>(count,
+                                                                 dataset_name);
        }},
       {"gpu_bp_stateful",
        [](const size_t count, const std::string dataset_name)
@@ -45,8 +52,7 @@ template <class T> struct Fastlanes {
       {"bench_int_baseline",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_int_baseline<T>(
-             count, dataset_name);
+         return benchmarkers::bench_int_baseline<T>(count, dataset_name);
        }},
       {"bench_old_fls_vbw",
        [](const size_t count, const std::string dataset_name)
@@ -63,8 +69,8 @@ template <class T> struct Fastlanes {
       {"bench_bp_stateful_vbw",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_bp_stateful_contains_zero_value_bitwidths<T>(
-             count, dataset_name);
+         return benchmarkers::bench_bp_stateful_contains_zero_value_bitwidths<
+             T>(count, dataset_name);
        }},
   };
 };
@@ -76,7 +82,7 @@ template <class T> struct Alp {
            -> verification::VerificationResult<T> {
          return verifiers::verify_alp<T>(count, dataset_name);
        }},
-     {"gpu_alp_stateless",
+      {"gpu_alp_stateless",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verifiers::verify_gpu_alp_stateless<T>(count, dataset_name);
@@ -89,17 +95,20 @@ template <class T> struct Alp {
       {"gpu_alp_extended_state",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_stateful_extended<T>(count, dataset_name);
+         return verifiers::verify_gpu_alp_stateful_extended<T>(count,
+                                                               dataset_name);
        }},
       {"gpu_alp_extended_state_2vec",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 2>(count, dataset_name);
+         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 2>(
+             count, dataset_name);
        }},
       {"gpu_alp_extended_state_4vec",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 4>(count, dataset_name);
+         return verifiers::verify_gpu_alp_stateful_extended_multivec<T, 4>(
+             count, dataset_name);
        }},
       {"alprd",
        [](const size_t count, const std::string dataset_name)
@@ -114,23 +123,25 @@ template <class T> struct Alp {
       {"bench_float_baseline",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_float_baseline<T>(
-             count, dataset_name);
+         return benchmarkers::bench_float_baseline<T>(count, dataset_name);
        }},
       {"bench_alp_exception_count",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_varying_exception_count<T>(count, dataset_name);
+         return benchmarkers::bench_alp_varying_exception_count<T>(
+             count, dataset_name);
        }},
       {"bench_alp_value_bit_width",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_varying_value_bit_width<T>(count, dataset_name);
+         return benchmarkers::bench_alp_varying_value_bit_width<T>(
+             count, dataset_name);
        }},
       {"bench_alp_multiple_columns",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_alp_multiple_columns<T>(count, dataset_name);
+         return benchmarkers::bench_alp_multiple_columns<T>(count,
+                                                            dataset_name);
        }},
   };
 };

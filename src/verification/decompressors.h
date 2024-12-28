@@ -108,13 +108,30 @@ template <typename T> struct ALP_GPUStatefulDecompressorFn {
   }
 };
 
-template <typename T, unsigned N_VECTORS_AT_A_TIME> struct ALP_GPUStatefulExtendedDecompressorFn {
+template <typename T, unsigned N_VECTORS_AT_A_TIME>
+struct ALP_GPUStatefulExtendedDecompressorFn {
   void operator()(const alp::AlpCompressionData<T> *in, T *out,
                   [[maybe_unused]] const int32_t value_bit_width,
                   [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_alp_vector_stateful_extended<T, N_VECTORS_AT_A_TIME>(out, in);
+    alp::gpu::test::decode_alp_vector_stateful_extended<T, N_VECTORS_AT_A_TIME>(
+        out, in);
   }
 };
 
+template <typename T> struct ALPrd_FLSDecompressorFn {
+  void operator()(const alp::AlpRdCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    alp::rd_decode<T>(out, in);
+  }
+};
+
+template <typename T> struct ALPrd_GPUStatelessDecompressorFn {
+  void operator()(const alp::AlpRdCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    alp::gpu::test::decode_complete_alprd_vector<T>(out, in);
+  }
+};
 
 #endif // DECOMPRESSOR_H

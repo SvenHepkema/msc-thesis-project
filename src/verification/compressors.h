@@ -67,4 +67,13 @@ template <typename T> struct ALP_FLSCompressorFn {
   }
 };
 
+template <typename T> struct ALPrd_FLSCompressorFn {
+  void operator()(const T *in, alp::AlpRdCompressionData<T> *&out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  const size_t count) {
+    out = new alp::AlpRdCompressionData<T>(count);
+    alp::rd_encode<T>(in, count, out);
+  }
+};
+
 #endif // COMPRESSORS_H

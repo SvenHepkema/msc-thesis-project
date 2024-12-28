@@ -201,19 +201,6 @@ verify_gpu_alp_stateful_extended_multivec(const size_t a_count,
 template <typename T>
 verification::VerificationResult<T>
 verify_alprd(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new alp::AlpRdCompressionData<T>(count);
-    alp::rd_encode<T>(in, count, out);
-  };
-
-  auto decompress_column = [](const alp::AlpRdCompressionData<T> *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              [[maybe_unused]] const size_t count) -> void {
-    alp::rd_decode<T>(out, in);
-  };
-
   std::vector<int32_t> parameters({0});
 
   return verification::run_verifier_on_parameters<
@@ -221,26 +208,13 @@ verify_alprd(const size_t a_count, const std::string dataset_name) {
       parameters, parameters, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alprd_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_alprd_data<T>(dataset_name), ALPrd_FLSCompressorFn<T>(),
+          ALPrd_FLSDecompressorFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
-  auto compress_column = [](const T *in, alp::AlpRdCompressionData<T> *&out,
-                            [[maybe_unused]] const int32_t value_bit_width,
-                            const size_t count) -> void {
-    out = new alp::AlpRdCompressionData<T>(count);
-    alp::rd_encode<T>(in, count, out);
-  };
-
-  auto decompress_column = [](const alp::AlpRdCompressionData<T> *in, T *out,
-                              [[maybe_unused]] const int32_t value_bit_width,
-                              [[maybe_unused]] const size_t count) -> void {
-    alp::gpu::test::decode_complete_alprd_vector<T>(out, in);
-  };
-
   std::vector<int32_t> parameters({0});
 
   return verification::run_verifier_on_parameters<
@@ -248,8 +222,8 @@ verify_gpu_alprd(const size_t a_count, const std::string dataset_name) {
       parameters, parameters, a_count, a_count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpRdCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alprd_data<T>(dataset_name), compress_column,
-          decompress_column));
+          data::lambda::get_alprd_data<T>(dataset_name), ALPrd_FLSCompressorFn<T>(),
+          ALPrd_GPUStatelessDecompressorFn<T>()));
 }
 
 } // namespace verifiers

@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include "../common/utils.hpp"
+#include "../gpu-common/gpu-device-types.cuh"
 
 #ifndef FLS_CUH
 #define FLS_CUH
@@ -11,9 +12,9 @@
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector_old(const T_in *__restrict in,
-                                  T_out *__restrict out, const uint16_t lane,
-                                  const uint16_t value_bit_width,
-                                  const uint16_t start_index, lambda_T lambda) {
+                                  T_out *__restrict out, const lane_t lane,
+                                  const vbw_t value_bit_width,
+                                  const si_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -94,9 +95,9 @@ __device__ void unpack_vector_old(const T_in *__restrict in,
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector_alp(const T_in *__restrict in,
-                                  T_out *__restrict out, const uint16_t lane,
-                                  const uint16_t value_bit_width,
-                                  const uint16_t start_index, lambda_T lambda) {
+                                  T_out *__restrict out, const lane_t lane,
+                                  const vbw_t value_bit_width,
+                                  const si_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -196,16 +197,16 @@ template <typename T, unsigned UNPACK_N_VECTORS> struct SimpleLoader {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS> struct Masker {
-  const uint16_t value_bit_width;
+  const vbw_t value_bit_width;
   const T value_mask;
   uint16_t buffer_offset = 0;
 
-  __device__ __forceinline__ Masker(const uint16_t value_bit_width)
+  __device__ __forceinline__ Masker(const vbw_t value_bit_width)
       : value_bit_width(value_bit_width),
         value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
 
   __device__ __forceinline__ Masker(const uint16_t buffer_offset,
-                                    const uint16_t value_bit_width)
+                                    const vbw_t value_bit_width)
       : buffer_offset(buffer_offset), value_bit_width(value_bit_width),
         value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
 
@@ -256,8 +257,8 @@ struct BitUnpacker {
   const OutputProcessor processor;
 
   __device__ __forceinline__ BitUnpacker(const T_in *__restrict in,
-                                         const uint16_t lane,
-                                         const uint16_t value_bit_width,
+                                         const lane_t lane,
+                                         const vbw_t value_bit_width,
                                          OutputProcessor processor)
       : loader(in + lane,
                utils::get_compressed_vector_size<T_in>(value_bit_width)),
@@ -292,9 +293,9 @@ struct BitUnpacker {
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES, typename lambda_T>
 __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
-                              const uint16_t lane,
-                              const uint16_t value_bit_width,
-                              const uint16_t start_index, lambda_T lambda) {
+                              const lane_t lane,
+                              const vbw_t value_bit_width,
+                              const si_t start_index, lambda_T lambda) {
   static_assert(std::is_unsigned<T_in>::value,
                 "Packing function only supports unsigned types. Cast signed "
                 "arrays to unsigned equivalent.");
@@ -335,8 +336,8 @@ __device__ void unpack_vector(const T_in *__restrict in, T_out *__restrict out,
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 __device__ void
-bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-                 const uint16_t value_bit_width, const uint16_t start_index) {
+bitunpack_vector(const T *__restrict in, T *__restrict out, const lane_t lane,
+                 const vbw_t value_bit_width, const si_t start_index) {
   auto lambda = [=](const T value) -> T { return value; };
   unpack_vector<T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
@@ -344,8 +345,8 @@ bitunpack_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 __device__ void
-unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index,
+unffor_vector(const T *__restrict in, T *__restrict out, const lane_t lane,
+              const vbw_t value_bit_width, const si_t start_index,
               const T *__restrict a_base_p) {
   T base = *a_base_p;
   auto lambda = [base](const T value) -> T { return value + base; };
@@ -356,8 +357,8 @@ unffor_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
 template <typename T, typename T_dict, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 __device__ void
-undict_vector(const T *__restrict in, T *__restrict out, const uint16_t lane,
-              const uint16_t value_bit_width, const uint16_t start_index,
+undict_vector(const T *__restrict in, T *__restrict out, const lane_t lane,
+              const vbw_t value_bit_width, const si_t start_index,
               const T *__restrict a_base_p, const T_dict *__restrict dict) {
   T base = *a_base_p;
   auto lambda = [base, dict](const T value) -> T { return dict[value + base]; };

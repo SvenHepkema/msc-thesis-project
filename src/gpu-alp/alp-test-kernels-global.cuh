@@ -17,7 +17,7 @@ template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
 __global__ void decode_alp_vector_stateless(T *out, AlpColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
@@ -40,7 +40,7 @@ template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
 __global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
@@ -66,7 +66,7 @@ __global__ void decode_alp_vector_stateful_extended(T *out,
                                                     AlpExtendedColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   out += vector_index * consts::VALUES_PER_VECTOR;

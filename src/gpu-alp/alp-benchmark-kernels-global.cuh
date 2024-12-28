@@ -16,7 +16,7 @@ __global__ void decode_baseline(T *out, const T *in,
                                 const int n_values_in_lane) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   in += vector_index * consts::VALUES_PER_VECTOR;
@@ -53,7 +53,7 @@ template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
 __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
@@ -78,7 +78,7 @@ template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
 __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
@@ -107,7 +107,7 @@ __global__ void contains_magic_stateful_extended(T *out,
                                                  AlpExtendedColumn<T> column) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
+  const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
@@ -140,7 +140,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
 
-  const int16_t lane = threadIdx.x % N_LANES;
+  const lane_t lane = threadIdx.x % N_LANES;
   const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
   const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
   const int32_t block_index = blockIdx.x;
@@ -179,7 +179,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
 
-  const int16_t lane = threadIdx.x % N_LANES;
+  const lane_t lane = threadIdx.x % N_LANES;
   const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
   const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
   const int32_t block_index = blockIdx.x;
@@ -223,7 +223,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
 
-  const int16_t lane = threadIdx.x % N_LANES;
+  const lane_t lane = threadIdx.x % N_LANES;
   const int32_t warps_per_block = blockDim.x / consts::THREADS_PER_WARP;
   const int16_t warp_index = threadIdx.x / consts::THREADS_PER_WARP;
   const int32_t block_index = blockIdx.x;

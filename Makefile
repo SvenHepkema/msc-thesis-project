@@ -12,10 +12,10 @@ CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
 
-FLS_TEST_FILES=src/gpu-fls/fls-test-kernels-bindings.hpp src/gpu-fls/fls-test-kernels-global.cuh src/gpu-fls/fls-test-kernels-setup.cu src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh
-FLS_BENCHMARK_FILES=src/gpu-fls/fls-benchmark-kernels-bindings.hpp src/gpu-fls/fls-benchmark-kernels-global.cuh src/gpu-fls/fls-benchmark-kernels-setup.cu src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh
-ALP_TEST_FILES=src/gpu-alp/alp-test-kernels-bindings.hpp src/gpu-alp/alp-test-kernels-global.cuh src/gpu-alp/alp-test-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh
-ALP_BENCHMARK_FILES=src/gpu-alp/alp-benchmark-kernels-bindings.hpp src/gpu-alp/alp-benchmark-kernels-global.cuh src/gpu-alp/alp-benchmark-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh  src/gpu-common/gpu-device-utils.cuh
+FLS_TEST_FILES=src/gpu-fls/fls-test-kernels-bindings.hpp src/gpu-fls/fls-test-kernels-global.cuh src/gpu-fls/fls-test-kernels-setup.cu src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
+FLS_BENCHMARK_FILES=src/gpu-fls/fls-benchmark-kernels-bindings.hpp src/gpu-fls/fls-benchmark-kernels-global.cuh src/gpu-fls/fls-benchmark-kernels-setup.cu src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
+ALP_TEST_FILES=src/gpu-alp/alp-test-kernels-bindings.hpp src/gpu-alp/alp-test-kernels-global.cuh src/gpu-alp/alp-test-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
+ALP_BENCHMARK_FILES=src/gpu-alp/alp-benchmark-kernels-bindings.hpp src/gpu-alp/alp-benchmark-kernels-global.cuh src/gpu-alp/alp-benchmark-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh  src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
 
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))

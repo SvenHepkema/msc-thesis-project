@@ -14,11 +14,11 @@ namespace test {
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack(const T *__restrict in, T *__restrict out,
-                          int32_t value_bit_width) {
+                          vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
-  const int32_t vector_index = mapping.get_vector_index();
+  const lane_t lane = mapping.get_lane();
+  const vi_t vector_index = mapping.get_vector_index();
 
   in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
   out += vector_index * consts::VALUES_PER_VECTOR;
@@ -40,11 +40,11 @@ __global__ void bitunpack(const T *__restrict in, T *__restrict out,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
-                                     int32_t value_bit_width) {
+                                     vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
-  const int32_t vector_index = mapping.get_vector_index();
+  const lane_t lane = mapping.get_lane();
+  const vi_t vector_index = mapping.get_vector_index();
 
   T registers[N_VALUES];
   out += vector_index * consts::VALUES_PER_VECTOR;
@@ -72,10 +72,10 @@ __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void unffor(const T *__restrict in, T *__restrict out,
-                       int32_t value_bit_width, const T *__restrict base_p) {
+                       vbw_t value_bit_width, const T *__restrict base_p) {
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const int16_t lane = mapping.get_lane();
-  const int32_t vector_index = mapping.get_vector_index();
+  const lane_t lane = mapping.get_lane();
+  const vi_t vector_index = mapping.get_vector_index();
 
   in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
   out += vector_index * consts::VALUES_PER_VECTOR;

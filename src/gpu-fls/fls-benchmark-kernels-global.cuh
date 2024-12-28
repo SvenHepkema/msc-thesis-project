@@ -45,7 +45,7 @@ __global__ void query_baseline_contains_zero(const T *__restrict in,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void query_old_fls_contains_zero(const T *__restrict in,
                                             T *__restrict out,
-                                            int32_t value_bit_width) {
+                                            vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
 
@@ -55,7 +55,7 @@ __global__ void query_old_fls_contains_zero(const T *__restrict in,
   T registers[N_VALUES];
   T none_zero = 1;
 
-  // const int16_t lane = threadIdx.x % N_LANES;
+  // const lane_t lane = threadIdx.x % N_LANES;
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     oldfls::original::unpack(in, registers, value_bit_width);
     // oldfls::adjusted::unpack(in + lane, registers, value_bit_width);
@@ -74,7 +74,7 @@ __global__ void query_old_fls_contains_zero(const T *__restrict in,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void query_bp_contains_zero(const T *__restrict in,
                                        T *__restrict out,
-                                       int32_t value_bit_width) {
+                                       vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
 
@@ -83,7 +83,7 @@ __global__ void query_bp_contains_zero(const T *__restrict in,
 
   T registers[N_VALUES];
   T none_zero = 1;
-  int16_t lane = mapping.get_lane();
+  lane_t lane = mapping.get_lane();
 
   for (int i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
@@ -103,7 +103,7 @@ __global__ void query_bp_contains_zero(const T *__restrict in,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void query_bp_stateful_contains_zero(const T *__restrict in,
                                                 T *__restrict out,
-                                                int32_t value_bit_width) {
+                                                vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
 
@@ -112,7 +112,7 @@ __global__ void query_bp_stateful_contains_zero(const T *__restrict in,
 
   T registers[N_VALUES];
   T none_zero = 1;
-  int16_t lane = mapping.get_lane();
+  lane_t lane = mapping.get_lane();
 
   using UINT_T = typename utils::same_width_uint<T>::type;
   BitUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
@@ -135,10 +135,10 @@ __global__ void query_bp_stateful_contains_zero(const T *__restrict in,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void
 query_ffor_contains_zero(const T *__restrict in, T *__restrict out,
-                         int32_t value_bit_width, const T *__restrict base_p) {
+                         vbw_t value_bit_width, const T *__restrict base_p) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  int16_t lane = mapping.get_lane();
+  lane_t lane = mapping.get_lane();
 
   in += mapping.get_vector_index() *
         utils::get_compressed_vector_size<T>(value_bit_width);

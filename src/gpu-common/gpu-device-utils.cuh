@@ -1,5 +1,6 @@
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
+#include "gpu-device-types.cuh"
 
 #ifndef GPU_DEVICE_UTILS_CUH
 #define GPU_DEVICE_UTILS_CUH
@@ -9,11 +10,11 @@ struct VectorToThreadMapping {
   static constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
   static constexpr uint32_t N_VALUES_IN_LANE = utils::get_values_per_lane<T>();
 
-  __device__ __forceinline__ int16_t get_lane() const {
+  __device__ __forceinline__ lane_t get_lane() const {
     return threadIdx.x % N_LANES;
   }
 
-  __device__ __forceinline__ int32_t get_vector_index() const {
+  __device__ __forceinline__ vi_t get_vector_index() const {
 		// Concurrent vectors per block: how many vectors can be processed
 		// by the block simultaneously, assuming that each thread is 1 lane
 

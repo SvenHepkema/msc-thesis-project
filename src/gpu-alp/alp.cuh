@@ -117,8 +117,8 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
-                      const uint16_t vector_index, const uint16_t lane,
-                      const uint16_t start_index) {
+                      const vi_t vector_index, const lane_t lane,
+                      const si_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
@@ -128,7 +128,7 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
   using UINT_T = typename utils::same_width_int<T_out>::type;
 
   T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-  uint16_t value_bit_width = column.bit_widths[vector_index];
+  vbw_t value_bit_width = column.bit_widths[vector_index];
   UINT_T base = column.ffor_bases[vector_index];
   INT_T factor =
       constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
@@ -174,8 +174,8 @@ template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 __device__ void
 unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
-                   const uint16_t vector_index, const uint16_t lane,
-                   const uint16_t start_index) {
+                   const vi_t vector_index, const lane_t lane,
+                   const si_t start_index) {
   static_assert((std::is_same<T_in, uint32_t>::value &&
                  std::is_same<T_out, float>::value) ||
                     (std::is_same<T_in, uint64_t>::value &&
@@ -185,7 +185,7 @@ unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
   using UINT_T = typename utils::same_width_int<T_out>::type;
 
   T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-  uint16_t value_bit_width = column.bit_widths[vector_index];
+  vbw_t value_bit_width = column.bit_widths[vector_index];
   UINT_T base = column.ffor_bases[vector_index];
   INT_T factor =
       constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
@@ -240,13 +240,13 @@ template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 
 struct OldUnpacker {
-  const int16_t vector_index;
-  const uint16_t lane;
+  const vi_t vector_index;
+  const lane_t lane;
   const AlpColumn<T_out> column;
-  int32_t start_index = 0;
+  si_t start_index = 0;
   int32_t exception_index = 0;
 
-  __device__ OldUnpacker(const uint16_t vector_index, const uint16_t lane,
+  __device__ OldUnpacker(const vi_t vector_index, const lane_t lane,
                          const AlpColumn<T_out> column)
       : vector_index(vector_index), lane(lane), column(column) {}
 
@@ -260,7 +260,7 @@ struct OldUnpacker {
     using UINT_T = typename utils::same_width_int<T_out>::type;
 
     T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-    uint16_t value_bit_width = column.bit_widths[vector_index];
+    vbw_t value_bit_width = column.bit_widths[vector_index];
     UINT_T base = column.ffor_bases[vector_index];
     INT_T factor =
         constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
@@ -308,13 +308,13 @@ struct Unpacker {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
 
-  const uint16_t lane;
-  int32_t start_index = 0;
+  const lane_t lane;
+  si_t start_index = 0;
   int32_t exception_index = 0;
 
   T_in *in;
   UINT_T base;
-  uint8_t value_bit_width;
+  vbw_t value_bit_width;
   INT_T factor;
   T_out frac10;
 
@@ -322,7 +322,7 @@ struct Unpacker {
   uint16_t *vec_exceptions_positions;
   T_out *vec_exceptions;
 
-  __device__ Unpacker(const uint16_t vector_index, const uint16_t lane,
+  __device__ Unpacker(const vi_t vector_index, const lane_t lane,
                       const AlpColumn<T_out> column)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
@@ -383,12 +383,12 @@ struct ExtendedUnpackerOld {
   using INT_T = typename utils::same_width_int<T_out>::type;
   using UINT_T = typename utils::same_width_uint<T_out>::type;
 
-  const uint16_t lane;
-  int32_t start_index = 0;
+  const lane_t lane;
+  si_t start_index = 0;
 
   T_in *in;
   UINT_T base;
-  uint8_t value_bit_width;
+  vbw_t value_bit_width;
   INT_T factor;
   T_out frac10;
 
@@ -423,7 +423,7 @@ struct ExtendedUnpackerOld {
   }
 
   __device__ __forceinline__
-  ExtendedUnpackerOld(const uint16_t vector_index, const uint16_t lane,
+  ExtendedUnpackerOld(const vi_t vector_index, const lane_t lane,
                       const AlpExtendedColumn<T_out> column)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
@@ -510,7 +510,7 @@ private:
 public:
   __device__ __forceinline__ SimpleALPExceptionPatcher(
       const uint16_t *offset_counts, uint16_t *vec_exceptions_positions,
-      T *vec_exceptions, const uint16_t lane)
+      T *vec_exceptions, const lane_t lane)
       : position(lane) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
@@ -617,14 +617,14 @@ template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
           unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
   T_in *in;
-  uint8_t value_bit_width;
+  vbw_t value_bit_width;
 
   BitUnpacker<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T_out>>
       bit_unpacker;
   SimpleALPExceptionPatcher<T_out, UNPACK_N_VECTORS> patcher;
 
   __device__ __forceinline__
-  ExtendedUnpacker(const uint16_t vector_index, const uint16_t lane,
+  ExtendedUnpacker(const vi_t vector_index, const lane_t lane,
                    const AlpExtendedColumn<T_out> column)
       : value_bit_width(column.bit_widths[vector_index]),
         in(column.ffor_array + consts::VALUES_PER_VECTOR * vector_index),

@@ -5,8 +5,12 @@ OPTIMIZATION_LEVEL = -O3
 CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-float-equal -Wno-global-constructors -Wno-exit-time-destructors 
 
+#3033-D: inline variables are a C++17 feature
+#3356-D: structured bindings are a C++17 feature
+NVCC_IGNORE_ERR_NUMBERS=3033,3356
+CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
-CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr 
+CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
 
 FLS_TEST_FILES=src/gpu-fls/fls-test-kernels-bindings.hpp src/gpu-fls/fls-test-kernels-global.cuh src/gpu-fls/fls-test-kernels-setup.cu src/gpu-fls/fls.cuh 
 FLS_BENCHMARK_FILES=src/gpu-fls/fls-benchmark-kernels-bindings.hpp src/gpu-fls/fls-benchmark-kernels-global.cuh src/gpu-fls/fls-benchmark-kernels-setup.cu src/gpu-fls/fls.cuh

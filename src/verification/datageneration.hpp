@@ -526,8 +526,8 @@ template <typename T>
 std::pair<alp::AlpCompressionData<T> *,
           verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>>
 get_alp_reusable_datastructure(const std::string dataset_name,
-                               const size_t count) {
-  auto data = data::lambda::get_alp_datastructure<T>(dataset_name)(0, count);
+                               const size_t a_count) {
+  auto data = data::lambda::get_alp_datastructure<T>(dataset_name)(0, a_count);
 
   if (dataset_name == "exceptions_per_vec") {
     return std::make_pair(

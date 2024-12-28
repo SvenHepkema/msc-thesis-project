@@ -174,9 +174,8 @@ verify_gpu_alp_stateful_extended(const size_t a_count,
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS_AT_A_TIME>
-verification::VerificationResult<T>
-verify_gpu_alp_stateful_extended_multivec(const size_t a_count,
-                                          const std::string dataset_name) {
+verification::VerificationResult<T> verify_gpu_alp_stateful_extended_multivec(
+    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
@@ -197,6 +196,5 @@ verify_gpu_alp_stateful_extended_multivec(const size_t a_count,
   delete data;
   return result;
 }
-
 
 } // namespace verifiers

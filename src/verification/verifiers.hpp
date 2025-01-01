@@ -180,8 +180,9 @@ verification::VerificationResult<T> verify_gpu_alp_stateful_extended_multivec(
   auto value_bit_widths = verification::generate_integer_range<int32_t>(
       0, max_value_bitwidth_to_test);
 
-  auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
-      "value_bit_width", a_count);
+  auto [data, generator] =
+      data::lambda::get_alp_reusable_datastructure<T, UNPACK_N_VECTORS>(
+          "value_bit_width", a_count);
 
   auto result =
       verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,

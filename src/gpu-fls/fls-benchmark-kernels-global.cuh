@@ -86,7 +86,7 @@ __global__ void query_bp_contains_zero(const T *__restrict in,
   lane_t lane = mapping.get_lane();
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
+    bitunpack_vector_new<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
                                                            value_bit_width, i);
 
 #pragma unroll

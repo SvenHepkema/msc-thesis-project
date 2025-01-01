@@ -293,6 +293,40 @@ struct BitUnpacker {
   }
 };
 
+template <typename T>
+__device__ __forceinline__ constexpr T c_set_first_n_bits(const T count) {
+  static_assert(std::is_unsigned<T>::value, "Should be unsigned");
+  return (1U << count) - 1;
+}
+
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename lambda_T>
+__device__ void
+unpack_vector_new(const typename utils::same_width_uint<T>::type *__restrict in,
+                  T *__restrict out, const lane_t lane,
+                  const vbw_t value_bit_width, const si_t start_index,
+                  lambda_T lambda) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<UINT_T>();
+  constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
+  constexpr int32_t BIT_COUNT = utils::sizeof_in_bits<T>();
+
+  int32_t preceding_bits_first = (start_index * value_bit_width);
+  int32_t n_input_line = preceding_bits_first / LANE_BIT_WIDTH;
+  int32_t offset_first = preceding_bits_first % LANE_BIT_WIDTH;
+  int32_t offset_second = BIT_COUNT - offset_first;
+  UINT_T value_mask = c_set_first_n_bits(value_bit_width);
+
+  UINT_T value = 0;
+
+  in += n_input_line * N_LANES + lane;
+  value |= (in[0] & (value_mask << offset_first)) >> offset_first;
+  value |= (in[N_LANES] & (value_mask >> offset_second)) << offset_second;
+
+  *(out) = lambda(value);
+}
+
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename lambda_T>
 __device__ void
@@ -342,6 +376,16 @@ bitunpack_vector(const typename utils::same_width_uint<T>::type *__restrict in,
                  const vbw_t value_bit_width, const si_t start_index) {
   auto lambda = [=](const T value) -> T { return value; };
   unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      in, out, lane, value_bit_width, start_index, lambda);
+}
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void bitunpack_vector_new(
+    const typename utils::same_width_uint<T>::type *__restrict in,
+    T *__restrict out, const lane_t lane, const vbw_t value_bit_width,
+    const si_t start_index) {
+  auto lambda = [=](const T value) -> T { return value; };
+  unpack_vector_new<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 }
 

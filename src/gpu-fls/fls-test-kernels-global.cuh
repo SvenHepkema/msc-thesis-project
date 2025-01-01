@@ -26,7 +26,7 @@ __global__ void bitunpack(const T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    bitunpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
+    bitunpack_vector_new<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(in, registers, lane,
                                                            value_bit_width, i);
 
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {

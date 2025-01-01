@@ -17,8 +17,6 @@ namespace test {
 template <typename T>
 void decode_alp_vector_stateless(T *__restrict out,
                                  const alp::AlpCompressionData<T> *data) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_blocks = n_vecs;
@@ -27,7 +25,7 @@ void decode_alp_vector_stateless(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_stateless<T, UINT_T, 1, 1>
+  kernels::global::test::decode_alp_vector_stateless<T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -38,8 +36,6 @@ void decode_alp_vector_stateless(T *__restrict out,
 template <typename T>
 void decode_alp_vector_stateful(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_blocks = n_vecs;
@@ -48,7 +44,7 @@ void decode_alp_vector_stateful(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::test::decode_alp_vector_stateful<T, UINT_T, 1, 1>
+  kernels::global::test::decode_alp_vector_stateful<T, 1, 1>
       <<<n_blocks, utils::get_n_lanes<T>()>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -59,8 +55,6 @@ void decode_alp_vector_stateful(T *__restrict out,
 template <typename T, unsigned UNPACK_N_VECTORS>
 void decode_alp_vector_stateful_extended(
     T *__restrict out, const alp::AlpCompressionData<T> *data) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_blocks = n_vecs / UNPACK_N_VECTORS;
@@ -71,7 +65,7 @@ void decode_alp_vector_stateful_extended(
   constant_memory::load_alp_constants<T>();
 
   kernels::global::test::decode_alp_vector_stateful_extended<
-      T, UINT_T, UNPACK_N_VECTORS, 1>
+      T, UNPACK_N_VECTORS, 1>
       <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 

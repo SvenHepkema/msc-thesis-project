@@ -26,7 +26,7 @@ void decode_baseline(T *__restrict out, const T *in, const size_t count) {
   const auto n_blocks = n_vecs / n_warps_per_block;
   const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
 
-  kernels::global::bench::decode_baseline<T, T, 1, 1><<<n_blocks, n_threads>>>(
+  kernels::global::bench::decode_baseline<T, 1, 1><<<n_blocks, n_threads>>>(
       d_out.get(), d_in.get(), utils::get_n_lanes<T>());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -42,7 +42,6 @@ void contains_magic_stateless(T *__restrict out,
                                 const alp::AlpCompressionData<T> *data) {
   constexpr int32_t UNPACK_N_VECTORS = 1;
   constexpr int32_t UNPACK_N_VALUES = 1;
-  using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
@@ -55,7 +54,7 @@ void contains_magic_stateless(T *__restrict out,
   constant_memory::load_alp_constants<T>();
 
   kernels::global::bench::contains_magic_stateless<
-      T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
       <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -73,7 +72,6 @@ void contains_magic_stateful(T *__restrict out,
                                   const alp::AlpCompressionData<T> *data) {
   constexpr int32_t UNPACK_N_VECTORS = 1;
   constexpr int32_t UNPACK_N_VALUES = 1;
-  using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
@@ -86,7 +84,7 @@ void contains_magic_stateful(T *__restrict out,
   constant_memory::load_alp_constants<T>();
 
   kernels::global::bench::contains_magic_stateful<
-      T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
       <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -103,7 +101,6 @@ template <typename T, unsigned UNPACK_N_VECTORS = 1>
 void contains_magic_stateful_extended(T *__restrict out,
                                   const alp::AlpCompressionData<T> *data) {
   constexpr int32_t UNPACK_N_VALUES = 1;
-  using UINT_T = typename utils::same_width_uint<T>::type;
 
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
@@ -116,7 +113,7 @@ void contains_magic_stateful_extended(T *__restrict out,
   constant_memory::load_alp_constants<T>();
 
   kernels::global::bench::contains_magic_stateful_extended<
-      T, UINT_T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
       <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 

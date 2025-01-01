@@ -10,8 +10,7 @@ namespace kernels {
 namespace global {
 namespace bench {
 
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void decode_baseline(T *out, const T *in,
                                 const int n_values_in_lane) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
@@ -48,8 +47,7 @@ __global__ void decode_baseline(T *out, const T *in,
   }
 }
 
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
@@ -60,8 +58,8 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   bool none_magic = true;
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data,
-                                                        vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data, vector_index,
+                                                lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
@@ -73,8 +71,7 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
   }
 }
 
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
@@ -101,8 +98,7 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
   }
 }
 
-template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
-          int UNPACK_N_VALUES>
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful_extended(T *out,
                                                  AlpExtendedColumn<T> column) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
@@ -113,9 +109,8 @@ __global__ void contains_magic_stateful_extended(T *out,
   T registers[N_VALUES];
   bool none_magic = true;
 
-  auto iterator =
-      ExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-          vector_index, lane, column);
+  auto iterator = ExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      vector_index, lane, column);
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
@@ -155,10 +150,10 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_0, column_0, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_1, column_1, vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_0, column_0,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_1, column_1,
+                                                vector_index, lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_equal &= registers_column_0[j] != registers_column_1[j];
@@ -195,12 +190,12 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_0, column_0, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_1, column_1, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_2, column_2, vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_0, column_0,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_1, column_1,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_2, column_2,
+                                                vector_index, lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_equal &= registers_column_0[j] != registers_column_1[j] &&
@@ -240,14 +235,14 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   bool none_equal = true;
 
   for (int i = 0; i < N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_0, column_0, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_1, column_1, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_2, column_2, vector_index, lane, i);
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        registers_column_3, column_3, vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_0, column_0,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_1, column_1,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_2, column_2,
+                                                vector_index, lane, i);
+    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers_column_3, column_3,
+                                                vector_index, lane, i);
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {

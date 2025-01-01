@@ -114,35 +114,29 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 // execution time. Check # executed instructions tho.
 // WARNING
 // WARNING
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
-__device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void unalp(T *__restrict out, const AlpColumn<T> column,
                       const vi_t vector_index, const lane_t lane,
                       const si_t start_index) {
-  static_assert((std::is_same<T_in, uint32_t>::value &&
-                 std::is_same<T_out, float>::value) ||
-                    (std::is_same<T_in, uint64_t>::value &&
-                     std::is_same<T_out, double>::value),
-                "Wrong type arguments");
-  using INT_T = typename utils::same_width_int<T_out>::type;
-  using UINT_T = typename utils::same_width_int<T_out>::type;
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
 
-  T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
+  UINT_T *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
   vbw_t value_bit_width = column.bit_widths[vector_index];
   UINT_T base = column.ffor_bases[vector_index];
   INT_T factor =
       constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-  T_out frac10 = constant_memory::get_frac_arr<
-      T_out>()[column.exponents[vector_index]]; // WARNING TODO implement a
-                                                // compile time switch to grab
-                                                // float array
-  auto lambda = [base, factor, frac10](const T_in value) -> T_out {
-    return static_cast<T_out>(static_cast<INT_T>((value + base) *
-                                                 static_cast<UINT_T>(factor))) *
+  T frac10 = constant_memory::get_frac_arr<
+      T>()[column.exponents[vector_index]]; // WARNING TODO implement a
+                                            // compile time switch to grab
+                                            // float array
+  auto lambda = [base, factor, frac10](const UINT_T value) -> T {
+    return static_cast<T>(static_cast<INT_T>((value + base) *
+                                             static_cast<UINT_T>(factor))) *
            frac10;
   };
 
-  unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 
   // Patch exceptions
@@ -170,36 +164,29 @@ __device__ void unalp(T_out *__restrict out, const AlpColumn<T_out> column,
   }
 }
 
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
-__device__ void
-unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
-                   const vi_t vector_index, const lane_t lane,
-                   const si_t start_index) {
-  static_assert((std::is_same<T_in, uint32_t>::value &&
-                 std::is_same<T_out, float>::value) ||
-                    (std::is_same<T_in, uint64_t>::value &&
-                     std::is_same<T_out, double>::value),
-                "Wrong type arguments");
-  using INT_T = typename utils::same_width_int<T_out>::type;
-  using UINT_T = typename utils::same_width_int<T_out>::type;
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+__device__ void unalp_with_scanner(T *__restrict out, const AlpColumn<T> column,
+                                   const vi_t vector_index, const lane_t lane,
+                                   const si_t start_index) {
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
 
-  T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
+  UINT_T *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
   vbw_t value_bit_width = column.bit_widths[vector_index];
   UINT_T base = column.ffor_bases[vector_index];
   INT_T factor =
       constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-  T_out frac10 = constant_memory::get_frac_arr<
-      T_out>()[column.exponents[vector_index]]; // WARNING TODO implement a
-                                                // compile time switch to grab
-                                                // float array
-  auto lambda = [base, factor, frac10](const T_in value) -> T_out {
-    return static_cast<T_out>(static_cast<INT_T>((value + base) *
-                                                 static_cast<UINT_T>(factor))) *
+  T frac10 = constant_memory::get_frac_arr<
+      T>()[column.exponents[vector_index]]; // WARNING TODO implement a
+                                            // compile time switch to grab
+                                            // float array
+  auto lambda = [base, factor, frac10](const UINT_T value) -> T {
+    return static_cast<T>(static_cast<INT_T>((value + base) *
+                                             static_cast<UINT_T>(factor))) *
            frac10;
   };
 
-  unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       in, out, lane, value_bit_width, start_index, lambda);
 
   // Patch exceptions
@@ -236,43 +223,37 @@ unalp_with_scanner(T_out *__restrict out, const AlpColumn<T_out> column,
   }
 }
 
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 
 struct OldUnpacker {
   const vi_t vector_index;
   const lane_t lane;
-  const AlpColumn<T_out> column;
+  const AlpColumn<T> column;
   si_t start_index = 0;
   int32_t exception_index = 0;
 
   __device__ OldUnpacker(const vi_t vector_index, const lane_t lane,
-                         const AlpColumn<T_out> column)
+                         const AlpColumn<T> column)
       : vector_index(vector_index), lane(lane), column(column) {}
 
-  __device__ void unpack_next_into(T_out *__restrict out) {
-    static_assert((std::is_same<T_in, uint32_t>::value &&
-                   std::is_same<T_out, float>::value) ||
-                      (std::is_same<T_in, uint64_t>::value &&
-                       std::is_same<T_out, double>::value),
-                  "Wrong type arguments");
-    using INT_T = typename utils::same_width_int<T_out>::type;
-    using UINT_T = typename utils::same_width_int<T_out>::type;
+  __device__ void unpack_next_into(T *__restrict out) {
+    using INT_T = typename utils::same_width_int<T>::type;
+    using UINT_T = typename utils::same_width_uint<T>::type;
 
-    T_in *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
+    UINT_T *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
     vbw_t value_bit_width = column.bit_widths[vector_index];
     UINT_T base = column.ffor_bases[vector_index];
     INT_T factor =
         constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    T_out frac10 =
-        constant_memory::get_frac_arr<T_out>()[column.exponents[vector_index]];
-    auto lambda = [base, factor, frac10](const T_in value) -> T_out {
-      return static_cast<T_out>(static_cast<INT_T>(
-                 (value + base) * static_cast<UINT_T>(factor))) *
+    T frac10 =
+        constant_memory::get_frac_arr<T>()[column.exponents[vector_index]];
+    auto lambda = [base, factor, frac10](const UINT_T value) -> T {
+      return static_cast<T>(static_cast<INT_T>((value + base) *
+                                               static_cast<UINT_T>(factor))) *
              frac10;
     };
 
-    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
@@ -302,36 +283,34 @@ struct OldUnpacker {
   }
 };
 
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct Unpacker {
-  using INT_T = typename utils::same_width_int<T_out>::type;
-  using UINT_T = typename utils::same_width_uint<T_out>::type;
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
 
   const lane_t lane;
   si_t start_index = 0;
   int32_t exception_index = 0;
 
-  T_in *in;
+  UINT_T *in;
   UINT_T base;
   vbw_t value_bit_width;
   INT_T factor;
-  T_out frac10;
+  T frac10;
 
   uint16_t vec_exceptions_count;
   uint16_t *vec_exceptions_positions;
-  T_out *vec_exceptions;
+  T *vec_exceptions;
 
   __device__ Unpacker(const vi_t vector_index, const lane_t lane,
-                      const AlpColumn<T_out> column)
+                      const AlpColumn<T> column)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
     value_bit_width = column.bit_widths[vector_index];
     base = column.ffor_bases[vector_index];
     factor =
         constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    frac10 =
-        constant_memory::get_frac_arr<T_out>()[column.exponents[vector_index]];
+    frac10 = constant_memory::get_frac_arr<T>()[column.exponents[vector_index]];
     vec_exceptions_count = column.counts[vector_index];
 
     vec_exceptions =
@@ -340,19 +319,19 @@ struct Unpacker {
         column.positions + consts::VALUES_PER_VECTOR * vector_index;
   }
 
-  __device__ void unpack_next_into(T_out *__restrict out) {
-    static_assert((std::is_same<T_in, uint32_t>::value &&
-                   std::is_same<T_out, float>::value) ||
-                      (std::is_same<T_in, uint64_t>::value &&
-                       std::is_same<T_out, double>::value),
+  __device__ void unpack_next_into(T *__restrict out) {
+    static_assert((std::is_same<UINT_T, uint32_t>::value &&
+                   std::is_same<T, float>::value) ||
+                      (std::is_same<UINT_T, uint64_t>::value &&
+                       std::is_same<T, double>::value),
                   "Wrong type arguments");
     auto lambda = [base = this->base, factor = this->factor,
-                   frac10 = this->frac10](const T_in value) -> T_out {
-      return static_cast<T_out>(static_cast<INT_T>((value + base) * factor)) *
+                   frac10 = this->frac10](const UINT_T value) -> T {
+      return static_cast<T>(static_cast<INT_T>((value + base) * factor)) *
              frac10;
     };
 
-    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
@@ -377,28 +356,27 @@ struct Unpacker {
   }
 };
 
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct ExtendedUnpackerOld {
-  using INT_T = typename utils::same_width_int<T_out>::type;
-  using UINT_T = typename utils::same_width_uint<T_out>::type;
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
 
   const lane_t lane;
   si_t start_index = 0;
 
-  T_in *in;
+  UINT_T *in;
   UINT_T base;
   vbw_t value_bit_width;
   INT_T factor;
-  T_out frac10;
+  T frac10;
 
   uint16_t vec_exceptions_count_in_lane;
   uint16_t *vec_exceptions_positions;
-  T_out *vec_exceptions;
+  T *vec_exceptions;
 
   uint16_t exception_index = 0;
   int16_t next_exception_pos;
-  T_out next_exception;
+  T next_exception;
 
   void __device__ __forceinline__ read_next_exception() {
     if (exception_index < vec_exceptions_count_in_lane) {
@@ -424,15 +402,14 @@ struct ExtendedUnpackerOld {
 
   __device__ __forceinline__
   ExtendedUnpackerOld(const vi_t vector_index, const lane_t lane,
-                      const AlpExtendedColumn<T_out> column)
+                      const AlpExtendedColumn<T> column)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
     value_bit_width = column.bit_widths[vector_index];
     base = column.ffor_bases[vector_index];
     factor =
         constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    frac10 =
-        constant_memory::get_frac_arr<T_out>()[column.exponents[vector_index]];
+    frac10 = constant_memory::get_frac_arr<T>()[column.exponents[vector_index]];
 
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
     auto offset_count = column.offsets_counts[vector_index * N_LANES + lane];
@@ -447,19 +424,19 @@ struct ExtendedUnpackerOld {
     read_next_exception();
   }
 
-  __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
-    static_assert((std::is_same<T_in, uint32_t>::value &&
-                   std::is_same<T_out, float>::value) ||
-                      (std::is_same<T_in, uint64_t>::value &&
-                       std::is_same<T_out, double>::value),
+  __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
+    static_assert((std::is_same<UINT_T, uint32_t>::value &&
+                   std::is_same<T, float>::value) ||
+                      (std::is_same<UINT_T, uint64_t>::value &&
+                       std::is_same<T, double>::value),
                   "Wrong type arguments");
     auto lambda = [base = this->base, factor = this->factor,
-                   frac10 = this->frac10](const T_in value) -> T_out {
-      return static_cast<T_out>(static_cast<INT_T>((value + base) * factor)) *
+                   frac10 = this->frac10](const UINT_T value) -> T {
+      return static_cast<T>(static_cast<INT_T>((value + base) * factor)) *
              frac10;
     };
 
-    unpack_vector<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
     constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
 
@@ -613,40 +590,33 @@ public:
   }
 };
 
-template <typename T_in, typename T_out, unsigned UNPACK_N_VECTORS,
-          unsigned UNPACK_N_VALUES>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct ExtendedUnpacker {
-  T_in *in;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  UINT_T *in;
   vbw_t value_bit_width;
 
-  BitUnpacker<T_in, T_out, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T_out>>
-      bit_unpacker;
-  SimpleALPExceptionPatcher<T_out, UNPACK_N_VECTORS> patcher;
+  BitUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T>> bit_unpacker;
+  SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS> patcher;
 
-  __device__ __forceinline__
-  ExtendedUnpacker(const vi_t vector_index, const lane_t lane,
-                   const AlpExtendedColumn<T_out> column)
+  __device__ __forceinline__ ExtendedUnpacker(const vi_t vector_index,
+                                              const lane_t lane,
+                                              const AlpExtendedColumn<T> column)
       : value_bit_width(column.bit_widths[vector_index]),
         in(column.ffor_array + consts::VALUES_PER_VECTOR * vector_index),
         patcher(column.offsets_counts +
-                    (vector_index * utils::get_n_lanes<T_out>() + lane),
+                    (vector_index * utils::get_n_lanes<T>() + lane),
                 column.positions + consts::VALUES_PER_VECTOR * vector_index,
                 column.exceptions + consts::VALUES_PER_VECTOR * vector_index,
                 lane),
         bit_unpacker(in, lane, value_bit_width,
-                     ALPFunctor<T_out>(column.ffor_bases[vector_index],
-                                       column.factors[vector_index],
-                                       column.exponents[vector_index]))
+                     ALPFunctor<T>(column.ffor_bases[vector_index],
+                                   column.factors[vector_index],
+                                   column.exponents[vector_index]))
 
-  {
-    static_assert((std::is_same<T_in, uint32_t>::value &&
-                   std::is_same<T_out, float>::value) ||
-                      (std::is_same<T_in, uint64_t>::value &&
-                       std::is_same<T_out, double>::value),
-                  "Wrong type arguments");
-  }
+  {}
 
-  __device__ __forceinline__ void unpack_next_into(T_out *__restrict out) {
+  __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
     bit_unpacker.unpack_into(out);
     patcher.patch_if_needed(out);
   }

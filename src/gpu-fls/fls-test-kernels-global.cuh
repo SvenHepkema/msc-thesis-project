@@ -49,12 +49,9 @@ __global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
   T registers[N_VALUES];
   out += vector_index * consts::VALUES_PER_VECTOR;
 
-  using UINT_T = typename utils::same_width_uint<T>::type;
-  BitUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-              BPFunctor<UINT_T, T>>
-      iterator(in + vector_index *
-                        utils::get_compressed_vector_size<T>(value_bit_width),
-               lane, value_bit_width, BPFunctor<UINT_T, T>());
+  BitUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, BPFunctor<T>> iterator(
+      in + vector_index * utils::get_compressed_vector_size<T>(value_bit_width),
+      lane, value_bit_width, BPFunctor<T>());
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_into(registers);

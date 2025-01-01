@@ -114,10 +114,8 @@ __global__ void query_bp_stateful_contains_zero(const T *__restrict in,
   T none_zero = 1;
   lane_t lane = mapping.get_lane();
 
-  using UINT_T = typename utils::same_width_uint<T>::type;
-  BitUnpacker<UINT_T, T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-              BPFunctor<UINT_T, T>>
-      iterator(in, lane, value_bit_width, BPFunctor<UINT_T, T>());
+  BitUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, BPFunctor<T>> iterator(
+      in, lane, value_bit_width, BPFunctor<T>());
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_into(registers);
 

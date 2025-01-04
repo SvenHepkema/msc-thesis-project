@@ -458,6 +458,19 @@ verification::DataGenerator<T, int32_t> get_binary_column() {
 }
 
 template <typename T>
+verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
+get_compressed_binary_column() {
+  return []([[maybe_unused]] const int32_t value_bit_width,
+            const size_t count) -> alp::AlpCompressionData<T> * {
+    T *column = lambda::get_binary_column<T>()(value_bit_width, count);
+    alp::AlpCompressionData<T> *compressed_column =
+        new alp::AlpCompressionData<T>(count);
+    alp::int_encode<T>(column, count, compressed_column);
+    return compressed_column;
+  };
+}
+
+template <typename T>
 verification::DataGenerator<T, int32_t>
 get_alp_data(const std::string dataset_name) {
   using UINT_T = typename utils::same_width_uint<T>::type;

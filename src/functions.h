@@ -1,6 +1,7 @@
 #include <functional>
 
 #include "benchmark/benchmarkers.hpp"
+#include "benchmark/verify-benchmarkers.hpp"
 #include "verification/verification.hpp"
 #include "verification/verifiers.hpp"
 
@@ -145,6 +146,22 @@ template <class T> struct Alp {
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_alp_vbw_stateful_extended<T>(count,
+                                                                 dataset_name);
+       }},
+      {"verify_bench_alp_stateless",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_benchmarkers::verify_bench_alp_stateless<T>(count, dataset_name);
+       }},
+      {"verify_bench_alp_stateful",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_benchmarkers::verify_bench_alp_stateful<T>(count, dataset_name);
+       }},
+      {"verify_bench_alp_stateful_extended",
+       [](const size_t count, const std::string dataset_name)
+           -> verification::VerificationResult<T> {
+         return verify_benchmarkers::verify_bench_alp_stateful_extended<T>(count,
                                                                  dataset_name);
        }},
   };

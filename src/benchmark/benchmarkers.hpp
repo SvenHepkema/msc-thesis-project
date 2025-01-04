@@ -73,7 +73,7 @@ bench_bp_stateful_contains_zero_value_bitwidths(
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_binary_column<T>(),
           BP_FLSAnyValueIsMagicQueryFn<T>(),
-          BP_GPUStatelessAnyValueIsMagicQueryFn<T>()));
+          BP_GPUStatefulAnyValueIsMagicQueryFn<T>()));
 }
 
 template <typename T>

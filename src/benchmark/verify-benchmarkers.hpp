@@ -37,7 +37,7 @@ verification::VerificationResult<T>
 verify_bench_alp_stateless(const size_t a_count,
                            [[maybe_unused]] const std::string dataset_name) {
   auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 10);
+      verification::generate_integer_range<int32_t>(0, 30);
 
   auto result =
       verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
@@ -57,7 +57,7 @@ verification::VerificationResult<T>
 verify_bench_alp_stateful(const size_t a_count,
                           [[maybe_unused]] const std::string dataset_name) {
   auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 10);
+      verification::generate_integer_range<int32_t>(0, 30);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
@@ -73,7 +73,7 @@ template <typename T>
 verification::VerificationResult<T> verify_bench_alp_stateful_extended(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
   auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 10);
+      verification::generate_integer_range<int32_t>(0, 30);
 
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(

@@ -462,7 +462,15 @@ verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
 get_compressed_binary_column() {
   return []([[maybe_unused]] const int32_t value_bit_width,
             const size_t count) -> alp::AlpCompressionData<T> * {
-    T *column = lambda::get_binary_column<T>()(value_bit_width, count);
+    T *column;
+
+    do {
+      column = generation::generate_ffor_column_with_fixed_decimals<T>(
+                   count, value_bit_width % static_cast<int32_t>(sizeof(T) * 4),
+                   20, value_bit_width % 5)
+                   .release();
+    } while (!alp::is_encoding_possible(column, count, alp::Scheme::ALP));
+    generation::make_column_magic<T>(column, count);
     alp::AlpCompressionData<T> *compressed_column =
         new alp::AlpCompressionData<T>(count);
     alp::int_encode<T>(column, count, compressed_column);

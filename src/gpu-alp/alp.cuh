@@ -129,14 +129,13 @@ public:
 // WARNING Never uses this baseclass directly, virtual function calls are
 // horribly slow. The reason this class is here, is to ensure that all of the
 // unpackers conform to the same API
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct AlpUnpackerBase {
+template <typename T> struct AlpUnpackerBase {
   virtual __device__ __forceinline__ void unpack_next_into(T *__restrict out);
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct AlpStatelessUnpacker
-    : AlpUnpackerBase<T, UNPACK_N_VECTORS, UNPACK_N_VALUES> {
+    : AlpUnpackerBase<T> {
 
 private:
   const AlpColumn<T> column;
@@ -164,7 +163,7 @@ public:
              frac10;
     };
 
-    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
@@ -201,7 +200,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct AlpStatelessWithScannerUnpacker
-    : AlpUnpackerBase<T, UNPACK_N_VECTORS, UNPACK_N_VALUES> {
+    : AlpUnpackerBase<T> {
 
 private:
   const AlpColumn<T> column;
@@ -229,7 +228,7 @@ public:
              frac10;
     };
 
-    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
@@ -272,8 +271,7 @@ public:
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct AlpStatefulUnpacker
-    : AlpUnpackerBase<T, UNPACK_N_VECTORS, UNPACK_N_VALUES> {
+struct AlpStatefulUnpacker : AlpUnpackerBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -321,7 +319,7 @@ struct AlpStatefulUnpacker
              frac10;
     };
 
-    unpack_vector<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+    unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
         in, out, lane, value_bit_width, start_index, lambda);
 
     // Patch exceptions
@@ -348,12 +346,13 @@ struct AlpStatefulUnpacker
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct AlpStatefulExtendedUnpacker
-    : AlpUnpackerBase<T, UNPACK_N_VECTORS, UNPACK_N_VALUES> {
+    : AlpUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T *in;
   vbw_t value_bit_width;
 
-  BitUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T>> bit_unpacker;
+  BitUnpackerStateful<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, ALPFunctor<T>>
+      bit_unpacker;
   SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS> patcher;
 
   __device__ __forceinline__
@@ -372,7 +371,7 @@ struct AlpStatefulExtendedUnpacker
                                    column.exponents[vector_index])) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    bit_unpacker.unpack_into(out);
+    bit_unpacker.unpack_next_into(out);
     patcher.patch_if_needed(out);
   }
 };

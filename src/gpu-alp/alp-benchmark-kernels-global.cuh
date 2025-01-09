@@ -48,7 +48,8 @@ __global__ void decode_baseline(T *out, const T *in,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
+__global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
+                                         const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -62,7 +63,7 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
                                                 lane, i);
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
-      none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
+      none_magic &= registers[j] != magic_value;
     }
   }
 
@@ -72,7 +73,8 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data) {
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
+__global__ void contains_magic_stateful(T *out, AlpColumn<T> column,
+                                        const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -89,7 +91,7 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
-      none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
+      none_magic &= registers[j] != magic_value;
     }
   }
 
@@ -100,7 +102,8 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column) {
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful_extended(T *out,
-                                                 AlpExtendedColumn<T> column) {
+                                                 AlpExtendedColumn<T> column,
+                                                 const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -117,7 +120,7 @@ __global__ void contains_magic_stateful_extended(T *out,
 
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
-      none_magic &= registers[j] != consts::as<T>::MAGIC_NUMBER;
+      none_magic &= registers[j] != magic_value;
     }
   }
 

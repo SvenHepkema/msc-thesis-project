@@ -5,12 +5,11 @@
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
 #include "../gpu-common/gpu-utils.cuh"
-#include "alp-utils.cuh"
 #include "alp-benchmark-kernels-bindings.hpp"
 #include "alp-benchmark-kernels-global.cuh"
+#include "alp-utils.cuh"
 #include "alp.cuh"
 #include "src/alp/config.hpp"
-
 
 namespace alp {
 namespace gpu {
@@ -39,7 +38,8 @@ void decode_baseline(T *__restrict out, const T *in, const size_t count) {
 
 template <typename T>
 void contains_magic_stateless(T *__restrict out,
-                                const alp::AlpCompressionData<T> *data) {
+                              const alp::AlpCompressionData<T> *data,
+                              const T magic_value) {
   constexpr int32_t UNPACK_N_VECTORS = 1;
   constexpr int32_t UNPACK_N_VALUES = 1;
 
@@ -53,9 +53,9 @@ void contains_magic_stateless(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::bench::contains_magic_stateless<
-      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
-      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
+  kernels::global::bench::contains_magic_stateless<T, UNPACK_N_VECTORS,
+                                                   UNPACK_N_VALUES>
+      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column, magic_value);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
@@ -64,12 +64,13 @@ void contains_magic_stateless(T *__restrict out,
     *out = static_cast<T>(false);
   }
 
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
 
 template <typename T>
 void contains_magic_stateful(T *__restrict out,
-                                  const alp::AlpCompressionData<T> *data) {
+                             const alp::AlpCompressionData<T> *data,
+                             const T magic_value) {
   constexpr int32_t UNPACK_N_VECTORS = 1;
   constexpr int32_t UNPACK_N_VALUES = 1;
 
@@ -83,9 +84,9 @@ void contains_magic_stateful(T *__restrict out,
   AlpColumn<T> gpu_alp_column = transfer::copy_alp_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::bench::contains_magic_stateful<
-      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
-      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
+  kernels::global::bench::contains_magic_stateful<T, UNPACK_N_VECTORS,
+                                                  UNPACK_N_VALUES>
+      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column, magic_value);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
@@ -94,12 +95,13 @@ void contains_magic_stateful(T *__restrict out,
     *out = static_cast<T>(false);
   }
 
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS = 1>
 void contains_magic_stateful_extended(T *__restrict out,
-                                  const alp::AlpCompressionData<T> *data) {
+                                      const alp::AlpCompressionData<T> *data,
+                                      const T magic_value) {
   constexpr int32_t UNPACK_N_VALUES = 1;
 
   const auto count = data->size;
@@ -112,9 +114,9 @@ void contains_magic_stateful_extended(T *__restrict out,
   auto gpu_alp_column = transfer::copy_alp_extended_column_to_gpu(data);
   constant_memory::load_alp_constants<T>();
 
-  kernels::global::bench::contains_magic_stateful_extended<
-      T, UNPACK_N_VECTORS, UNPACK_N_VALUES>
-      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column);
+  kernels::global::bench::contains_magic_stateful_extended<T, UNPACK_N_VECTORS,
+                                                           UNPACK_N_VALUES>
+      <<<n_blocks, n_threads>>>(d_out.get(), gpu_alp_column, magic_value);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   d_out.copy_to_host(out);
@@ -123,9 +125,8 @@ void contains_magic_stateful_extended(T *__restrict out,
     *out = static_cast<T>(false);
   }
 
-	transfer::destroy_alp_column(gpu_alp_column);
+  transfer::destroy_alp_column(gpu_alp_column);
 }
-
 
 template <typename T>
 void decode_multiple_alp_vectors(
@@ -176,7 +177,7 @@ void decode_multiple_alp_vectors(
   }
 
   for (auto column : gpu_alp_columns) {
-		transfer::destroy_alp_column(column);
+    transfer::destroy_alp_column(column);
   }
 }
 
@@ -192,27 +193,37 @@ template void alp::gpu::bench::decode_baseline<double>(double *__restrict out,
                                                        const size_t count);
 
 template void alp::gpu::bench::contains_magic_stateless<float>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
+    float *__restrict out, const alp::AlpCompressionData<float> *data,
+    const float magic_value);
 template void alp::gpu::bench::contains_magic_stateless<double>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
+    double *__restrict out, const alp::AlpCompressionData<double> *data,
+    const double magic_value);
 
 template void alp::gpu::bench::contains_magic_stateful<float>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
+    float *__restrict out, const alp::AlpCompressionData<float> *data,
+    const float magic_value);
 template void alp::gpu::bench::contains_magic_stateful<double>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
+    double *__restrict out, const alp::AlpCompressionData<double> *data,
+    const double magic_value);
 
 template void alp::gpu::bench::contains_magic_stateful_extended<float, 1>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
+    float *__restrict out, const alp::AlpCompressionData<float> *data,
+    const float magic_value);
 template void alp::gpu::bench::contains_magic_stateful_extended<double, 1>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
+    double *__restrict out, const alp::AlpCompressionData<double> *data,
+    const double magic_value);
 template void alp::gpu::bench::contains_magic_stateful_extended<float, 2>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
+    float *__restrict out, const alp::AlpCompressionData<float> *data,
+    const float magic_value);
 template void alp::gpu::bench::contains_magic_stateful_extended<double, 2>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
+    double *__restrict out, const alp::AlpCompressionData<double> *data,
+    const double magic_value);
 template void alp::gpu::bench::contains_magic_stateful_extended<float, 4>(
-    float *__restrict out, const alp::AlpCompressionData<float> *data);
+    float *__restrict out, const alp::AlpCompressionData<float> *data,
+    const float magic_value);
 template void alp::gpu::bench::contains_magic_stateful_extended<double, 4>(
-    double *__restrict out, const alp::AlpCompressionData<double> *data);
+    double *__restrict out, const alp::AlpCompressionData<double> *data,
+    const double magic_value);
 
 template void alp::gpu::bench::decode_multiple_alp_vectors<float>(
     float *__restrict out,

@@ -458,27 +458,6 @@ verification::DataGenerator<T, int32_t> get_binary_column() {
 }
 
 template <typename T>
-verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_compressed_binary_column() {
-  return []([[maybe_unused]] const int32_t value_bit_width,
-            const size_t count) -> alp::AlpCompressionData<T> * {
-    T *column;
-
-    do {
-      column = generation::generate_ffor_column_with_fixed_decimals<T>(
-                   count, value_bit_width % static_cast<int32_t>(sizeof(T) * 4),
-                   20, value_bit_width % 5)
-                   .release();
-    } while (!alp::is_encoding_possible(column, count, alp::Scheme::ALP));
-    generation::make_column_magic<T>(column, count);
-    alp::AlpCompressionData<T> *compressed_column =
-        new alp::AlpCompressionData<T>(count);
-    alp::int_encode<T>(column, count, compressed_column);
-    return compressed_column;
-  };
-}
-
-template <typename T>
 verification::DataGenerator<T, int32_t>
 get_alp_data(const std::string dataset_name) {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -566,6 +545,45 @@ get_alp_reusable_datastructure(const std::string dataset_name,
     throw std::invalid_argument(
         "This data generator does not accept the specified dataset_name");
   }
+}
+
+template <typename T>
+std::pair<alp::AlpCompressionData<T> *,
+          verification::DataGenerator<alp::ALPMagicCompressionData<T>, int32_t>>
+get_reusable_compressed_binary_column(const std::string dataset_name,
+                                      const size_t a_count) {
+  auto [d, g] = get_alp_reusable_datastructure<T>(dataset_name, a_count);
+  auto data = d;
+  auto generator = g;
+
+  return std::make_pair(
+      data,
+      [generator](const int32_t value_bit_width,
+                  const size_t count) -> alp::ALPMagicCompressionData<T>* {
+        using INT_T = typename utils::same_width_int<T>::type;
+        const int32_t safe_value_bit_width =
+            value_bit_width % static_cast<INT_T>(sizeof(T) * 4);
+
+        T magic_value = consts::as<T>::MAGIC_NUMBER;
+
+        alp::AlpCompressionData<T> *generated_data =
+            generator(safe_value_bit_width, count);
+
+        int32_t should_contain_magic_number =
+            generation::get_random_number_generator<int32_t>(0, 100)();
+
+        // Select a random decoded number, extremely inefficiently
+        if (should_contain_magic_number > 50) {
+          T *output_array = new T[count];
+          alp::int_decode(output_array, generated_data);
+          size_t index_magic_number =
+              generation::get_random_number_generator<size_t>(0, count)();
+          magic_value = output_array[index_magic_number];
+          delete[] output_array;
+        }
+
+				return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
+      });
 }
 
 template <typename T>

@@ -122,6 +122,9 @@ template <typename T> struct AlpCompressionData {
   }
 };
 
+template <typename T>
+using ALPMagicCompressionData = std::pair<alp::AlpCompressionData<T> *, T>;
+
 template <typename T> struct AlpRdCompressionData {
   using UINT_T = typename utils::same_width_uint<T>::type;
 

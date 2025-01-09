@@ -28,27 +28,28 @@ verify_bench_float_baseline(const size_t a_count,
       value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_binary_column<T>(),
-          FloatBaseline_AnyValueIsMagicQueryFn<T>(),
-          FloatBaseline_GPUAnyValueIsMagicQueryFn<T>()));
+          queries::baseline::cpu::FloatAnyValueIsMagicFn<T>(),
+          queries::baseline::gpu::FloatAnyValueIsMagicFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_bench_alp_stateless(const size_t a_count,
                            [[maybe_unused]] const std::string dataset_name) {
-  auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 30);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto [data, generator] =
+      data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
+                                                             a_count);
 
-  auto result =
-      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                               int32_t, int32_t>(
-          exception_percentages, exception_percentages, a_count, 1,
-          verification::get_equal_decompression_verifier<
-              T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-              data::lambda::get_compressed_binary_column<T>(),
-              ALP_CPUAnyValueIsMagicQueryFn<T>(),
-              ALP_GPUStatelessAnyValueIsMagicQueryFn<T>(), false));
+  auto result = verification::run_verifier_on_parameters<
+      T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, 1,
+      verification::get_equal_decompression_verifier<
+          T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+          generator, queries::ALP::dynamic::cpu::AnyValueIsMagicFn<T>(),
+          queries::ALP::dynamic::gpu::StatelessAnyValueIsMagicFn<T>(), false));
 
+  delete data;
   return result;
 }
 
@@ -56,33 +57,42 @@ template <typename T>
 verification::VerificationResult<T>
 verify_bench_alp_stateful(const size_t a_count,
                           [[maybe_unused]] const std::string dataset_name) {
-  auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 30);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto [data, generator] =
+      data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
+                                                             a_count);
 
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                                  int32_t, int32_t>(
-      exception_percentages, exception_percentages, a_count, 1,
+  auto result = verification::run_verifier_on_parameters<
+      T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<
-          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_compressed_binary_column<T>(),
-          ALP_CPUAnyValueIsMagicQueryFn<T>(),
-          ALP_GPUStatefulAnyValueIsMagicQueryFn<T>(), false));
+          T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+          generator, queries::ALP::dynamic::cpu::AnyValueIsMagicFn<T>(),
+          queries::ALP::dynamic::gpu::StatefulAnyValueIsMagicFn<T>(), false));
+
+  delete data;
+  return result;
 }
 
 template <typename T>
 verification::VerificationResult<T> verify_bench_alp_stateful_extended(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto exception_percentages =
-      verification::generate_integer_range<int32_t>(0, 30);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto [data, generator] =
+      data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
+                                                             a_count);
 
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                                  int32_t, int32_t>(
-      exception_percentages, exception_percentages, a_count, 1,
+  auto result = verification::run_verifier_on_parameters<
+      T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+      value_bit_widths, value_bit_widths, a_count, 1,
       verification::get_equal_decompression_verifier<
-          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_compressed_binary_column<T>(),
-          ALP_CPUAnyValueIsMagicQueryFn<T>(),
-          ALP_GPUStatefulExtendedAnyValueIsMagicQueryFn<T>(), false));
+          T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+          generator, queries::ALP::dynamic::cpu::AnyValueIsMagicFn<T>(),
+          queries::ALP::dynamic::gpu::StatefulExtendedAnyValueIsMagicFn<T>(),
+          false));
+
+  delete data;
+  return result;
 }
 
 } // namespace verify_benchmarkers

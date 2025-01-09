@@ -9,7 +9,10 @@
 #ifndef QUERIES_H
 #define QUERIES_H
 
-template <typename T> struct IntBaseline_AnyValueIsMagicQueryFn {
+namespace queries {
+namespace baseline {
+namespace cpu {
+template <typename T> struct IntAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -32,7 +35,21 @@ template <typename T> struct IntBaseline_AnyValueIsMagicQueryFn {
   }
 };
 
-template <typename T> struct IntBaseline_GPUAnyValueIsMagicQueryFn {
+template <typename T> struct FloatAnyValueIsMagicFn {
+  void operator()(const T *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    bool none_magic = true;
+    for (size_t i{0}; i < a_count; ++i) {
+      none_magic &= a_in[i] != consts::as<T>::MAGIC_NUMBER;
+    }
+    *a_out = static_cast<T>(!none_magic);
+  }
+};
+} // namespace cpu
+
+namespace gpu {
+template <typename T> struct IntAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -40,7 +57,19 @@ template <typename T> struct IntBaseline_GPUAnyValueIsMagicQueryFn {
   }
 };
 
-template <typename T> struct BP_FLSAnyValueIsMagicQueryFn {
+template <typename T> struct FloatAnyValueIsMagicFn {
+  void operator()(const T *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    alp::gpu::bench::decode_baseline<T>(a_out, a_in, a_count);
+  }
+};
+} // namespace gpu
+} // namespace baseline
+
+namespace FLS {
+namespace cpu {
+template <typename T> struct AnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     bool none_magic = 1;
@@ -62,8 +91,11 @@ template <typename T> struct BP_FLSAnyValueIsMagicQueryFn {
     delete[] temp;
   }
 };
+} // namespace cpu
 
-template <typename T> struct BP_OldGPUAnyValueIsMagicQueryFn {
+namespace gpu {
+
+template <typename T> struct OldAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     if (std::is_same<T, uint32_t>::value) {
@@ -76,7 +108,7 @@ template <typename T> struct BP_OldGPUAnyValueIsMagicQueryFn {
   }
 };
 
-template <typename T> struct BP_GPUStatelessAnyValueIsMagicQueryFn {
+template <typename T> struct StatelessAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     fls::gpu::bench::query_bp_contains_zero<T>(a_in, a_out, a_count,
@@ -84,7 +116,7 @@ template <typename T> struct BP_GPUStatelessAnyValueIsMagicQueryFn {
   }
 };
 
-template <typename T> struct BP_GPUStatefulAnyValueIsMagicQueryFn {
+template <typename T> struct StatefulAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     fls::gpu::bench::query_bp_stateful_contains_zero<T>(a_in, a_out, a_count,
@@ -92,27 +124,67 @@ template <typename T> struct BP_GPUStatefulAnyValueIsMagicQueryFn {
   }
 };
 
-template <typename T> struct FloatBaseline_AnyValueIsMagicQueryFn {
-  void operator()(const T *a_in, T *a_out,
+} // namespace gpu
+} // namespace FLS
+namespace ALP {
+namespace dynamic {
+namespace cpu {
+
+template <typename T> struct AnyValueIsMagicFn {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
+    auto [data, magic_value] = (*a_in);
+    T *temp = new T[a_count];
+    alp::int_decode<T>(temp, data);
+
     bool none_magic = true;
     for (size_t i{0}; i < a_count; ++i) {
-      none_magic &= a_in[i] != consts::as<T>::MAGIC_NUMBER;
+      none_magic &= temp[i] != magic_value;
     }
     *a_out = static_cast<T>(!none_magic);
+
+    delete[] temp;
   }
 };
+} // namespace cpu
 
-template <typename T> struct FloatBaseline_GPUAnyValueIsMagicQueryFn {
-  void operator()(const T *a_in, T *a_out,
+namespace gpu {
+
+template <typename T> struct StatelessAnyValueIsMagicFn {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    alp::gpu::bench::decode_baseline<T>(a_out, a_in, a_count);
+                  [[maybe_unused]] const size_t a_count) {
+    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in->first,
+                                                 a_in->second);
   }
 };
 
-template <typename T> struct ALP_CPUAnyValueIsMagicQueryFn {
+template <typename T> struct StatefulAnyValueIsMagicFn {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  [[maybe_unused]] const size_t a_count) {
+    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in->first,
+                                                a_in->second);
+  }
+};
+
+template <typename T> struct StatefulExtendedAnyValueIsMagicFn {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  [[maybe_unused]] const size_t a_count) {
+    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(a_out, a_in->first,
+                                                            a_in->second);
+  }
+};
+
+} // namespace gpu
+} // namespace dynamic
+
+namespace constant {
+namespace cpu {
+
+template <typename T> struct AnyValueIsMagicFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -128,29 +200,40 @@ template <typename T> struct ALP_CPUAnyValueIsMagicQueryFn {
     delete[] temp;
   }
 };
+} // namespace cpu
 
-template <typename T> struct ALP_GPUStatelessAnyValueIsMagicQueryFn {
+namespace gpu {
+
+template <typename T> struct StatelessAnyValueIsMagicFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in,
+                                                 consts::as<T>::MAGIC_NUMBER);
   }
 };
 
-template <typename T> struct ALP_GPUStatefulAnyValueIsMagicQueryFn {
+template <typename T> struct StatefulAnyValueIsMagicFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in,
+                                                consts::as<T>::MAGIC_NUMBER);
   }
 };
 
-template <typename T> struct ALP_GPUStatefulExtendedAnyValueIsMagicQueryFn {
+template <typename T> struct StatefulExtendedAnyValueIsMagicFn {
   void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(a_out, a_in);
+    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(
+        a_out, a_in, consts::as<T>::MAGIC_NUMBER);
   }
 };
+
+} // namespace gpu
+} // namespace constant
+} // namespace ALP
+} // namespace queries
 
 #endif // QUERIES_H

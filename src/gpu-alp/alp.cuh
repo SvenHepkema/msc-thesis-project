@@ -291,9 +291,9 @@ struct AlpStatefulUnpacker
   uint16_t *vec_exceptions_positions;
   T *vec_exceptions;
 
-  __device__ __forceinline__ AlpStatefulUnpacker(const vi_t vector_index,
-                                                 const lane_t lane,
-                                                 const AlpColumn<T> column)
+  __device__ __forceinline__ AlpStatefulUnpacker(const AlpColumn<T> column,
+                                                 const vi_t vector_index,
+                                                 const lane_t lane)
       : lane(lane) {
     in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
     value_bit_width = column.bit_widths[vector_index];
@@ -357,8 +357,8 @@ struct AlpStatefulExtendedUnpacker
   SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS> patcher;
 
   __device__ __forceinline__
-  AlpStatefulExtendedUnpacker(const vi_t vector_index, const lane_t lane,
-                              const AlpExtendedColumn<T> column)
+  AlpStatefulExtendedUnpacker(const AlpExtendedColumn<T> column,
+                              const vi_t vector_index, const lane_t lane)
       : value_bit_width(column.bit_widths[vector_index]),
         in(column.ffor_array + consts::VALUES_PER_VECTOR * vector_index),
         patcher(column.offsets_counts +

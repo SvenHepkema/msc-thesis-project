@@ -22,7 +22,6 @@ __global__ void decode_baseline(T *out, const T *in,
 
   T registers[N_VALUES];
   auto checker = MagicChecker<T, N_VALUES>(consts::as<T>::MAGIC_NUMBER);
-  bool none_magic = true;
 
   for (si_t i = 0; i < n_values_in_lane; i += UNPACK_N_VALUES) {
 #pragma unroll
@@ -43,9 +42,10 @@ __global__ void decode_baseline(T *out, const T *in,
   checker.write_result(out);
 }
 
-template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
-                                         const T magic_value) {
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
+          typename UnpackerT, typename ColumnT>
+__device__ __forceinline__ void check_for_magic(T *out, ColumnT column,
+                                                const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -54,11 +54,10 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
   T registers[N_VALUES];
   auto checker = MagicChecker<T, N_VALUES>(magic_value);
 
-  auto iterator = AlpStatelessUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-      data, vector_index, lane);
+  UnpackerT unpacker = UnpackerT(column, vector_index, lane);
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    iterator.unpack_next_into(registers);
+    unpacker.unpack_next_into(registers);
     checker.check(registers);
   }
 
@@ -66,50 +65,29 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
+__global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
+                                         const T magic_value) {
+  check_for_magic<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                  AlpStatelessUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
+      out, data, magic_value);
+}
+
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful(T *out, AlpColumn<T> column,
                                         const T magic_value) {
-  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const lane_t lane = mapping.get_lane();
-  const int32_t vector_index = mapping.get_vector_index();
-
-  T registers[N_VALUES];
-  auto checker = MagicChecker<T, N_VALUES>(magic_value);
-
-  auto iterator = AlpStatefulUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-      vector_index, lane, column);
-
-  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    iterator.unpack_next_into(registers);
-    checker.check(registers);
-  }
-
-  checker.write_result(out);
+  check_for_magic<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                  AlpStatefulUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
+      out, column, magic_value);
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful_extended(T *out,
                                                  AlpExtendedColumn<T> column,
                                                  const T magic_value) {
-  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
-  const lane_t lane = mapping.get_lane();
-  const int32_t vector_index = mapping.get_vector_index();
-
-  T registers[N_VALUES];
-  auto checker = MagicChecker<T, N_VALUES>(magic_value);
-
-  auto iterator =
-      AlpStatefulExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-          vector_index, lane, column);
-
-  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    iterator.unpack_next_into(registers);
-
-    checker.check(registers);
-  }
-
-  checker.write_result(out);
+  check_for_magic<
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+      AlpStatefulExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
+      out, column, magic_value);
 }
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,

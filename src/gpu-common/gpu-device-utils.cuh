@@ -34,12 +34,35 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
 __device__ __forceinline__ void
 write_registers_to_global(const lane_t lane, const si_t index_offset,
                           const T *__restrict registers, T *__restrict out) {
-    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      for (int w{0}; w < UNPACK_N_VALUES; ++w) {
-        out[lane + (index_offset + w) * N_LANES + v * consts::VALUES_PER_VECTOR] =
-            registers[w + v * UNPACK_N_VALUES];
-      }
+  for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+    for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+      out[lane + (index_offset + w) * N_LANES + v * consts::VALUES_PER_VECTOR] =
+          registers[w + v * UNPACK_N_VALUES];
     }
+  }
 }
+
+template <typename T, unsigned N_VALUES> struct MagicChecker {
+  const T magic_value;
+  bool no_magic_found = true;
+
+  __device__ __forceinline__ MagicChecker(const T magic_value)
+      : magic_value(magic_value) {}
+
+  __device__ __forceinline__ void check(const T *__restrict registers) {
+#pragma unroll
+    for (int i = 0; i < N_VALUES; ++i) {
+      no_magic_found &= registers[i] != magic_value;
+    }
+  }
+
+  __device__ __forceinline__ void write_result(T *__restrict out) {
+    // This is a branch, as we do not want to write 0s, only emit a write
+    // if we found a magic value
+    if (!no_magic_found) {
+      *out = 1.0;
+    }
+  }
+};
 
 #endif // GPU_DEVICE_UTILS_CUH

@@ -58,9 +58,12 @@ __global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
   T registers[N_VALUES];
   bool none_magic = true;
 
+  auto iterator = AlpStatelessUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+      data, vector_index, lane);
+
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
-    unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data, vector_index,
-                                                lane, i);
+		iterator.unpack_next_into(registers);
+
 #pragma unroll
     for (int j = 0; j < N_VALUES; ++j) {
       none_magic &= registers[j] != magic_value;
@@ -83,7 +86,7 @@ __global__ void contains_magic_stateful(T *out, AlpColumn<T> column,
   T registers[N_VALUES];
   bool none_magic = true;
 
-  auto iterator = OldUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  auto iterator = AlpStatefulUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       vector_index, lane, column);
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
@@ -112,7 +115,7 @@ __global__ void contains_magic_stateful_extended(T *out,
   T registers[N_VALUES];
   bool none_magic = true;
 
-  auto iterator = ExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+  auto iterator = AlpStatefulExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
       vector_index, lane, column);
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
@@ -133,6 +136,7 @@ template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
 __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
                                             AlpColumn<T> column_1) {
+	/*
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -166,12 +170,14 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   if (!none_equal) {
     *out = 1.0;
   }
+	*/
 }
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
 __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
                                             AlpColumn<T> column_1,
                                             AlpColumn<T> column_2) {
+	/*
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -209,6 +215,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   if (!none_equal) {
     *out = 1.0;
   }
+	*/
 }
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,
           int UNPACK_N_VALUES>
@@ -216,6 +223,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
                                             AlpColumn<T> column_1,
                                             AlpColumn<T> column_2,
                                             AlpColumn<T> column_3) {
+	/*
   const uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   constexpr uint8_t LANE_BIT_WIDTH = utils::sizeof_in_bits<T>();
   constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
@@ -258,6 +266,7 @@ __global__ void decode_multiple_alp_vectors(T *out, AlpColumn<T> column_0,
   if (!none_equal) {
     *out = 1.0;
   }
+	*/
 }
 
 } // namespace bench

@@ -36,7 +36,7 @@ template <typename T>
 verification::VerificationResult<T>
 verify_bench_alp_stateless(const size_t a_count,
                            [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 1000);
   auto [data, generator] =
       data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
                                                              a_count);
@@ -57,7 +57,7 @@ template <typename T>
 verification::VerificationResult<T>
 verify_bench_alp_stateful(const size_t a_count,
                           [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 1000);
   auto [data, generator] =
       data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
                                                              a_count);
@@ -77,7 +77,7 @@ verify_bench_alp_stateful(const size_t a_count,
 template <typename T>
 verification::VerificationResult<T> verify_bench_alp_stateful_extended(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 100);
+  auto value_bit_widths = verification::generate_integer_range<int32_t>(0, 1000);
   auto [data, generator] =
       data::lambda::get_reusable_compressed_binary_column<T>(dataset_name,
                                                              a_count);

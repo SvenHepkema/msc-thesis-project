@@ -26,11 +26,8 @@ __global__ void decode_alp_vector_stateless(T *out, AlpColumn<T> data) {
     unalp<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(registers, data, vector_index,
                                                 lane, i);
 
-    for (int i = 0; i < UNPACK_N_VALUES; i++) {
-      out[lane + i * mapping.N_LANES] = registers[i];
-    }
-
-    out += UNPACK_N_VALUES * mapping.N_LANES;
+    write_registers_to_global<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              mapping.N_LANES>(lane, i, registers, out);
   }
 }
 
@@ -50,11 +47,8 @@ __global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> data) {
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 
-    for (int i = 0; i < UNPACK_N_VALUES; i++) {
-      out[lane + i * mapping.N_LANES] = registers[i];
-    }
-
-    out += UNPACK_N_VALUES * mapping.N_LANES;
+    write_registers_to_global<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              mapping.N_LANES>(lane, i, registers, out);
   }
 }
 
@@ -76,12 +70,8 @@ __global__ void decode_alp_vector_stateful_extended(T *out,
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     iterator.unpack_next_into(registers);
 
-    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      for (int w{0}; w < UNPACK_N_VALUES; ++w) {
-        out[lane + (i + w) * mapping.N_LANES + v * consts::VALUES_PER_VECTOR] =
-            registers[w + v * UNPACK_N_VALUES];
-      }
-    }
+    write_registers_to_global<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              mapping.N_LANES>(lane, i, registers, out);
   }
 }
 

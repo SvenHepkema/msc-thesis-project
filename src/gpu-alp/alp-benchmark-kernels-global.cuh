@@ -65,28 +65,29 @@ __device__ __forceinline__ void check_for_magic(T *out, ColumnT column,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
+__global__ void contains_magic_stateless(T *out, AlpColumn<T> column,
                                          const T magic_value) {
   check_for_magic<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatelessUnpacker<
+      AlpUnpacker<
           T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>>(
-      out, data, magic_value);
-  /*check_for_magic<
-      T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatelessUnpacker<
-          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-          StatelessWithScannerALPExceptionPatcher<T, UNPACK_N_VECTORS,
-     UNPACK_N_VALUES>>>( out, data, magic_value);*/
+          BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                               ALPFunctor<T>>,
+          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>,
+          AlpColumn<T>>>(out, column, magic_value);
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateful(T *out, AlpColumn<T> column,
                                         const T magic_value) {
-  check_for_magic<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                  AlpStatefulUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
-      out, column, magic_value);
+  check_for_magic<
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+      AlpUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          BitUnpackerStateful<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              ALPFunctor<T>>,
+          StatefulALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>,
+          AlpColumn<T>>>(out, column, magic_value);
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
@@ -95,8 +96,11 @@ __global__ void contains_magic_stateful_extended(T *out,
                                                  const T magic_value) {
   check_for_magic<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatefulExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
-      out, column, magic_value);
+      AlpUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                  BitUnpackerStateful<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                                      ALPFunctor<T>>,
+                  SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+                  AlpExtendedColumn<T>>>(out, column, magic_value);
 }
 
 template <typename T, typename UINT_T, int UNPACK_N_VECTORS,

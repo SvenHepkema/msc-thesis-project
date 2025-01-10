@@ -34,36 +34,40 @@ __device__ __forceinline__ void decompress_into_out(T *out, ColumnT data) {
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_stateless(T *out, AlpColumn<T> data) {
+__global__ void decode_alp_vector_stateless(T *out, AlpColumn<T> column) {
   decompress_into_out<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatelessUnpacker<
+      AlpUnpacker<
           T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>>(
-      out, data);
-  /* decompress_into_out<
-        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        AlpStatelessUnpacker<
-                        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                        StatelessWithScannerALPExceptionPatcher<T, UNPACK_N_VECTORS,
-     UNPACK_N_VALUES>>>( out, data);
-        */
+          BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                               ALPFunctor<T>>,
+          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>,
+          AlpColumn<T>>>(out, column);
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> data) {
+__global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> column) {
   decompress_into_out<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatefulUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(out, data);
+      AlpUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                               ALPFunctor<T>>,
+          StatefulALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>,
+          AlpColumn<T>>>(out, column);
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void decode_alp_vector_stateful_extended(T *out,
-                                                    AlpExtendedColumn<T> data) {
+                                                    AlpExtendedColumn<T> column) {
   decompress_into_out<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatefulExtendedUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(out,
-                                                                         data);
+      AlpUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                               ALPFunctor<T>>,
+          SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+          AlpExtendedColumn<T>>>(out, column);
 }
 
 } // namespace test

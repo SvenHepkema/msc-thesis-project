@@ -58,16 +58,16 @@ __global__ void decode_alp_vector_stateful(T *out, AlpColumn<T> column) {
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void decode_alp_vector_stateful_extended(T *out,
-                                                    AlpExtendedColumn<T> column) {
+__global__ void
+decode_alp_vector_stateful_extended(T *out, AlpExtendedColumn<T> column) {
   decompress_into_out<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpUnpacker<
-          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-          BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                               ALPFunctor<T>>,
-          SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS>,
-          AlpExtendedColumn<T>>>(out, column);
+      AlpUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                  BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                                       ALPFunctor<T>>,
+                  //PrefetchAllALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+                  PrefetchAllBranchlessALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+                  AlpExtendedColumn<T>>>(out, column);
 }
 
 } // namespace test

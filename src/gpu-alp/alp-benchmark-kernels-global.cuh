@@ -97,9 +97,10 @@ __global__ void contains_magic_stateful_extended(T *out,
   check_for_magic<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
       AlpUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                  BitUnpackerStateful<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                  BitUnpackerStatelessBranchless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
                                       ALPFunctor<T>>,
-                  SimpleALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+                  //PrefetchAllALPExceptionPatcher<T, UNPACK_N_VECTORS>,
+                  PrefetchAllBranchlessALPExceptionPatcher<T, UNPACK_N_VECTORS>,
                   AlpExtendedColumn<T>>>(out, column, magic_value);
 }
 

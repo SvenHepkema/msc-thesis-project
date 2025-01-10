@@ -6,7 +6,6 @@
 #include "../common/utils.hpp"
 #include "../gpu-fls/fls.cuh"
 
-
 #ifndef ALP_EXCEPTION_PATCHERS_CUH
 #define ALP_EXCEPTION_PATCHERS_CUH
 
@@ -14,6 +13,100 @@ template <typename T, unsigned UNPACK_N_VECTORS>
 struct ALPExceptionPatcherBase {
 public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+struct StatelessALPExceptionPatcher
+    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+  using INT_T = typename utils::same_width_int<T>::type;
+
+  const si_t start_index;
+  const uint16_t exceptions_count;
+  const uint16_t *vec_exceptions_positions;
+  const T *vec_exceptions;
+  const lane_t lane;
+
+public:
+  void __device__ __forceinline__ patch_if_needed(T *out) override {
+    constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
+
+    const int first_pos = start_index * N_LANES + lane;
+    const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
+    for (int i{0}; i < exceptions_count; i++) {
+      auto position = vec_exceptions_positions[i];
+      auto exception = vec_exceptions[i];
+      if (position >= first_pos) {
+        if (position <= last_pos && position % N_LANES == lane) {
+          out[(position - first_pos) / N_LANES] = exception;
+        }
+        if (position + 1 > last_pos) {
+          return;
+        }
+      }
+    }
+  }
+
+  __device__ __forceinline__ StatelessALPExceptionPatcher(
+      const vi_t vector_index, const si_t start_index,
+      const uint16_t *offset_counts, const uint16_t *vec_exceptions_positions,
+      const T *vec_exceptions, const lane_t lane)
+      : start_index(start_index), exceptions_count(offset_counts[vector_index]),
+        vec_exceptions_positions(vec_exceptions_positions +
+                                 consts::VALUES_PER_VECTOR * vector_index),
+        vec_exceptions(vec_exceptions +
+                       consts::VALUES_PER_VECTOR * vector_index),
+        lane(lane) {}
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+struct StatelessWithScannerALPExceptionPatcher
+    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+  using INT_T = typename utils::same_width_int<T>::type;
+
+  const si_t start_index;
+  const uint16_t exceptions_count;
+  const uint16_t *vec_exceptions_positions;
+  const T *vec_exceptions;
+  const lane_t lane;
+
+public:
+  void __device__ __forceinline__ patch_if_needed(T *out) override {
+    constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
+
+    const int first_pos = start_index * N_LANES + lane;
+    const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
+    constexpr int32_t SCANNER_SIZE = 1;
+    uint16_t scanner[SCANNER_SIZE];
+
+    for (int i{0}; i < exceptions_count; i += SCANNER_SIZE) {
+      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
+        scanner[j] = vec_exceptions_positions[j + i];
+      }
+
+      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
+        auto position = scanner[j];
+        if (position >= first_pos) {
+          if (position <= last_pos && position % N_LANES == lane) {
+            out[(position - first_pos) / N_LANES] = vec_exceptions[j + i];
+          }
+          if (position + 1 > last_pos) {
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  __device__ __forceinline__ StatelessWithScannerALPExceptionPatcher(
+      const vi_t vector_index, const si_t start_index,
+      const uint16_t *offset_counts, const uint16_t *vec_exceptions_positions,
+      const T *vec_exceptions, const lane_t lane)
+      : start_index(start_index), exceptions_count(offset_counts[vector_index]),
+        vec_exceptions_positions(vec_exceptions_positions +
+                                 consts::VALUES_PER_VECTOR * vector_index),
+        vec_exceptions(vec_exceptions +
+                       consts::VALUES_PER_VECTOR * vector_index),
+        lane(lane) {}
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS>

@@ -67,9 +67,18 @@ __device__ __forceinline__ void check_for_magic(T *out, ColumnT column,
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void contains_magic_stateless(T *out, AlpColumn<T> data,
                                          const T magic_value) {
-  check_for_magic<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                  AlpStatelessUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(
+  check_for_magic<
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+      AlpStatelessUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>>(
       out, data, magic_value);
+  /*check_for_magic<
+      T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+      AlpStatelessUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          StatelessWithScannerALPExceptionPatcher<T, UNPACK_N_VECTORS,
+     UNPACK_N_VALUES>>>( out, data, magic_value);*/
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>

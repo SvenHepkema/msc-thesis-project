@@ -37,7 +37,17 @@ template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
 __global__ void decode_alp_vector_stateless(T *out, AlpColumn<T> data) {
   decompress_into_out<
       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-      AlpStatelessUnpacker<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>(out, data);
+      AlpStatelessUnpacker<
+          T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+          StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>>>(
+      out, data);
+  /* decompress_into_out<
+        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+        AlpStatelessUnpacker<
+                        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                        StatelessWithScannerALPExceptionPatcher<T, UNPACK_N_VECTORS,
+     UNPACK_N_VALUES>>>( out, data);
+        */
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>

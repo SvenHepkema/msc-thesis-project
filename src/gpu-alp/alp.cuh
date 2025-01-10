@@ -133,11 +133,13 @@ template <typename T> struct AlpUnpackerBase {
   virtual __device__ __forceinline__ void unpack_next_into(T *__restrict out);
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct AlpStatelessUnpacker
-    : AlpUnpackerBase<T> {
-
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename StatelessExceptionPatcher>
+struct AlpStatelessUnpacker : AlpUnpackerBase<T> {
 private:
+  using INT_T = typename utils::same_width_int<T>::type;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
   const AlpColumn<T> column;
   const vi_t vector_index;
   const lane_t lane;
@@ -145,128 +147,26 @@ private:
 
 public:
   __device__ void unpack_next_into(T *__restrict out) override {
-    using INT_T = typename utils::same_width_int<T>::type;
-    using UINT_T = typename utils::same_width_uint<T>::type;
-
     UINT_T *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
     vbw_t value_bit_width = column.bit_widths[vector_index];
-    UINT_T base = column.ffor_bases[vector_index];
-    INT_T factor =
-        constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    T frac10 = constant_memory::get_frac_arr<
-        T>()[column.exponents[vector_index]]; // WARNING TODO implement a
-                                              // compile time switch to grab
-                                              // float array
-    auto lambda = [base, factor, frac10](const UINT_T value) -> T {
-      return static_cast<T>(static_cast<INT_T>((value + base) *
-                                               static_cast<UINT_T>(factor))) *
-             frac10;
-    };
+
+    auto processor = ALPFunctor<T>(column.ffor_bases[vector_index],
+                                   column.factors[vector_index],
+                                   column.exponents[vector_index]);
 
     unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        in, out, lane, value_bit_width, start_index, lambda);
+        in, out, lane, value_bit_width, start_index, processor);
 
-    // Patch exceptions
-    constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
-    auto exceptions_count = column.counts[vector_index];
+    StatelessExceptionPatcher(vector_index, start_index, column.counts,
+                              column.positions, column.exceptions, lane)
+        .patch_if_needed(out);
 
-    auto vec_exceptions =
-        column.exceptions + consts::VALUES_PER_VECTOR * vector_index;
-    auto vec_exceptions_positions =
-        column.positions + consts::VALUES_PER_VECTOR * vector_index;
-
-    const int first_pos = start_index * N_LANES + lane;
-    const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
     start_index += UNPACK_N_VALUES;
-    for (int i{0}; i < exceptions_count; i++) {
-      auto position = vec_exceptions_positions[i];
-      auto exception = vec_exceptions[i];
-      if (position >= first_pos) {
-        if (position <= last_pos && position % N_LANES == lane) {
-          out[(position - first_pos) / N_LANES] = exception;
-        }
-        if (position + 1 > last_pos) {
-          return;
-        }
-      }
-    }
   }
 
   __device__ __forceinline__ AlpStatelessUnpacker(const AlpColumn<T> column,
                                                   const vi_t vector_index,
                                                   const lane_t lane)
-      : column(column), vector_index(vector_index), lane(lane){};
-};
-
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct AlpStatelessWithScannerUnpacker
-    : AlpUnpackerBase<T> {
-
-private:
-  const AlpColumn<T> column;
-  const vi_t vector_index;
-  const lane_t lane;
-  si_t start_index = 0;
-
-public:
-  __device__ void unpack_next_into(T *__restrict out) override {
-    using INT_T = typename utils::same_width_int<T>::type;
-    using UINT_T = typename utils::same_width_uint<T>::type;
-
-    UINT_T *in = column.ffor_array + consts::VALUES_PER_VECTOR * vector_index;
-    vbw_t value_bit_width = column.bit_widths[vector_index];
-    UINT_T base = column.ffor_bases[vector_index];
-    INT_T factor =
-        constant_memory::get_fact_arr<INT_T>()[column.factors[vector_index]];
-    T frac10 = constant_memory::get_frac_arr<
-        T>()[column.exponents[vector_index]]; // WARNING TODO implement a
-                                              // compile time switch to grab
-                                              // float array
-    auto lambda = [base, factor, frac10](const UINT_T value) -> T {
-      return static_cast<T>(static_cast<INT_T>((value + base) *
-                                               static_cast<UINT_T>(factor))) *
-             frac10;
-    };
-
-    unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        in, out, lane, value_bit_width, start_index, lambda);
-
-    // Patch exceptions
-    constexpr auto N_LANES = utils::get_n_lanes<INT_T>();
-    auto exceptions_count = column.counts[vector_index];
-
-    auto vec_exceptions =
-        column.exceptions + consts::VALUES_PER_VECTOR * vector_index;
-    auto vec_exceptions_positions =
-        column.positions + consts::VALUES_PER_VECTOR * vector_index;
-
-    const int first_pos = start_index * N_LANES + lane;
-    const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
-    constexpr int32_t SCANNER_SIZE = 1;
-    uint16_t scanner[SCANNER_SIZE];
-    start_index += UNPACK_N_VALUES;
-
-    for (int i{0}; i < exceptions_count; i += SCANNER_SIZE) {
-      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-        scanner[j] = vec_exceptions_positions[j + i];
-      }
-
-      for (int j{0}; j < SCANNER_SIZE && j + i < exceptions_count; ++j) {
-        auto position = scanner[j];
-        if (position >= first_pos) {
-          if (position <= last_pos && position % N_LANES == lane) {
-            out[(position - first_pos) / N_LANES] = vec_exceptions[j + i];
-          }
-          if (position + 1 > last_pos) {
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  __device__ __forceinline__ AlpStatelessWithScannerUnpacker(
-      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane)
       : column(column), vector_index(vector_index), lane(lane){};
 };
 
@@ -345,8 +245,7 @@ struct AlpStatefulUnpacker : AlpUnpackerBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct AlpStatefulExtendedUnpacker
-    : AlpUnpackerBase<T> {
+struct AlpStatefulExtendedUnpacker : AlpUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T *in;
   vbw_t value_bit_width;

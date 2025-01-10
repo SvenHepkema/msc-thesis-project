@@ -346,7 +346,8 @@ private:
 public:
   __device__ __forceinline__ PrefetchPositionALPExceptionPatcher(
       const AlpExtendedColumn<T> column, const vi_t vector_index,
-      const lane_t lane) : position(lane) {
+      const lane_t lane)
+      : position(lane) {
     const auto offset_count =
         column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
     count = offset_count >> 10;
@@ -359,8 +360,7 @@ public:
     next_position = *positions;
   }
 
-  void __device__ __forceinline__
-  patch_if_needed(T *out) override {
+  void __device__ __forceinline__ patch_if_needed(T *out) override {
     if (count > 0 && position == next_position) {
       *out = *exceptions;
       ++positions;
@@ -369,7 +369,7 @@ public:
       next_position = *positions;
     }
 
-		position += utils::get_n_lanes<T>();
+    position += utils::get_n_lanes<T>();
   }
 };
 
@@ -402,7 +402,7 @@ public:
   PrefetchAllALPExceptionPatcher(const AlpExtendedColumn<T> column,
                                  const vi_t vector_index, const lane_t lane)
       : position(lane) {
-      // These consts should be N_LANES, but the arrays are not packed yet
+    // These consts should be N_LANES, but the arrays are not packed yet
     const auto offset_count =
         column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
     count = offset_count >> 10;
@@ -424,6 +424,61 @@ public:
       read_next_exception();
     }
     position += utils::get_n_lanes<T>();
+  }
+};
+
+template <typename ToT, typename FromT>
+constexpr ToT __device__ __forceinline__ reinterpret_as(FromT value) {
+  ToT *ptr = reinterpret_cast<ToT *>(&value);
+  return *ptr;
+}
+
+template <typename T, unsigned UNPACK_N_VECTORS>
+struct BranchlessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
+private:
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  uint16_t count[UNPACK_N_VECTORS];
+  uint16_t *positions[UNPACK_N_VECTORS];
+  T *exceptions[UNPACK_N_VECTORS];
+  uint16_t next_position;
+  uint16_t current_position;
+
+public:
+  __device__ __forceinline__
+  BranchlessALPExceptionPatcher(const AlpExtendedColumn<T> column,
+                                const vi_t vector_index, const lane_t lane)
+      : current_position(lane) {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      const vi_t current_vector_index = vector_index + v;
+
+      const auto offset_count =
+          column.offsets_counts[current_vector_index * utils::get_n_lanes<T>() +
+                                lane];
+      count[v] = offset_count >> 10;
+
+      // These consts should be N_LANES, but the arrays are not packed yet
+      const auto vec_offset = consts::VALUES_PER_VECTOR * current_vector_index;
+      const auto offset = (offset_count & 0x3FF);
+
+      positions[v] = column.positions + vec_offset + offset;
+      exceptions[v] = column.exceptions + vec_offset + offset;
+    }
+  }
+
+  void __device__ __forceinline__ patch_if_needed(T *out) override {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+			// It is possible to easily prefetch *positions[v] here
+      bool comp = (count[v] > 0) && (current_position == (*positions[v]));
+      out[v] =
+          reinterpret_as<T>((reinterpret_as<UINT_T>(out[v]) * (!comp)) |
+                            (reinterpret_as<UINT_T>(*exceptions[v]) * comp));
+      positions[v] += comp;
+      exceptions[v] += comp;
+      count[v] -= comp;
+      current_position += utils::get_n_lanes<T>();
+    }
   }
 };
 

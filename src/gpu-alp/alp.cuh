@@ -148,7 +148,7 @@ struct AlpUnpacker {
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T>
 struct ALPExceptionPatcherBase {
 public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
@@ -156,7 +156,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -199,7 +199,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessWithScannerALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -249,7 +249,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatefulALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -293,7 +293,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS>
 struct SimpleALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count[UNPACK_N_VECTORS];
   uint16_t *positions[UNPACK_N_VECTORS];
@@ -341,7 +341,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS>
 struct PrefetchPositionALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
   uint16_t *positions;
@@ -375,7 +375,7 @@ public:
 
 template <typename T, unsigned UNPACK_N_VECTORS>
 struct PrefetchAllALPExceptionPatcher
-    : ALPExceptionPatcherBase<T, UNPACK_N_VECTORS> {
+    : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
   uint16_t *positions;

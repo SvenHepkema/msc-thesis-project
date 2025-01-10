@@ -148,15 +148,13 @@ struct AlpUnpacker {
   }
 };
 
-template <typename T>
-struct ALPExceptionPatcherBase {
+template <typename T> struct ALPExceptionPatcherBase {
 public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct StatelessALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct StatelessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -198,8 +196,7 @@ public:
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct StatelessWithScannerALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct StatelessWithScannerALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -248,8 +245,7 @@ public:
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct StatefulALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct StatefulALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
@@ -292,8 +288,7 @@ public:
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS>
-struct SimpleALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct SimpleALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count[UNPACK_N_VECTORS];
   uint16_t *positions[UNPACK_N_VECTORS];
@@ -340,29 +335,32 @@ public:
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS>
-struct PrefetchPositionALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct PrefetchPositionALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
   uint16_t *positions;
   T *exceptions;
   uint16_t next_position;
+  uint16_t position;
 
 public:
   __device__ __forceinline__ PrefetchPositionALPExceptionPatcher(
       const AlpExtendedColumn<T> column, const vi_t vector_index,
-      const lane_t lane) {
-    auto offset_count = column.offsets_counts[vector_index];
+      const lane_t lane) : position(lane) {
+    const auto offset_count =
+        column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
     count = offset_count >> 10;
-    positions = column.positions + vector_index * utils::get_n_lanes<T>() +
-                (offset_count & 0x3FF);
-    exceptions = column.exceptions + vector_index * utils::get_n_lanes<T>() +
-                 (offset_count & 0x3FF);
+
+    const auto offset =
+        vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+    positions = column.positions + offset;
+    exceptions = column.exceptions + offset;
+
     next_position = *positions;
   }
 
   void __device__ __forceinline__
-  patch_if_needed(T *out, const int32_t position) override {
+  patch_if_needed(T *out) override {
     if (count > 0 && position == next_position) {
       *out = *exceptions;
       ++positions;
@@ -370,12 +368,13 @@ public:
       --count;
       next_position = *positions;
     }
+
+		position += utils::get_n_lanes<T>();
   }
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS>
-struct PrefetchAllALPExceptionPatcher
-    : ALPExceptionPatcherBase<T> {
+struct PrefetchAllALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
   uint16_t *positions;
@@ -384,6 +383,7 @@ private:
   uint16_t index = 0;
   int16_t next_position;
   T next_exception;
+  uint16_t position;
 
 public:
   void __device__ __forceinline__ read_next_exception() {
@@ -398,15 +398,19 @@ public:
     }
   }
 
-  __device__ __forceinline__ PrefetchAllALPExceptionPatcher(
-      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane) {
-    auto offset_count = column.offsets_counts[vector_index];
+  __device__ __forceinline__
+  PrefetchAllALPExceptionPatcher(const AlpExtendedColumn<T> column,
+                                 const vi_t vector_index, const lane_t lane)
+      : position(lane) {
+      // These consts should be N_LANES, but the arrays are not packed yet
+    const auto offset_count =
+        column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
     count = offset_count >> 10;
 
-    positions = column.positions + vector_index * utils::get_n_lanes<T>() +
-                (offset_count & 0x3FF);
-    exceptions = column.exceptions + vector_index * utils::get_n_lanes<T>() +
-                 (offset_count & 0x3FF);
+    const auto offset =
+        vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+    positions = column.positions + offset;
+    exceptions = column.exceptions + offset;
 
     next_position = *positions;
     next_exception = *exceptions;
@@ -414,12 +418,12 @@ public:
     read_next_exception();
   }
 
-  void __device__ __forceinline__
-  patch_if_needed(T *out, const int32_t position) override {
+  void __device__ __forceinline__ patch_if_needed(T *out) override {
     if (position == next_position) {
       *out = next_exception;
       read_next_exception();
     }
+    position += utils::get_n_lanes<T>();
   }
 };
 

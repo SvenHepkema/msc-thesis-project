@@ -324,8 +324,11 @@ struct BitUnpackerStatelessBranchless : BitUnpackerBase<T> {
       : in(in), lane(lane), value_bit_width(value_bit_width), lambda(lambda) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    unpack_vector_stateless_branchless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
-        in, out, lane, value_bit_width, start_index, lambda);
+#pragma unroll
+    for (int32_t i{0}; i < UNPACK_N_VALUES; i++) {
+      unpack_vector_stateless_branchless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES>(
+          in, out + i, lane, value_bit_width, start_index + i, lambda);
+    }
     start_index += UNPACK_N_VALUES;
   }
 };

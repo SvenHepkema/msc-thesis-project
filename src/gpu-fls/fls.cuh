@@ -296,14 +296,25 @@ __device__ void unpack_vector_stateless_branchless(
   int32_t offset_first = preceding_bits_first % LANE_BIT_WIDTH;
   int32_t offset_second = BIT_COUNT - offset_first;
   UINT_T value_mask = c_set_first_n_bits(value_bit_width);
+  const auto compressed_vector_size =
+      utils::get_compressed_vector_size<T>(value_bit_width);
 
-  UINT_T value = 0;
+  UINT_T values[UNPACK_N_VECTORS]; // = {0};
+
+#pragma unroll
+  for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
+    values[v] = 0;
+  }
 
   in += n_input_line * N_LANES + lane;
-  value |= (in[0] & (value_mask << offset_first)) >> offset_first;
-  value |= (in[N_LANES] & (value_mask >> offset_second)) << offset_second;
-
-  *(out) = lambda(value);
+#pragma unroll
+  for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
+    const auto v_in = in + v * compressed_vector_size;
+    values[v] |= (v_in[0] & (value_mask << offset_first)) >> offset_first;
+    values[v] |= (v_in[N_LANES] & (value_mask >> offset_second))
+                 << offset_second;
+    out[v] = lambda(values[v]);
+  }
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,

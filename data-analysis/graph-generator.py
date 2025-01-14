@@ -37,11 +37,15 @@ DEFAULT_COLORS = [
 ]
 
 
-@dataclasses.dataclass
 class GraphConfiguration:
-    start_from_zero: bool
+    y_axis_range: tuple[int | None, int | None]
     show_legend: bool
     output_name: str | None
+
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.y_axis_range = (0 if args.start_from_zero else None, args.y_axis_max_value)
+        self.show_legend = args.show_legend
+        self.output_name = args.output_file_path
 
 
 def return_default_x(df: pl.DataFrame) -> tuple[str, str]:
@@ -96,6 +100,7 @@ def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
     column_name, pretty_name = return_default_x(results)
 
     colors_index = 0
+    fig, ax = plt.subplots()
     for name, set_results in results.group_by("set_name", maintain_order=True):
         name = name[0]
         x = []
@@ -107,14 +112,13 @@ def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
             x.append(function_results[column_name][0])
             y.append(function_results["execution_speed"].mean() / 1000)
 
-        plt.scatter(x, y, s=20, c=DEFAULT_COLORS[colors_index], label=name)
+        ax.scatter(x, y, s=20, c=DEFAULT_COLORS[colors_index], label=name)
         colors_index += 1
 
+    ax.set_ylim(config.y_axis_range)
     plt.xlabel(pretty_name)
     plt.ylabel("Average execution speed (us)")
 
-    if config.start_from_zero:
-        plt.ylim(ymin=0)
     if config.show_legend:
         plt.legend()
     output_graph(config.output_name)
@@ -170,16 +174,16 @@ def load_dataframes(filenames: str) -> pl.DataFrame:
     results: list[pl.DataFrame] = []
     for filename in files:
         df = pl.read_csv(filename)
-        df = df.with_columns(pl.lit(filename.split("/")[-1].split(".")[0]).alias("set_name"))
+        df = df.with_columns(
+            pl.lit(filename.split("/")[-1].split(".")[0]).alias("set_name")
+        )
         results.append(df)
 
     return pl.concat(results)
 
 
 def main(args):
-    config = GraphConfiguration(
-        args.start_from_zero, args.show_legend, args.output_file_path
-    )
+    config = GraphConfiguration(args)
     df = load_dataframes(args.files)
 
     plot_options = {
@@ -226,6 +230,13 @@ if __name__ == "__main__":
         default=False,
         action=argparse.BooleanOptionalAction,
         help="Start the y axis from zero",
+    )
+    parser.add_argument(
+        "-yamv",
+        "--y-axis-max-value",
+        type=int,
+        default=None,
+        help="End the y axis at number",
     )
 
     parser.add_argument(

@@ -41,9 +41,11 @@ class GraphConfiguration:
     y_axis_range: tuple[int | None, int | None]
     show_legend: bool
     output_name: str | None
+    h_line: int | None
 
     def __init__(self, args: argparse.Namespace) -> None:
         self.y_axis_range = (0 if args.start_from_zero else None, args.y_axis_max_value)
+        self.h_line = args.h_line
         self.show_legend = args.show_legend
         self.output_name = args.output_file_path
 
@@ -113,8 +115,11 @@ def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
             y.append(function_results["execution_speed"].mean() / 1000)
 
         ax.scatter(x, y, s=20, c=DEFAULT_COLORS[colors_index], label=name)
+
         colors_index += 1
 
+    if config.h_line:
+        ax.axhline(y=config.h_line / 1000, color='r', linestyle='--', label='Baseline')
     ax.set_ylim(config.y_axis_range)
     plt.xlabel(pretty_name)
     plt.ylabel("Average execution speed (us)")
@@ -237,6 +242,13 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="End the y axis at number",
+    )
+    parser.add_argument(
+        "-hl",
+        "--h-line",
+        type=int,
+        default=None,
+        help="Horizontal, dashed line",
     )
 
     parser.add_argument(

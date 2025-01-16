@@ -11,6 +11,9 @@ namespace kernels {
 enum KernelOption {
   CPU,
   TEST_STATELESS_1_1,
+  TEST_STATEFUL_1_1,
+  TEST_STATELESS_BRANCHLESS_1_1,
+  TEST_STATEFUL_BRANCHLESS_1_1,
   QUERY_STATELESS_1_1,
 };
 
@@ -31,6 +34,11 @@ static inline const std::unordered_map<std::string, KernelSpecification>
     kernel_options{
         {"cpu", KernelSpecification(CPU, 1, 1)},
         {"test_stateless_1_1", KernelSpecification(TEST_STATELESS_1_1, 1, 1)},
+        {"test_stateful_1_1", KernelSpecification(TEST_STATEFUL_1_1, 1, 1)},
+        {"test_stateless_branchless_1_1",
+         KernelSpecification(TEST_STATELESS_BRANCHLESS_1_1, 1, 1)},
+        {"test_stateful_branchless_1_1",
+         KernelSpecification(TEST_STATEFUL_BRANCHLESS_1_1, 1, 1)},
         {"query_stateless_1_1", KernelSpecification(QUERY_STATELESS_1_1, 1, 1)},
     };
 

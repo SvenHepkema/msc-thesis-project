@@ -8,6 +8,22 @@
 #include "fls-kernels-bindings.hpp"
 #include "fls-kernels-global.cuh"
 
+#define BU(CASE, UNPACKER_T, N_VEC, N_VAL)                                     \
+  case CASE: {                                                                 \
+    kernels::device::bitunpack<T, N_VEC, N_VAL,                                \
+                               UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>>      \
+        <<<n_blocks, n_threads>>>(device_out.get(), device_in.get(),           \
+                                  value_bit_width);                            \
+  } break;
+
+#define QCCZ(CASE, UNPACKER_T, N_VEC, N_VAL)                                   \
+  case CASE: {                                                                 \
+    device::query_column_contains_zero<                                        \
+        T, N_VEC, N_VAL, UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>>            \
+        <<<n_blocks, n_threads>>>(device_out.get(), device_in.get(),           \
+                                  value_bit_width);                            \
+  } break;
+
 namespace kernels {
 
 template <>
@@ -27,15 +43,10 @@ void verify_bitunpack(const KernelSpecification spec,
   GPUArray<T> device_out(count);
 
   switch (spec.spec) {
-  case TEST_STATELESS_1_1: {
-    constexpr unsigned UNPACK_N_VECTORS = 1;
-    constexpr unsigned UNPACK_N_VALUES = 1;
-    device::bitunpack<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                      BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                                           BPFunctor<T>>>
-        <<<n_blocks, n_threads>>>(device_out.get(), device_in.get(),
-                                  value_bit_width);
-  } break;
+    BU(TEST_STATELESS_1_1, BitUnpackerStateless, 1, 1);
+    BU(TEST_STATEFUL_1_1, BitUnpackerStateful, 1, 1);
+    BU(TEST_STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1);
+    BU(TEST_STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1);
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -72,15 +83,7 @@ void query_column_contains_zero(const KernelSpecification spec,
   GPUArray<T> device_out(1);
 
   switch (spec.spec) {
-  case QUERY_STATELESS_1_1: {
-    constexpr unsigned UNPACK_N_VECTORS = 1;
-    constexpr unsigned UNPACK_N_VALUES = 1;
-    device::query_column_contains_zero<
-        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                             BPFunctor<T>>><<<n_blocks, n_threads>>>(
-        device_out.get(), device_in.get(), value_bit_width);
-  } break;
+    QCCZ(QUERY_STATELESS_1_1, BitUnpackerStateless, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;

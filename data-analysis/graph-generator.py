@@ -9,21 +9,14 @@ import enum
 
 import polars as pl
 import matplotlib.pyplot as plt
-import dataclasses
 
 
 class GraphTypes(enum.Enum):
     SCATTER_SPEED = 1
-    SCATTER_AVG_SPEED = 2
-    BOXPLOT_SPEED = 3
-    BOXPLOT_SETS_SPEED = 4
 
 
 GRAPH_TYPES_CLI_OPTIONS = {
     "scatter-speed": GraphTypes.SCATTER_SPEED,
-    "scatter-average-speed": GraphTypes.SCATTER_AVG_SPEED,
-    "boxplot-speed": GraphTypes.BOXPLOT_SPEED,
-    "boxplot-sets-speed": GraphTypes.BOXPLOT_SETS_SPEED,
 }
 
 DEFAULT_COLORS = [
@@ -81,24 +74,8 @@ def convert_unique_str_to_colors(values: list[str]) -> list[str]:
     return [DEFAULT_COLORS[unique.index(x)] for x in values]
 
 
+
 def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
-    column_name, pretty_name = return_default_x(results)
-    sets = get_sets(results)
-    x = [results[column_name]]
-    y = [result / 1000 for result in results["execution_speed"]]
-    colors = [sets.index(s) for s in results["set_name"]]
-
-    plt.xlabel(pretty_name)
-    plt.ylabel("Execution speed (us)")
-
-    plt.scatter(x, y, s=20, c=colors)
-
-    if config.show_legend:
-        plt.legend()
-    output_graph(config.output_name)
-
-
-def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
     column_name, pretty_name = return_default_x(results)
 
     colors_index = 0
@@ -129,48 +106,6 @@ def plot_scatter_average(results: pl.DataFrame, config: GraphConfiguration):
     output_graph(config.output_name)
 
 
-def plot_boxplot(results: pl.DataFrame, config: GraphConfiguration):
-    column_name, pretty_name = return_default_x(results)
-
-    assert len(get_sets(results)) == 1, "Boxplot only allows one set"
-
-    x = []
-    y = []
-
-    for _, function_results in results.group_by("function_id", maintain_order=True):
-        i = function_results[column_name][0]
-        x.append(i if i % 5 == 0 else "")
-        y.append([result / 1000 for result in function_results["execution_speed"]])
-
-    fig, ax = plt.subplots()
-    ax.boxplot(y)
-    ax.set_xlabel(pretty_name)
-    ax.set_ylabel("Execution speed (us)")
-    ax.set_xticklabels(x)
-
-    if config.start_from_zero:
-        ax.set_ylim(ymin=0)
-
-    output_graph(config.output_name)
-
-
-def plot_boxplot_sets(results: pl.DataFrame, config: GraphConfiguration):
-    x = []
-    y = []
-
-    for set_name, function_results in results.group_by("set_name", maintain_order=True):
-        x.append(set_name[0])
-        y.append([result / 1000 for result in function_results["execution_speed"]])
-
-    fig, ax = plt.subplots()
-    ax.boxplot(y)
-    ax.set_ylabel("Execution speed (us)")
-    ax.set_xticklabels(x)
-
-    if config.start_from_zero:
-        ax.set_ylim(ymin=0)
-
-    output_graph(config.output_name)
 
 
 def load_dataframes(filenames: str) -> pl.DataFrame:
@@ -193,9 +128,6 @@ def main(args):
 
     plot_options = {
         GraphTypes.SCATTER_SPEED: plot_scatter,
-        GraphTypes.SCATTER_AVG_SPEED: plot_scatter_average,
-        GraphTypes.BOXPLOT_SPEED: plot_boxplot,
-        GraphTypes.BOXPLOT_SETS_SPEED: plot_boxplot_sets,
     }
 
     plot_options[args.plot](df, config)

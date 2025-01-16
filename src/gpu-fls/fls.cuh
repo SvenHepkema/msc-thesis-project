@@ -392,13 +392,54 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   const OutputProcessor processor;
 
+  const UINT_T *in;
+  const vbw_t value_bit_width;
+
+  int32_t offset_first = 0;
+  int32_t offset_second = utils::sizeof_in_bits<T>();
+  UINT_T value_mask;
+
   __device__ __forceinline__ BitUnpackerStatefulBranchless(
-      const UINT_T *__restrict in, const lane_t lane,
+      const UINT_T *__restrict a_in, const lane_t lane,
       const vbw_t value_bit_width, OutputProcessor processor)
-      : processor(processor) {}
+      : in(a_in + lane), value_bit_width(value_bit_width),
+        value_mask(c_set_first_n_bits(value_bit_width)), processor(processor) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    // TODO Implement branchless, but keep certain variables in between calls
+    constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
+    constexpr int32_t BIT_COUNT = utils::sizeof_in_bits<T>();
+    constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<UINT_T>();
+
+    ///
+    /// Should this be here or be saved in a register?
+    ///
+    const auto compressed_vector_size =
+        utils::get_compressed_vector_size<T>(value_bit_width);
+    ///
+    ///
+    ///
+
+    UINT_T values[UNPACK_N_VECTORS]; // = {0};
+
+		// IS THIS NECESSARY ????????????????????????????????
+#pragma unroll
+    for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
+      values[v] = 0;
+    }
+
+#pragma unroll
+    for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
+      const auto v_in = in + v * compressed_vector_size;
+      values[v] |= (v_in[0] & (value_mask << offset_first)) >> offset_first;
+      values[v] |= (v_in[N_LANES] & (value_mask >> offset_second))
+                   << offset_second;
+      out[v] = processor(values[v]);
+    }
+
+    in += (offset_second <= value_bit_width) * N_LANES;
+
+    offset_first = (offset_first + value_bit_width) % LANE_BIT_WIDTH;
+    offset_second = BIT_COUNT - offset_first; // COULD ALSO MAKE THIS STATELESS ?????
   }
 };
 

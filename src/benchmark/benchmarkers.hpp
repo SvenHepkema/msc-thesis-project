@@ -12,41 +12,11 @@
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
+#include "../gpu-fls/fls-kernels-bindings.hpp"
 
 #include "../verification/queries.h"
 
 namespace benchmarkers {
-
-template <typename T>
-verification::VerificationResult<T>
-bench_int_baseline(const size_t a_count,
-                   [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
-
-  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, 1,
-      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_column<T>(),
-          queries::baseline::cpu::IntAnyValueIsMagicFn<T>(),
-          queries::baseline::gpu::IntAnyValueIsMagicFn<T>()));
-}
-
-template <typename T>
-verification::VerificationResult<T> bench_old_fls_contains_zero_value_bitwidths(
-    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
-
-  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, 1,
-      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_column<T>(),
-          queries::FLS::cpu::AnyValueIsMagicFn<T>(),
-          queries::FLS::gpu::OldAnyValueIsMagicFn<T>()));
-}
-
 template <typename T>
 verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
     const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
@@ -58,22 +28,7 @@ verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_binary_column<T>(),
           queries::FLS::cpu::AnyValueIsMagicFn<T>(),
-          queries::FLS::gpu::StatelessAnyValueIsMagicFn<T>()));
-}
-
-template <typename T>
-verification::VerificationResult<T>
-bench_bp_stateful_contains_zero_value_bitwidths(
-    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
-
-  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, 1,
-      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_column<T>(),
-          queries::FLS::cpu::AnyValueIsMagicFn<T>(),
-          queries::FLS::gpu::StatefulAnyValueIsMagicFn<T>()));
+          queries::FLS::gpu::AnyValueIsMagicFn<T>()));
 }
 
 template <typename T>

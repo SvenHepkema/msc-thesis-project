@@ -3,7 +3,7 @@
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-test-kernels-bindings.hpp"
+#include "../gpu-fls/fls-kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef DECOMPRESSOR_H

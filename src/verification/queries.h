@@ -3,7 +3,7 @@
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
-#include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
+#include "../gpu-fls/fls-kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef QUERIES_H
@@ -49,14 +49,6 @@ template <typename T> struct FloatAnyValueIsMagicFn {
 } // namespace cpu
 
 namespace gpu {
-template <typename T> struct IntAnyValueIsMagicFn {
-  void operator()(const T *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    fls::gpu::bench::query_baseline_contains_zero<T>(a_in, a_out, a_count);
-  }
-};
-
 template <typename T> struct FloatAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
@@ -95,32 +87,11 @@ template <typename T> struct AnyValueIsMagicFn {
 
 namespace gpu {
 
-template <typename T> struct OldAnyValueIsMagicFn {
+template <typename T> struct AnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    if (std::is_same<T, uint32_t>::value) {
-      fls::gpu::bench::query_old_fls_contains_zero<uint32_t>(
-          reinterpret_cast<const uint32_t *>(a_in),
-          reinterpret_cast<uint32_t *>(a_out), a_count, a_value_bit_width);
-    } else {
-      throw std::invalid_argument("Invalid type.");
-    }
-  }
-};
-
-template <typename T> struct StatelessAnyValueIsMagicFn {
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    fls::gpu::bench::query_bp_contains_zero<T>(a_in, a_out, a_count,
-                                               a_value_bit_width, 1);
-  }
-};
-
-template <typename T> struct StatefulAnyValueIsMagicFn {
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    fls::gpu::bench::query_bp_stateful_contains_zero<T>(a_in, a_out, a_count,
-                                                        a_value_bit_width, 1);
+    kernels::query_column_contains_zero<T>(kernels::KernelSpecification(), a_in,
+                                           a_out, a_count, a_value_bit_width);
   }
 };
 

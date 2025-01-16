@@ -13,43 +13,26 @@ using Verifier = std::function<verification::VerificationResult<T>(
 
 template <class T> struct Fastlanes {
   static inline const std::unordered_map<std::string, Verifier<T>> functions = {
-      {"bp",
+      {"verify_fls_bp",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verifiers::verify_bitpacking<T>(count, dataset_name);
        }},
-      {"gpu_bp",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp<T>(count, dataset_name);
-       }},
-      {"ffor",
+      {"verify_fls_ffor",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verifiers::verify_ffor<T>(count, dataset_name);
        }},
-      {"bench_int_baseline",
+      {"verify_bp",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return benchmarkers::bench_int_baseline<T>(count, dataset_name);
-       }},
-      {"bench_old_fls_vbw",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return benchmarkers::bench_old_fls_contains_zero_value_bitwidths<T>(
-             count, dataset_name);
+         return verifiers::verify_gpu_bp<T>(count, dataset_name);
        }},
       {"bench_bp_vbw",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return benchmarkers::bench_bp_contains_zero_value_bitwidths<T>(
              count, dataset_name);
-       }},
-      {"bench_bp_stateful_vbw",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return benchmarkers::bench_bp_stateful_contains_zero_value_bitwidths<
-             T>(count, dataset_name);
        }},
   };
 };

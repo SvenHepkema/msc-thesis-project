@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include "../gpu-fls/fls-test-kernels-bindings.hpp"
+#include "../gpu-fls/fls-kernels-bindings.hpp"
 
 #ifndef RUNSPEC_HPP
 #define RUNSPEC_HPP

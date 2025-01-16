@@ -12,7 +12,6 @@
 #include "../fls/compression.hpp"
 #include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
 #include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-benchmark-kernels-bindings.hpp"
 
 #include "../verification/queries.h"
 

@@ -1,91 +1,53 @@
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 
-#ifndef GPU_FLS_HPP
-#define GPU_FLS_HPP
+#ifndef KERNELS_HPP
+#define KERNELS_HPP
 
-namespace fls {
-namespace gpu {
-namespace test {
+namespace kernels {
 
-template <typename T, unsigned UNPACK_N_VECTORS = 1>
-void bitunpack(const T *__restrict in, T *__restrict out, const size_t count,
-               const int32_t value_bit_width);
+enum KernelOption {
+  CPU,
+  TEST_STATELESS_1_1,
+};
 
-template <typename T, unsigned UNPACK_N_VECTORS = 1>
-void bitunpack_with_state(const T *__restrict in, T *__restrict out,
-                          const size_t count, const int32_t value_bit_width);
+struct KernelSpecification {
+  const KernelOption spec;
+
+  const unsigned n_vectors;
+  const unsigned n_values;
+
+  KernelSpecification() : spec(KernelOption::CPU), n_vectors(1), n_values(1) {}
+
+  KernelSpecification(const KernelOption a_spec, const unsigned a_n_vectors,
+                      const unsigned a_n_values)
+      : spec(a_spec), n_vectors(a_n_vectors), n_values(a_n_values) {}
+};
+
+static inline const std::unordered_map<std::string, KernelSpecification>
+    kernel_options{
+        {"cpu", KernelSpecification(CPU, 1, 1)},
+        {"test_stateless_1_1", KernelSpecification(TEST_STATELESS_1_1, 1, 1)},
+    };
 
 template <typename T>
-void unffor(const T *__restrict in, T *__restrict out, const size_t count,
-            const int32_t value_bit_width, const T *__restrict base_p);
+void verify_bitunpack(const KernelSpecification spec, const T *__restrict in,
+                      T *__restrict out, const size_t count,
+                      const int32_t value_bit_width);
+} // namespace kernels
 
-} // namespace test
-} // namespace gpu
-} // namespace fls
-
-extern template void fls::gpu::test::bitunpack<uint8_t, 1>(
-    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
+extern template void kernels::verify_bitunpack<uint8_t>(
+    const kernels::KernelSpecification spec, const uint8_t *__restrict in,
+    uint8_t *__restrict out, const size_t count, const int32_t value_bit_width);
+extern template void kernels::verify_bitunpack<uint16_t>(
+    const kernels::KernelSpecification spec, const uint16_t *__restrict in,
+    uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint16_t, 1>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint32_t, 1>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint64_t, 1>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
+extern template void kernels::verify_bitunpack<uint64_t>(
+    const kernels::KernelSpecification spec, const uint64_t *__restrict in,
+    uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 
-extern template void fls::gpu::test::bitunpack_with_state<uint8_t, 1>(
-    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack_with_state<uint16_t, 1>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack_with_state<uint32_t, 1>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack_with_state<uint64_t, 1>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-
-extern template void fls::gpu::test::bitunpack<uint8_t, 2>(
-    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint16_t, 2>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint32_t, 2>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint64_t, 2>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-
-extern template void fls::gpu::test::bitunpack<uint8_t, 4>(
-    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint16_t, 4>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint32_t, 4>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-extern template void fls::gpu::test::bitunpack<uint64_t, 4>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-
-extern template void fls::gpu::test::unffor<uint8_t>(
-    const uint8_t *__restrict in, uint8_t *__restrict out, const size_t count,
-    const int32_t value_bit_width, const uint8_t *__restrict base_p);
-extern template void fls::gpu::test::unffor<uint16_t>(
-    const uint16_t *__restrict in, uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width, const uint16_t *__restrict base_p);
-extern template void fls::gpu::test::unffor<uint32_t>(
-    const uint32_t *__restrict in, uint32_t *__restrict out, const size_t count,
-    const int32_t value_bit_width, const uint32_t *__restrict base_p);
-extern template void fls::gpu::test::unffor<uint64_t>(
-    const uint64_t *__restrict in, uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width, const uint64_t *__restrict base_p);
-#endif // GPU_FLS_HPP
+#endif // KERNELS_HPP

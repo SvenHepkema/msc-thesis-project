@@ -18,37 +18,15 @@ template <class T> struct Fastlanes {
            -> verification::VerificationResult<T> {
          return verifiers::verify_bitpacking<T>(count, dataset_name);
        }},
-      {"gpu_bp_stateless",
+      {"gpu_bp",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp_stateless<T>(count, dataset_name);
-       }},
-      {"gpu_bp_stateless_2vec",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp_stateful_multivec<T, 2>(count,
-                                                                 dataset_name);
-       }},
-      {"gpu_bp_stateless_4vec",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp_stateful_multivec<T, 2>(count,
-                                                                 dataset_name);
-       }},
-      {"gpu_bp_stateful",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_bp_stateful<T>(count, dataset_name);
+         return verifiers::verify_gpu_bp<T>(count, dataset_name);
        }},
       {"ffor",
        [](const size_t count, const std::string dataset_name)
            -> verification::VerificationResult<T> {
          return verifiers::verify_ffor<T>(count, dataset_name);
-       }},
-      {"gpu_unffor",
-       [](const size_t count, const std::string dataset_name)
-           -> verification::VerificationResult<T> {
-         return verifiers::verify_gpu_unffor<T>(count, dataset_name);
        }},
       {"bench_int_baseline",
        [](const size_t count, const std::string dataset_name)

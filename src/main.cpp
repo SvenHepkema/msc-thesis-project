@@ -4,30 +4,42 @@
 #include <stdexcept>
 #include <string>
 
-#include "verification/verification.hpp"
 #include "functions.h"
+#include "verification/verification.hpp"
+#include "common/runspec.hpp"
+
 
 struct CLIArgs {
   std::string verifier;
   int32_t datatype_width;
-  std::string dataset_name;
-  size_t count;
+  const runspec::RunSpecification runspec;
   bool print_debug;
 
-  CLIArgs(int argc, char **argv) {
-    if (argc != 6) {
-      throw std::invalid_argument("Not the required amount of arguments.");
-    }
-    int32_t argcounter = 0;
-
-    verifier = argv[++argcounter];
-    datatype_width = std::atoi(argv[++argcounter]);
-    dataset_name = argv[++argcounter];
-    size_t n_vecs = static_cast<size_t>(std::atoi(argv[++argcounter]));
-    count = n_vecs * 1024;
-    print_debug = std::atoi(argv[++argcounter]);
-  }
+  CLIArgs(std::string a_verifier, int32_t a_datatype_width,
+          const runspec::RunSpecification a_runspecification, bool a_print_debug)
+      : verifier(a_verifier), datatype_width(a_datatype_width),
+        runspec(a_runspecification), print_debug(a_print_debug) {}
 };
+
+static CLIArgs parse_cli_args(int argc, char **argv) {
+  if (argc != 6 && argc != 7) {
+    throw std::invalid_argument("Not the required amount of arguments.");
+  }
+  int32_t argcounter = 0;
+
+  std::string verifier = argv[++argcounter];
+  int32_t datatype_width = std::atoi(argv[++argcounter]);
+  std::string dataset_name = argv[++argcounter];
+
+  std::string kernelspec = (argc == 7) ? argv[++argcounter] : "cpu";
+  size_t n_vecs = static_cast<size_t>(std::atoi(argv[++argcounter]));
+  size_t count = n_vecs * 1024;
+  bool print_debug = std::atoi(argv[++argcounter]);
+
+  return CLIArgs(verifier, datatype_width,
+                 runspec::RunSpecification(count, dataset_name, kernelspec),
+                 print_debug);
+}
 
 template <typename T>
 int32_t process_results(verification::VerificationResult<T> results,
@@ -62,8 +74,8 @@ int32_t process_results(verification::VerificationResult<T> results,
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results =
-      functions::Fastlanes<T>::functions.at(args.verifier)(args.count,
-                                                           args.dataset_name);
+      functions::Fastlanes<T>::functions.at(args.verifier)(args.runspec.count,
+                                                           args.runspec.dataset_name);
   return process_results<T>(results, args);
 }
 
@@ -71,12 +83,12 @@ template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results = functions::Alp<T>::functions.at(
-      args.verifier)(args.count, args.dataset_name);
+      args.verifier)(args.runspec.count, args.runspec.dataset_name);
   return process_results<T>(results, args);
 }
 
 int main(int argc, char **argv) {
-  CLIArgs args(argc, argv);
+  CLIArgs args =parse_cli_args(argc, argv);
 
   if (functions::Fastlanes<uint32_t>::functions.find(args.verifier) !=
       functions::Fastlanes<uint32_t>::functions.end()) {

@@ -63,32 +63,12 @@ template <typename T> struct ALP_FLSDecompressorFn {
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
-struct BP_GPUStatelessDecompressorFn {
+template <typename T>
+struct BP_GPUDecompressorFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    fls::gpu::test::bitunpack<T, UNPACK_N_VECTORS>(a_in, a_out, a_count,
-                                                   a_value_bit_width);
-  }
-};
-
-template <typename T> struct BP_GPUStatefulDecompressorFn {
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    fls::gpu::test::bitunpack_with_state<T>(a_in, a_out, a_count,
-                                            a_value_bit_width);
-  }
-};
-
-template <typename T> struct FFOR_GPUStatelessDecompressorFn {
-  T base;
-
-  FFOR_GPUStatelessDecompressorFn(T a_base) : base(a_base) {}
-
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    T *base_p = &base;
-    fls::gpu::test::unffor<T>(a_in, a_out, a_count, a_value_bit_width, base_p);
+    kernels::verify_bitunpack<T>(kernels::KernelSpecification(), a_in, a_out,
+                                 a_count, a_value_bit_width);
   }
 };
 

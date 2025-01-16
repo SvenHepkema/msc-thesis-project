@@ -13,10 +13,9 @@ namespace global {
 namespace test {
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
-          typename UnpackerT, typename ProcessorT>
-__device__ __forceinline__ void
-decompress_into_out(T *__restrict out, const T *__restrict in,
-                    const vbw_t value_bit_width, ProcessorT processor) {
+          typename UnpackerT>
+__global__ void bitunpack(T *__restrict out, const T *__restrict in,
+                          const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -27,7 +26,7 @@ decompress_into_out(T *__restrict out, const T *__restrict in,
 
   T registers[N_VALUES];
 
-  UnpackerT unpacker(in, lane, value_bit_width, processor);
+  UnpackerT unpacker(in, lane, value_bit_width, BPFunctor<T>());
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
     unpacker.unpack_next_into(registers);
@@ -35,34 +34,6 @@ decompress_into_out(T *__restrict out, const T *__restrict in,
     write_registers_to_global<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
                               mapping.N_LANES>(lane, i, registers, out);
   }
-}
-
-template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void bitunpack(const T *__restrict in, T *__restrict out,
-                          vbw_t value_bit_width) {
-
-  decompress_into_out<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                      BitUnpackerStateless/*Branchless*/<
-                          T, UNPACK_N_VECTORS, UNPACK_N_VALUES, BPFunctor<T>>>(
-      out, in, value_bit_width, BPFunctor<T>());
-}
-
-template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void bitunpack_with_state(T *__restrict in, T *__restrict out,
-                                     vbw_t value_bit_width) {
-  decompress_into_out<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                      BitUnpackerStateful /*Branchless*/<
-                          T, UNPACK_N_VECTORS, UNPACK_N_VALUES, BPFunctor<T>>>(
-      out, in, value_bit_width, BPFunctor<T>());
-}
-
-template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES>
-__global__ void unffor(const T *__restrict in, T *__restrict out,
-                       vbw_t value_bit_width, const T *__restrict base_p) {
-  decompress_into_out<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                      BitUnpackerStateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                                           FFORFunctor<T>>>(
-      out, in, value_bit_width, FFORFunctor<T>(*base_p));
 }
 
 } // namespace test

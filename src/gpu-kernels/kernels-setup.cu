@@ -10,6 +10,37 @@
 #include "kernels-bindings.hpp"
 #include "kernels-global.cuh"
 
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+// FIX: The unpack vectors > 1 do not work, as block size is decided beforehand
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 namespace kernels {
 namespace fls {
 
@@ -22,13 +53,13 @@ namespace fls {
   } break;
 
 template <typename T>
-void verify_decompress_column(const KernelSpecification spec,
+void verify_decompress_column(const runspec::KernelSpecification spec,
                               const T *__restrict in, T *__restrict out,
                               const size_t count,
                               const int32_t value_bit_width) {}
 
 template <>
-void verify_decompress_column(const KernelSpecification spec,
+void verify_decompress_column(const runspec::KernelSpecification spec,
                               const uint32_t *__restrict in,
                               uint32_t *__restrict out, const size_t count,
                               const int32_t value_bit_width) {
@@ -44,11 +75,14 @@ void verify_decompress_column(const KernelSpecification spec,
   GPUArray<T> device_in(encoded_count, in);
   GPUArray<T> device_out(count);
 
-  switch (spec.spec) {
-    FLS_DC(TEST_STATELESS_1_1, BitUnpackerStateless, 1, 1)
-    FLS_DC(TEST_STATEFUL_1_1, BitUnpackerStateful, 1, 1)
-    FLS_DC(TEST_STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(TEST_STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+  switch (spec.kernel) {
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless, 1,
+           1)
+    FLS_DC(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateful, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_1_1,
+           BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_1_1,
+           BitUnpackerStatefulBranchless, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -67,7 +101,7 @@ void verify_decompress_column(const KernelSpecification spec,
   } break;
 
 template <>
-void query_column_contains_zero(const KernelSpecification spec,
+void query_column_contains_zero(const runspec::KernelSpecification spec,
                                 const uint32_t *__restrict in,
                                 uint32_t *__restrict out, const size_t count,
                                 const int32_t value_bit_width) {
@@ -86,8 +120,9 @@ void query_column_contains_zero(const KernelSpecification spec,
   GPUArray<T> device_in(encoded_count, in);
   GPUArray<T> device_out(1);
 
-  switch (spec.spec) {
-    FLS_QCCZ(QUERY_STATELESS_1_1, BitUnpackerStateless, 1, 1)
+  switch (spec.kernel) {
+    FLS_QCCZ(runspec::KernelOption::QUERY_STATELESS_1_1, BitUnpackerStateless,
+             1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -103,7 +138,7 @@ void query_column_contains_zero(const KernelSpecification spec,
 }
 
 template <typename T>
-void query_column_contains_zero(const KernelSpecification spec,
+void query_column_contains_zero(const runspec::KernelSpecification spec,
                                 const T *__restrict in, T *__restrict out,
                                 const size_t count,
                                 const int32_t value_bit_width) {}
@@ -136,7 +171,7 @@ namespace gpualp {
   } break;
 
 template <typename T>
-void verify_decompress_column(const KernelSpecification spec, T *__restrict out,
+void verify_decompress_column(const runspec::KernelSpecification spec, T *__restrict out,
                               const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
@@ -149,10 +184,10 @@ void verify_decompress_column(const KernelSpecification spec, T *__restrict out,
   AlpColumn<T> device_column;
   AlpExtendedColumn<T> device_extended_column;
 
-  switch (spec.spec) {
-    ALP_DC(TEST_STATELESS_1_1, BitUnpackerStateless,
+  switch (spec.kernel) {
+    ALP_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless,
            StatelessALPExceptionPatcher, 1, 1)
-    ALP_DCE(TEST_STATEFUL_1_1, BitUnpackerStateless,
+    ALP_DCE(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateless,
             PrefetchAllALPExceptionPatcher, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
@@ -192,7 +227,7 @@ void verify_decompress_column(const KernelSpecification spec, T *__restrict out,
   } break;
 
 template <typename T>
-void query_column_contains_magic(const KernelSpecification spec,
+void query_column_contains_magic(const runspec::KernelSpecification spec,
                                  T *__restrict out,
                                  const alp::AlpCompressionData<T> *data,
                                  const T magic_value) {
@@ -208,12 +243,13 @@ void query_column_contains_magic(const KernelSpecification spec,
   AlpColumn<T> device_column;
   AlpExtendedColumn<T> device_extended_column;
 
-  switch (spec.spec) {
-    ALP_QCCM(QUERY_STATELESS_1_1, BitUnpackerStateless,
+  switch (spec.kernel) {
+    ALP_QCCM(runspec::KernelOption::QUERY_STATELESS_1_1, BitUnpackerStateless,
              StatelessALPExceptionPatcher, 1, 1)
-    ALP_QCCME(TEST_STATEFUL_1_1, BitUnpackerStateless,
+    ALP_QCCME(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateless,
               PrefetchAllALPExceptionPatcher, 1, 1)
-    ALP_QCCM(TEST_STATELESS_1_1, kernels::device::fls::Baseline,
+    ALP_QCCM(runspec::KernelOption::TEST_STATELESS_1_1,
+             kernels::device::fls::Baseline,
              kernels::device::alp::DummyALPExceptionPatcher, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
@@ -236,39 +272,39 @@ void query_column_contains_magic(const KernelSpecification spec,
 } // namespace kernels
 
 template void kernels::fls::verify_decompress_column<uint8_t>(
-    const kernels::KernelSpecification spec, const uint8_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint8_t *__restrict in,
     uint8_t *__restrict out, const size_t count, const int32_t value_bit_width);
 template void kernels::fls::verify_decompress_column<uint16_t>(
-    const kernels::KernelSpecification spec, const uint16_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint16_t *__restrict in,
     uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 template void kernels::fls::verify_decompress_column<uint64_t>(
-    const kernels::KernelSpecification spec, const uint64_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
     uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 
 template void kernels::fls::query_column_contains_zero<uint8_t>(
-    const kernels::KernelSpecification spec, const uint8_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint8_t *__restrict in,
     uint8_t *__restrict out, const size_t count, const int32_t value_bit_width);
 template void kernels::fls::query_column_contains_zero<uint16_t>(
-    const kernels::KernelSpecification spec, const uint16_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint16_t *__restrict in,
     uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 template void kernels::fls::query_column_contains_zero<uint64_t>(
-    const kernels::KernelSpecification spec, const uint64_t *__restrict in,
+    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
     uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 
 template void kernels::gpualp::verify_decompress_column<float>(
-    const kernels::KernelSpecification spec, float *__restrict out,
+    const runspec::KernelSpecification spec, float *__restrict out,
     const alp::AlpCompressionData<float> *data);
 template void kernels::gpualp::verify_decompress_column<double>(
-    const kernels::KernelSpecification spec, double *__restrict out,
+    const runspec::KernelSpecification spec, double *__restrict out,
     const alp::AlpCompressionData<double> *data);
 
 template void kernels::gpualp::query_column_contains_magic<float>(
-    const ::kernels::KernelSpecification spec, float *__restrict out,
+    const ::runspec::KernelSpecification spec, float *__restrict out,
     const alp::AlpCompressionData<float> *data, const float magic_value);
 template void kernels::gpualp::query_column_contains_magic<double>(
-    const ::kernels::KernelSpecification spec, double *__restrict out,
+    const ::runspec::KernelSpecification spec, double *__restrict out,
     const alp::AlpCompressionData<double> *data, const double magic_value);

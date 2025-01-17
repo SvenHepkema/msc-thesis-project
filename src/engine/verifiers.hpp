@@ -1,112 +1,85 @@
 #include <cstddef>
 #include <cstdint>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "datageneration.hpp"
 #include "verification.hpp"
 
-#include "../alp/alp-bindings.hpp"
-#include "../fls/compression.hpp"
 #include "../gpu-kernels/kernels-bindings.hpp"
 
 #include "./compressors.h"
 #include "./decompressors.h"
+#include "./queries.h"
+
+#ifndef VERIFIERS_HPP
+#define VERIFIERS_HPP
 
 namespace verifiers {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_bitpacking(const size_t a_count, const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
-
+verify_fls_bp(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
+      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), BP_FLSCompressorFn<T>(),
+          data::lambda::get_bp_data<T>(spec.data.name), BP_FLSCompressorFn<T>(),
           BP_FLSDecompressorFn<T>()));
 }
 
-/*
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bp(const size_t a_count, const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(0, sizeof(T) * 8);
-
+verify_gpu_bp(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
+      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
-          data::lambda::get_bp_data<T>(dataset_name), BP_FLSCompressorFn<T>(),
+          data::lambda::get_bp_data<T>(spec.data.name), BP_FLSCompressorFn<T>(),
           BP_GPUDecompressorFn<T>()));
 }
-*/
 
-template <typename T>
-verification::VerificationResult<T> verify_alp(const size_t a_count,
-                                               const std::string dataset_name) {
-  // Higher value bit width causes more data variance.
-  // ALP does not always choose int32 then as an encoding method
-  // So we take reduced max value bit width to ensure it always chooses
-  // alp_int
-  int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(
-      0, max_value_bitwidth_to_test);
-
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                                  int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
-      verification::get_compression_and_decompression_verifier<
-          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), ALP_FLSCompressorFn<T>(),
-          ALP_FLSDecompressorFn<T>()));
-}
-
-/*
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp_stateless(const size_t a_count, const std::string dataset_name) {
-  int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(
-      0, max_value_bitwidth_to_test);
-
+verify_alp(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, a_count,
+      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(dataset_name), ALP_FLSCompressorFn<T>(),
-          ALP_GPUStatelessDecompressorFn<T>()));
+          data::lambda::get_alp_data<T>(spec.data.name),
+          ALP_FLSCompressorFn<T>(), ALP_FLSDecompressorFn<T>()));
 }
 
-template <typename T, unsigned UNPACK_N_VECTORS>
-verification::VerificationResult<T> verify_gpu_alp_stateful_extended_multivec(
-    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  int32_t max_value_bitwidth_to_test = sizeof(T) == 8 ? 32 : 16;
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(
-      0, max_value_bitwidth_to_test);
+template <typename T>
+verification::VerificationResult<T>
+verify_gpu_alp(const runspec::RunSpecification spec) {
+  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                                  int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
+      verification::get_compression_and_decompression_verifier<
+          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+          data::lambda::get_alp_data<T>(spec.data.name),
+          ALP_FLSCompressorFn<T>(), ALP_GPUDecompressorFn<T>(spec)));
+}
 
+template <typename T>
+verification::VerificationResult<T>
+verify_magic_query_alp(const runspec::RunSpecification spec) {
   auto [data, generator] =
-      data::lambda::get_alp_reusable_datastructure<T, UNPACK_N_VECTORS>(
-          "value_bit_width", a_count);
+      data::lambda::get_reusable_compressed_binary_column<T>(spec.data.params_type,
+                                                             spec.data.count);
 
-  auto result =
-      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                               int32_t, int32_t>(
-          value_bit_widths, value_bit_widths, a_count, a_count,
-          verification::get_equal_decompression_verifier<
-              T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-              generator, ALP_FLSDecompressorFn<T>(),
-              ALP_GPUStatefulExtendedDecompressorFn<T, UNPACK_N_VECTORS>(),
-              false));
+  auto result = verification::run_verifier_on_parameters<
+      T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, 1,
+      verification::get_equal_decompression_verifier<
+          T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+          generator, queries::cpu::BaselineFloatAnyValueIsMagicFn<T>(),
+          queries::gpu::ALPAnyValueIsMagicFn<T>(), false));
 
   delete data;
   return result;
 }
-*/
 
 } // namespace verifiers
+
+#endif // VERIFIERS_HPP

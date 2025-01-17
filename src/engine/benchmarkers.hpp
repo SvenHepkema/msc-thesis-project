@@ -1,72 +1,48 @@
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <stdexcept>
-#include <string>
-#include <unordered_map>
 
 #include "../engine/datageneration.hpp"
 #include "../engine/verification.hpp"
 
 #include "../alp/alp-bindings.hpp"
-#include "../fls/compression.hpp"
-#include "../gpu-kernels/kernels-bindings.hpp"
 
 #include "../engine/queries.h"
 
-namespace benchmarkers {
-/*
-template <typename T>
-verification::VerificationResult<T> bench_bp_contains_zero_value_bitwidths(
-    const size_t a_count, [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(1, sizeof(T) * 8);
+#ifndef BENCHMARKS_HPP
+#define BENCHMARKS_HPP
 
+namespace benchmarks {
+
+template <typename T>
+verification::VerificationResult<T>
+bench_bp_vbw(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, 1,
+      spec.data.params, spec.data.params, spec.data.count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
           data::lambda::get_binary_column<T>(),
-          queries::FLS::cpu::AnyValueIsMagicFn<T>(),
-          queries::FLS::gpu::AnyValueIsMagicFn<T>()));
+          queries::cpu::FLSAnyValueIsMagicFn<T>(),
+          queries::gpu::FLSAnyValueIsMagicFn<T>()));
 }
 
 template <typename T>
 verification::VerificationResult<T>
-bench_float_baseline(const size_t a_count,
-                     [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths = verification::generate_integer_range<int32_t>(-1);
-
-  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-      value_bit_widths, value_bit_widths, a_count, 1,
-      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          data::lambda::get_binary_column<T>(),
-          queries::baseline::cpu::FloatAnyValueIsMagicFn<T>(),
-          queries::baseline::gpu::FloatAnyValueIsMagicFn<T>()));
-}
-
-template <typename T>
-verification::VerificationResult<T>
-bench_alp_vbw_stateless(const size_t a_count,
-                        [[maybe_unused]] const std::string dataset_name) {
-  auto value_bit_widths =
-      verification::generate_integer_range<int32_t>(0, sizeof(T) * 4);
-
+bench_alp_vbw(const runspec::RunSpecification spec) {
   auto [data, generator] = data::lambda::get_alp_reusable_datastructure<T>(
-      "value_bit_width", a_count);
+      spec.data.params_type, spec.data.count);
 
   auto result =
       verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                int32_t, int32_t>(
-          value_bit_widths, value_bit_widths, a_count, 1,
+          spec.data.params, spec.data.params, spec.data.count, 1,
           verification::get_equal_decompression_verifier<
               T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-              generator, queries::ALP::constant::cpu::AnyValueIsMagicFn<T>(),
-              queries::ALP::constant::gpu::StatelessAnyValueIsMagicFn<T>(),
-              false));
+              generator, queries::cpu::ALPAnyValueIsMagicFn<T>(),
+              queries::gpu::ALPAnyValueIsMagicFn<T>(), false));
 
   delete data;
   return result;
 }
-*/
 
-} // namespace benchmarkers
+} // namespace benchmarks
+
+#endif // BENCHMARKS_HPP

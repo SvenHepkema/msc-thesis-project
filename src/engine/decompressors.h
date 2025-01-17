@@ -38,6 +38,19 @@ template <typename T> struct BP_FLSDecompressorFn {
   }
 };
 
+template <typename T> struct BP_GPUDecompressorFn {
+  const runspec::KernelSpecification spec;
+
+  BP_GPUDecompressorFn(const runspec::KernelSpecification a_spec)
+      : spec(a_spec) {}
+
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    kernels::fls::verify_bitunpack(spec, a_in, a_out, a_count,
+                                   a_value_bit_width);
+  }
+};
+
 template <typename T> struct FFOR_FLSDecompressorFn {
   T base;
 
@@ -62,5 +75,17 @@ template <typename T> struct ALP_FLSDecompressorFn {
   }
 };
 
+template <typename T> struct ALP_GPUDecompressorFn {
+  const runspec::KernelSpecification spec;
+
+  ALP_GPUDecompressorFn(const runspec::KernelSpecification a_spec)
+      : spec(a_spec) {}
+
+  void operator()(const alp::AlpCompressionData<T> *in, T *out,
+                  [[maybe_unused]] const int32_t value_bit_width,
+                  [[maybe_unused]] const size_t count) {
+    kernels::gpualp::verify_decompress_column(spec, out, in);
+  }
+};
 
 #endif // DECOMPRESSOR_H

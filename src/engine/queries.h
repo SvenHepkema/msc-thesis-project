@@ -9,8 +9,9 @@
 #define QUERIES_H
 
 namespace queries {
-namespace baseline {
-template <typename T> struct IntAnyValueIsMagicFn {
+
+namespace cpu {
+template <typename T> struct BaselineIntAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -33,7 +34,7 @@ template <typename T> struct IntAnyValueIsMagicFn {
   }
 };
 
-template <typename T> struct FloatAnyValueIsMagicFn {
+template <typename T> struct BaselineFloatAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -45,10 +46,7 @@ template <typename T> struct FloatAnyValueIsMagicFn {
   }
 };
 
-} // namespace baseline
-
-namespace FLS {
-template <typename T> struct AnyValueIsMagicFn {
+template <typename T> struct FLSAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     bool none_magic = 1;
@@ -71,20 +69,14 @@ template <typename T> struct AnyValueIsMagicFn {
   }
 };
 
-} // namespace FLS
-
-namespace ALP {
-
-template <typename T> struct AnyValueIsMagicFn {
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  const size_t a_count) {
+template <typename T> struct ALPAnyValueIsMagicFn {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out) {
     auto [data, magic_value] = (*a_in);
-    T *temp = new T[a_count];
+    T *temp = new T[data.size];
     alp::int_decode<T>(temp, data);
 
     bool none_magic = true;
-    for (size_t i{0}; i < a_count; ++i) {
+    for (size_t i{0}; i < data.size; ++i) {
       none_magic &= temp[i] != magic_value;
     }
     *a_out = static_cast<T>(!none_magic);
@@ -92,8 +84,38 @@ template <typename T> struct AnyValueIsMagicFn {
     delete[] temp;
   }
 };
+} // namespace cpu
 
-} // namespace ALP
+namespace gpu {
+
+template <typename T> struct FLSAnyValueIsMagicFn {
+  const runspec::KernelSpecification spec;
+
+  FLSAnyValueIsMagicFn(const runspec::KernelSpecification a_spec)
+      : spec(a_spec) {}
+
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    kernels::fls::query_column_contains_zero(spec, a_in, a_out, a_count,
+                                             a_value_bit_width);
+  }
+};
+
+template <typename T> struct ALPAnyValueIsMagicFn {
+  const runspec::KernelSpecification spec;
+
+  ALPAnyValueIsMagicFn(const runspec::KernelSpecification a_spec)
+      : spec(a_spec) {}
+
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out) {
+    auto [data, magic_value] = (*a_in);
+
+    kernels::gpualp::query_column_contains_magic(spec, a_out, data,
+                                                 magic_value);
+  }
+};
+} // namespace gpu
+
 } // namespace queries
 
 #endif // QUERIES_H

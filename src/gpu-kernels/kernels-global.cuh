@@ -1,15 +1,18 @@
-#include "fls.cuh"
-
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "gpu-device-utils.cuh"
 #include "old-fls.cuh"
+
+#include "device-utils.cuh"
+
+#include "fls.cuh"
+#include "alp.cuh"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
 
 namespace kernels {
 namespace device {
+namespace fls {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor>
@@ -61,7 +64,7 @@ struct OldFLSAdjusted : BitUnpackerBase<T> {
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
-__global__ void bitunpack(T *__restrict out, const T *__restrict in,
+__global__ void decompress_column(T *__restrict out, const T *__restrict in,
                           const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
@@ -85,9 +88,9 @@ __global__ void bitunpack(T *__restrict out, const T *__restrict in,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
-__global__ void
-query_column_contains_zero(T *__restrict out, const T *__restrict in,
-                           const vbw_t value_bit_width) {
+__global__ void query_column_contains_zero(T *__restrict out,
+                                           const T *__restrict in,
+                                           const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -106,6 +109,67 @@ query_column_contains_zero(T *__restrict out, const T *__restrict in,
 
   checker.write_result(out);
 }
+
+} // namespace fls
+
+namespace alp {
+
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
+          typename UnpackerT, typename ColumnT>
+__global__ void decompress_column(T *out, ColumnT data) {
+  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const lane_t lane = mapping.get_lane();
+  const int32_t vector_index = mapping.get_vector_index();
+
+  T registers[N_VALUES];
+  out += vector_index * consts::VALUES_PER_VECTOR;
+
+  auto iterator = UnpackerT(data, vector_index, lane);
+
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+    iterator.unpack_next_into(registers);
+
+    write_registers_to_global<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              mapping.N_LANES>(lane, i, registers, out);
+  }
+}
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+struct DummyALPExceptionPatcher : ALPExceptionPatcherBase<T> {
+
+public:
+  void __device__ __forceinline__ patch_if_needed(T *out) override {}
+
+  __device__ __forceinline__ DummyALPExceptionPatcher(
+      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane) {}
+};
+
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
+          typename UnpackerT, typename ColumnT>
+__global__ void
+query_column_contains_magic(T *out, ColumnT column, const T magic_value) {
+  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const lane_t lane = mapping.get_lane();
+  const int32_t vector_index = mapping.get_vector_index();
+
+  T registers[N_VALUES];
+  auto checker = MagicChecker<T, N_VALUES>(magic_value);
+
+  UnpackerT unpacker = UnpackerT(column, vector_index, lane);
+
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+    unpacker.unpack_next_into(registers);
+    checker.check(registers);
+  }
+
+  checker.write_result(out);
+}
+
+
+
+} // namespace alp
 
 } // namespace device
 } // namespace kernels

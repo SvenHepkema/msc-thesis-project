@@ -2,8 +2,7 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-kernels/alp-benchmark-kernels-bindings.hpp"
-#include "../gpu-kernels/fls-kernels-bindings.hpp"
+#include "../gpu-kernels/kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef QUERIES_H
@@ -11,7 +10,6 @@
 
 namespace queries {
 namespace baseline {
-namespace cpu {
 template <typename T> struct IntAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
@@ -46,21 +44,10 @@ template <typename T> struct FloatAnyValueIsMagicFn {
     *a_out = static_cast<T>(!none_magic);
   }
 };
-} // namespace cpu
 
-namespace gpu {
-template <typename T> struct FloatAnyValueIsMagicFn {
-  void operator()(const T *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    alp::gpu::bench::decode_baseline<T>(a_out, a_in, a_count);
-  }
-};
-} // namespace gpu
 } // namespace baseline
 
 namespace FLS {
-namespace cpu {
 template <typename T> struct AnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
@@ -83,23 +70,10 @@ template <typename T> struct AnyValueIsMagicFn {
     delete[] temp;
   }
 };
-} // namespace cpu
 
-namespace gpu {
-
-template <typename T> struct AnyValueIsMagicFn {
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    kernels::query_column_contains_zero<T>(kernels::KernelSpecification(), a_in,
-                                           a_out, a_count, a_value_bit_width);
-  }
-};
-
-} // namespace gpu
 } // namespace FLS
+
 namespace ALP {
-namespace dynamic {
-namespace cpu {
 
 template <typename T> struct AnyValueIsMagicFn {
   void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
@@ -118,92 +92,7 @@ template <typename T> struct AnyValueIsMagicFn {
     delete[] temp;
   }
 };
-} // namespace cpu
 
-namespace gpu {
-
-template <typename T> struct StatelessAnyValueIsMagicFn {
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in->first,
-                                                 a_in->second);
-  }
-};
-
-template <typename T> struct StatefulAnyValueIsMagicFn {
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in->first,
-                                                a_in->second);
-  }
-};
-
-template <typename T> struct StatefulExtendedAnyValueIsMagicFn {
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(a_out, a_in->first,
-                                                            a_in->second);
-  }
-};
-
-} // namespace gpu
-} // namespace dynamic
-
-namespace constant {
-namespace cpu {
-
-template <typename T> struct AnyValueIsMagicFn {
-  void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    T *temp = new T[a_count];
-    alp::int_decode<T>(temp, a_in);
-
-    bool none_magic = true;
-    for (size_t i{0}; i < a_count; ++i) {
-      none_magic &= temp[i] != consts::as<T>::MAGIC_NUMBER;
-    }
-    *a_out = static_cast<T>(!none_magic);
-
-    delete[] temp;
-  }
-};
-} // namespace cpu
-
-namespace gpu {
-
-template <typename T> struct StatelessAnyValueIsMagicFn {
-  void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateless<T>(a_out, a_in,
-                                                 consts::as<T>::MAGIC_NUMBER);
-  }
-};
-
-template <typename T> struct StatefulAnyValueIsMagicFn {
-  void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful<T>(a_out, a_in,
-                                                consts::as<T>::MAGIC_NUMBER);
-  }
-};
-
-template <typename T> struct StatefulExtendedAnyValueIsMagicFn {
-  void operator()(const alp::AlpCompressionData<T> *a_in, T *a_out,
-                  [[maybe_unused]] const int32_t a_value_bit_width,
-                  [[maybe_unused]] const size_t a_count) {
-    alp::gpu::bench::contains_magic_stateful_extended<T, 1>(
-        a_out, a_in, consts::as<T>::MAGIC_NUMBER);
-  }
-};
-
-} // namespace gpu
-} // namespace constant
 } // namespace ALP
 } // namespace queries
 

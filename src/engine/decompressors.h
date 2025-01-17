@@ -2,8 +2,7 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-kernels/alp-test-kernels-bindings.hpp"
-#include "../gpu-kernels/fls-kernels-bindings.hpp"
+#include "../gpu-kernels/kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef DECOMPRESSOR_H
@@ -63,39 +62,5 @@ template <typename T> struct ALP_FLSDecompressorFn {
   }
 };
 
-template <typename T>
-struct BP_GPUDecompressorFn {
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    kernels::verify_bitunpack<T>(kernels::KernelSpecification(), a_in, a_out,
-                                 a_count, a_value_bit_width);
-  }
-};
-
-template <typename T> struct ALP_GPUStatelessDecompressorFn {
-  void operator()(const alp::AlpCompressionData<T> *in, T *out,
-                  [[maybe_unused]] const int32_t value_bit_width,
-                  [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_alp_vector_stateless<T>(out, in);
-  }
-};
-
-template <typename T> struct ALP_GPUStatefulDecompressorFn {
-  void operator()(const alp::AlpCompressionData<T> *in, T *out,
-                  [[maybe_unused]] const int32_t value_bit_width,
-                  [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_alp_vector_stateful<T>(out, in);
-  }
-};
-
-template <typename T, unsigned UNPACK_N_VECTORS>
-struct ALP_GPUStatefulExtendedDecompressorFn {
-  void operator()(const alp::AlpCompressionData<T> *in, T *out,
-                  [[maybe_unused]] const int32_t value_bit_width,
-                  [[maybe_unused]] const size_t count) {
-    alp::gpu::test::decode_alp_vector_stateful_extended<T, UNPACK_N_VECTORS>(
-        out, in);
-  }
-};
 
 #endif // DECOMPRESSOR_H

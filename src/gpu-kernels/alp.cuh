@@ -287,7 +287,7 @@ public:
         lane(lane) {}
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct NaiveALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count[UNPACK_N_VECTORS];
@@ -348,7 +348,7 @@ constexpr void __device__ __forceinline__ overwrite_if_true(
                               (reinterpret_as<UINT_T>(*new_value) * condition));
 }
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct NaiveBranchlessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -434,7 +434,7 @@ public:
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchAllALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;

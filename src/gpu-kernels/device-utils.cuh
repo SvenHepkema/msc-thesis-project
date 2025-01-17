@@ -1,6 +1,6 @@
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "gpu-device-types.cuh"
+#include "device-types.cuh"
 
 #ifndef GPU_DEVICE_UTILS_CUH
 #define GPU_DEVICE_UTILS_CUH

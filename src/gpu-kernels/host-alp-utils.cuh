@@ -4,14 +4,11 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "gpu-utils.cuh"
-#include "alp-benchmark-kernels-bindings.hpp"
-#include "alp-benchmark-kernels-global.cuh"
+#include "host-utils.cuh"
 #include "alp.cuh"
+#include "../alp/alp-bindings.hpp"
 #include "src/alp/config.hpp"
 
-namespace alp {
-namespace gpu {
 namespace transfer {
 
 template <typename T>
@@ -170,5 +167,3 @@ template <typename T> void destroy_alp_column(AlpExtendedColumn<T> &column) {
   free_device_pointer(column.offsets_counts);
 }
 } // namespace transfer
-} // namespace gpu
-} // namespace alp

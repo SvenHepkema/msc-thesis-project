@@ -1,5 +1,5 @@
 #include "../common/utils.hpp"
-#include "../gpu-common/gpu-device-utils.cuh"
+#include "gpu-device-utils.cuh"
 #include "alp.cuh"
 
 #ifndef ALP_BENCHMARK_GLOBAL_CUH

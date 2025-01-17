@@ -2,8 +2,8 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
-#include "../gpu-fls/fls-kernels-bindings.hpp"
+#include "../gpu-kernels/alp-benchmark-kernels-bindings.hpp"
+#include "../gpu-kernels/fls-kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef QUERIES_H

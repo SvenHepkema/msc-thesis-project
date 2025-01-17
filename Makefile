@@ -12,10 +12,10 @@ CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
 
-FLS_TEST_FILES=src/gpu-fls/fls-kernels-bindings.hpp src/gpu-fls/fls-kernels-global.cuh src/gpu-fls/fls-kernels-setup.cu src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
-ALP_TEST_FILES=src/gpu-alp/alp-test-kernels-bindings.hpp src/gpu-alp/alp-test-kernels-global.cuh src/gpu-alp/alp-test-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
-ALP_BENCHMARK_FILES=src/gpu-alp/alp-benchmark-kernels-bindings.hpp src/gpu-alp/alp-benchmark-kernels-global.cuh src/gpu-alp/alp-benchmark-kernels-setup.cu src/gpu-alp/alp.cuh src/gpu-alp/alp-utils.cuh src/gpu-fls/fls.cuh  src/gpu-common/gpu-device-utils.cuh src/gpu-common/gpu-device-types.cuh
 
+GPU_CUH := $(wildcard src/gpu-kernels/*.cuh)
+
+GPU_OBJ := $(patsubst src/gpu-kernels/%.cu, obj/gpu-kernels-%.o, $(wildcard src/gpu-kernels/*.cu))
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))
 
@@ -26,20 +26,12 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-
-obj/gpu-fls.o: $(FLS_KERNEL_FILES)
-	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-fls/fls-kernels-setup.cu
-
-obj/gpu-alp-test.o: $(ALP_TEST_FILES) 
-	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-alp/alp-test-kernels-setup.cu 
-
-obj/gpu-alp-bench.o: $(ALP_BENCHMARK_FILES) 
-	nvcc $(CUDA_FLAGS) -c -o $@ src/gpu-alp/alp-benchmark-kernels-setup.cu
+obj/gpu-kernels-%.o: src/gpu-kernels/%.cu  $(GPU_CUH)
+	nvcc $(CUDA_FLAGS) -c -o $@ $(word 1, $^)
 
 # Executables
-
-HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu/*.cuh)
-SOURCE_FILES=src/main.cpp obj/gpu-fls.o obj/gpu-alp-test.o obj/gpu-alp-bench.o $(FLS_OBJ) $(ALP_OBJ)
+HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu-kernels/*.hpp)
+SOURCE_FILES=src/main.cpp $(FLS_OBJ) $(ALP_OBJ) $(GPU_OBJ)
 
 executable: $(SOURCE_FILES) $(HEADER_FILES)
 	clang++ $(SOURCE_FILES) $(OPTIMIZATION_FLAG) -o bin/$@ $(CLANG_FLAGS) $(CUDA_OBJ_FLAGS) 

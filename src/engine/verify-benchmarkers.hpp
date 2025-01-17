@@ -5,15 +5,15 @@
 #include <string>
 #include <unordered_map>
 
-#include "../verification/datageneration.hpp"
-#include "../verification/verification.hpp"
+#include "../engine/datageneration.hpp"
+#include "../engine/verification.hpp"
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-alp/alp-benchmark-kernels-bindings.hpp"
-#include "../gpu-alp/alp-test-kernels-bindings.hpp"
+#include "../gpu-kernels/alp-benchmark-kernels-bindings.hpp"
+#include "../gpu-kernels/alp-test-kernels-bindings.hpp"
 
-#include "../verification/queries.h"
+#include "../engine/queries.h"
 
 namespace verify_benchmarkers {
 

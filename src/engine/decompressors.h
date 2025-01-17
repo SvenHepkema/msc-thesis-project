@@ -2,8 +2,8 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-kernels-bindings.hpp"
+#include "../gpu-kernels/alp-test-kernels-bindings.hpp"
+#include "../gpu-kernels/fls-kernels-bindings.hpp"
 #include "verification.hpp"
 
 #ifndef DECOMPRESSOR_H

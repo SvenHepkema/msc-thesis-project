@@ -4,10 +4,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "functions.h"
-#include "verification/verification.hpp"
 #include "common/runspec.hpp"
-
+#include "engine/verification.hpp"
 
 struct CLIArgs {
   std::string verifier;
@@ -16,7 +14,8 @@ struct CLIArgs {
   bool print_debug;
 
   CLIArgs(std::string a_verifier, int32_t a_datatype_width,
-          const runspec::RunSpecification a_runspecification, bool a_print_debug)
+          const runspec::RunSpecification a_runspecification,
+          bool a_print_debug)
       : verifier(a_verifier), datatype_width(a_datatype_width),
         runspec(a_runspecification), print_debug(a_print_debug) {}
 };
@@ -74,24 +73,24 @@ int32_t process_results(verification::VerificationResult<T> results,
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
   verification::VerificationResult<T> results =
-      functions::Fastlanes<T>::functions.at(args.verifier)(args.runspec.count,
-                                                           args.runspec.dataset_name);
+      runspec::Fastlanes<T>::functions.at(args.verifier)(
+          args.runspec.count, args.runspec.dataset_name);
   return process_results<T>(results, args);
 }
 
 template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
 int32_t run_verifier(CLIArgs args) {
-  verification::VerificationResult<T> results = functions::Alp<T>::functions.at(
+  verification::VerificationResult<T> results = runspec::Alp<T>::functions.at(
       args.verifier)(args.runspec.count, args.runspec.dataset_name);
   return process_results<T>(results, args);
 }
 
 int main(int argc, char **argv) {
-  CLIArgs args =parse_cli_args(argc, argv);
+  CLIArgs args = parse_cli_args(argc, argv);
 
-  if (functions::Fastlanes<uint32_t>::functions.find(args.verifier) !=
-      functions::Fastlanes<uint32_t>::functions.end()) {
+  if (runspec::Fastlanes<uint32_t>::functions.find(args.verifier) !=
+      runspec::Fastlanes<uint32_t>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_verifier<uint64_t>(args);
@@ -106,8 +105,8 @@ int main(int argc, char **argv) {
       return run_verifier<uint8_t>(args);
     }
     }
-  } else if (functions::Alp<float>::functions.find(args.verifier) !=
-             functions::Alp<float>::functions.end()) {
+  } else if (runspec::Alp<float>::functions.find(args.verifier) !=
+             runspec::Alp<float>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_verifier<double>(args);

@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "../common/consts.hpp"
-#include "../gpu-common/gpu-utils.cuh"
+#include "gpu-utils.cuh"
 #include "fls-kernels-bindings.hpp"
 #include "fls-kernels-global.cuh"
 

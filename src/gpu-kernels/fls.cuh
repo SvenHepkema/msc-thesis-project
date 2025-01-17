@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "../common/utils.hpp"
-#include "../gpu-common/gpu-device-types.cuh"
+#include "gpu-device-types.cuh"
 
 #ifndef FLS_CUH
 #define FLS_CUH

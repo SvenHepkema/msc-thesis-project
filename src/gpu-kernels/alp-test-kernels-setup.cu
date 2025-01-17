@@ -3,7 +3,7 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "../gpu-common/gpu-utils.cuh"
+#include "gpu-utils.cuh"
 #include "alp-test-kernels-bindings.hpp"
 #include "alp-test-kernels-global.cuh"
 #include "alp-utils.cuh"

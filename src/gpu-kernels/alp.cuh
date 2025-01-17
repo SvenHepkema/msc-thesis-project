@@ -4,7 +4,7 @@
 
 #include "../alp/constants.hpp"
 #include "../common/utils.hpp"
-#include "../gpu-fls/fls.cuh"
+#include "fls.cuh"
 #include "src/alp/config.hpp"
 
 #ifndef ALP_CUH

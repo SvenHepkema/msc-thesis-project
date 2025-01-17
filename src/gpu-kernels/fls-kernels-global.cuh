@@ -2,7 +2,7 @@
 
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "../gpu-common/gpu-device-utils.cuh"
+#include "gpu-device-utils.cuh"
 #include "old-fls.cuh"
 
 #ifndef FLS_GLOBAL_CUH

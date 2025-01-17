@@ -1,7 +1,7 @@
 #include <cstdint>
 
 #include "../common/utils.hpp"
-#include "../gpu-common/gpu-device-utils.cuh"
+#include "gpu-device-utils.cuh"
 #include "alp.cuh"
 
 #ifndef ALP_TEST_KERNELS_GLOBAL_CUH

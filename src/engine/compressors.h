@@ -4,8 +4,8 @@
 
 #include "../alp/alp-bindings.hpp"
 #include "../fls/compression.hpp"
-#include "../gpu-alp/alp-test-kernels-bindings.hpp"
-#include "../gpu-fls/fls-kernels-bindings.hpp"
+#include "../gpu-kernels/alp-test-kernels-bindings.hpp"
+#include "../gpu-kernels/fls-kernels-bindings.hpp"
 
 #ifndef COMPRESSORS_H
 #define COMPRESSORS_H

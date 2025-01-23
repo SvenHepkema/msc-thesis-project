@@ -18,10 +18,10 @@
 #include "../alp/alp-bindings.hpp"
 #include "../alp/constants.hpp"
 #include "../common/consts.hpp"
+#include "../common/runspec.hpp"
 #include "../common/utils.hpp"
 #include "../fls/compression.hpp"
 #include "verification.hpp"
-#include "../common/runspec.hpp"
 
 #ifndef DATAGENERATION_H
 #define DATAGENERATION_H
@@ -498,8 +498,8 @@ std::pair<alp::AlpCompressionData<T> *,
           verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>>
 get_alp_reusable_datastructure(const runspec::DataGenerationParametersType spec,
                                const size_t a_count) {
-  auto data = data::lambda::get_alp_datastructure<T, UNPACK_N_VECTORS>(
-      spec)(0, a_count);
+  auto data = data::lambda::get_alp_datastructure<T, UNPACK_N_VECTORS>(spec)(
+      0, a_count);
 
   if (spec == runspec::DataGenerationParametersType::EC) {
     return std::make_pair(
@@ -521,21 +521,21 @@ get_alp_reusable_datastructure(const runspec::DataGenerationParametersType spec,
 template <typename T>
 std::pair<alp::AlpCompressionData<T> *,
           verification::DataGenerator<alp::ALPMagicCompressionData<T>, int32_t>>
-get_reusable_compressed_binary_column(const std::string dataset_name,
-                                      const size_t a_count) {
-  auto [d, g] = get_alp_reusable_datastructure<T>(dataset_name, a_count);
+get_reusable_compressed_binary_column(
+    const runspec::DataGenerationParametersType spec, const size_t a_count) {
+  auto [d, g] = get_alp_reusable_datastructure<T>(spec, a_count);
   auto data = d;
   auto generator = g;
 
   return std::make_pair(
       data,
       [generator](const int32_t value_bit_width,
-                  const size_t count) -> alp::ALPMagicCompressionData<T>* {
+                  const size_t count) -> alp::ALPMagicCompressionData<T> * {
         using INT_T = typename utils::same_width_int<T>::type;
         const int32_t safe_value_bit_width =
             value_bit_width % static_cast<INT_T>(sizeof(T) * 4);
-        const int32_t generated_value_bit_width = generation::get_random_number_generator(0, 
-						safe_value_bit_width)();
+        const int32_t generated_value_bit_width =
+            generation::get_random_number_generator(0, safe_value_bit_width)();
 
         T magic_value = consts::as<T>::MAGIC_NUMBER;
 
@@ -555,7 +555,7 @@ get_reusable_compressed_binary_column(const std::string dataset_name,
           delete[] output_array;
         }
 
-				return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
+        return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
       });
 }
 

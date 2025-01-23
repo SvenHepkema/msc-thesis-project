@@ -34,7 +34,7 @@ verify_gpu_bp(const runspec::RunSpecification spec) {
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_bp_data<T>(spec.data.name), BP_FLSCompressorFn<T>(),
-          BP_GPUDecompressorFn<T>()));
+          BP_GPUDecompressorFn<T>(spec.kernel)));
 }
 
 template <typename T>
@@ -58,23 +58,23 @@ verify_gpu_alp(const runspec::RunSpecification spec) {
       verification::get_compression_and_decompression_verifier<
           T, alp::AlpCompressionData<T>, int32_t, int32_t>(
           data::lambda::get_alp_data<T>(spec.data.name),
-          ALP_FLSCompressorFn<T>(), ALP_GPUDecompressorFn<T>(spec)));
+          ALP_FLSCompressorFn<T>(), ALP_GPUDecompressorFn<T>(spec.kernel)));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 verify_magic_query_alp(const runspec::RunSpecification spec) {
   auto [data, generator] =
-      data::lambda::get_reusable_compressed_binary_column<T>(spec.data.params_type,
-                                                             spec.data.count);
+      data::lambda::get_reusable_compressed_binary_column<T>(
+          spec.data.params_type, spec.data.count);
 
   auto result = verification::run_verifier_on_parameters<
       T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, 1,
       verification::get_equal_decompression_verifier<
           T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
-          generator, queries::cpu::BaselineFloatAnyValueIsMagicFn<T>(),
-          queries::gpu::ALPAnyValueIsMagicFn<T>(), false));
+          generator, queries::cpu::ALPAnyValueIsMagicFn<T>(),
+          queries::gpu::ALPAnyValueIsMagicFn<T>(spec.kernel), false));
 
   delete data;
   return result;

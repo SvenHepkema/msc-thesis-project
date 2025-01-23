@@ -16,7 +16,7 @@ namespace functions {
 
 template <typename T>
 using Verifier = std::function<verification::VerificationResult<T>(
-    const size_t, const std::string)>;
+    const runspec::RunSpecification)>;
 
 #define OPTION(NAME, FUNCTION)                                                 \
   {                                                                            \

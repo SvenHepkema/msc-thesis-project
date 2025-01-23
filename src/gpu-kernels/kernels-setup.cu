@@ -3,11 +3,12 @@
 #include <exception>
 #include <stdexcept>
 
+#include "../alp/alp-bindings.hpp"
 #include "../common/consts.hpp"
+#include "../common/runspec.hpp"
 #include "alp.cuh"
 #include "host-alp-utils.cuh"
 #include "host-utils.cuh"
-#include "kernels-bindings.hpp"
 #include "kernels-global.cuh"
 
 //
@@ -59,10 +60,11 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
                               const int32_t value_bit_width) {}
 
 template <>
-void verify_decompress_column(const runspec::KernelSpecification spec,
-                              const uint32_t *__restrict in,
-                              uint32_t *__restrict out, const size_t count,
-                              const int32_t value_bit_width) {
+void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
+                                        const uint32_t *__restrict in,
+                                        uint32_t *__restrict out,
+                                        const size_t count,
+                                        const int32_t value_bit_width) {
   using T = uint32_t;
   const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
   const auto n_threads = utils::get_n_lanes<T>();
@@ -100,11 +102,17 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
                                   value_bit_width);                            \
   } break;
 
-template <>
+template <typename T>
 void query_column_contains_zero(const runspec::KernelSpecification spec,
-                                const uint32_t *__restrict in,
-                                uint32_t *__restrict out, const size_t count,
-                                const int32_t value_bit_width) {
+                                const T *__restrict in, T *__restrict out,
+                                const size_t count,
+                                const int32_t value_bit_width) {}
+
+template <>
+void query_column_contains_zero<uint32_t>(
+    const runspec::KernelSpecification spec, const uint32_t *__restrict in,
+    uint32_t *__restrict out, const size_t count,
+    const int32_t value_bit_width) {
   using T = uint32_t;
   const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
   constexpr auto UNPACK_N_VECTORS = 1;
@@ -137,12 +145,6 @@ void query_column_contains_zero(const runspec::KernelSpecification spec,
   }
 }
 
-template <typename T>
-void query_column_contains_zero(const runspec::KernelSpecification spec,
-                                const T *__restrict in, T *__restrict out,
-                                const size_t count,
-                                const int32_t value_bit_width) {}
-
 } // namespace fls
 
 namespace gpualp {
@@ -171,7 +173,8 @@ namespace gpualp {
   } break;
 
 template <typename T>
-void verify_decompress_column(const runspec::KernelSpecification spec, T *__restrict out,
+void verify_decompress_column(const runspec::KernelSpecification spec,
+                              T *__restrict out,
                               const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);

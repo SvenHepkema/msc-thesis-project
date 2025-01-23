@@ -46,8 +46,8 @@ template <typename T> struct BP_GPUDecompressorFn {
 
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    kernels::fls::verify_bitunpack(spec, a_in, a_out, a_count,
-                                   a_value_bit_width);
+    kernels::fls::verify_decompress_column(spec, a_in, a_out, a_count,
+                                           a_value_bit_width);
   }
 };
 

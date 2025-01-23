@@ -70,13 +70,15 @@ template <typename T> struct FLSAnyValueIsMagicFn {
 };
 
 template <typename T> struct ALPAnyValueIsMagicFn {
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out) {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  [[maybe_unused]] const size_t a_count) {
     auto [data, magic_value] = (*a_in);
-    T *temp = new T[data.size];
+    T *temp = new T[data->size];
     alp::int_decode<T>(temp, data);
 
     bool none_magic = true;
-    for (size_t i{0}; i < data.size; ++i) {
+    for (size_t i{0}; i < data->size; ++i) {
       none_magic &= temp[i] != magic_value;
     }
     *a_out = static_cast<T>(!none_magic);
@@ -107,7 +109,9 @@ template <typename T> struct ALPAnyValueIsMagicFn {
   ALPAnyValueIsMagicFn(const runspec::KernelSpecification a_spec)
       : spec(a_spec) {}
 
-  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out) {
+  void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  [[maybe_unused]] const size_t a_count) {
     auto [data, magic_value] = (*a_in);
 
     kernels::gpualp::query_column_contains_magic(spec, a_out, data,

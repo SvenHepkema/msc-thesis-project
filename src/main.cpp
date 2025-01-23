@@ -51,7 +51,7 @@ parse_data_parameters(std::string input) {
 }
 
 static CLIArgs parse_cli_args(int argc, char **argv) {
-  if (argc != 7) {
+  if (argc != 8) {
     throw std::invalid_argument(
         "Not the required amount of arguments.\n"
         "executable <function_name> <kernel> <datatype_width> <dataset_name> "
@@ -118,23 +118,23 @@ template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 int32_t run_kernel(CLIArgs args) {
   verification::VerificationResult<T> results =
       functions::Fastlanes<T>::functions.at(args.runspec.function)(
-          args.runspec.data.count, args.runspec.data.name);
+          args.runspec);
   return process_results<T>(results, args);
 }
 
 template <typename T,
           std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
 int32_t run_kernel(CLIArgs args) {
-  verification::VerificationResult<T> results = functions::Alp<T>::functions.at(
-      args.runspec.function)(args.runspec.data.count, args.runspec.data.name);
+  verification::VerificationResult<T> results =
+      functions::Alp<T>::functions.at(args.runspec.function)(args.runspec);
   return process_results<T>(results, args);
 }
 
 int main(int argc, char **argv) {
   CLIArgs args = parse_cli_args(argc, argv);
 
-  if (args.runspec.kernel.kernel <
-      runspec::KernelOption::DIVIDER_FLS_ALP_KERNELS) {
+  if (functions::Fastlanes<uint32_t>::functions.find(args.runspec.function) !=
+      functions::Fastlanes<uint32_t>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_kernel<uint64_t>(args);
@@ -149,8 +149,8 @@ int main(int argc, char **argv) {
       return run_kernel<uint8_t>(args);
     }
     }
-  } else if (runspec::KernelOption::DIVIDER_FLS_ALP_KERNELS <
-             args.runspec.kernel.kernel) {
+  } else if (functions::Alp<float>::functions.find(args.runspec.function) !=
+      functions::Alp<float>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_kernel<double>(args);

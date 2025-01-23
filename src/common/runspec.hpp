@@ -23,7 +23,7 @@ enum KernelOption {
 };
 
 enum VerifierOption {
-	FLSDECOMPRESSOR,
+  FLSDECOMPRESSOR,
   // ===================
   DIVIDER_FLS_DECOMPRESSION_VERIFIERS,
   // ===================
@@ -52,6 +52,8 @@ struct KernelSpecification {
 
 static inline const std::unordered_map<std::string, KernelSpecification>
     kernel_options{
+        {"none", KernelSpecification{TEST_STATELESS_1_1, 1, 1,
+                                     DIVIDER_FLS_ALP_VERIFIERS}},
         {"test_stateless_1_1", KernelSpecification{TEST_STATELESS_1_1, 1, 1,
                                                    DIVIDER_FLS_ALP_VERIFIERS}},
         {"test_stateful_1_1", KernelSpecification{TEST_STATEFUL_1_1, 1, 1,

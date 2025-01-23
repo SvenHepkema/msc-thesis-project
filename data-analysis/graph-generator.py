@@ -29,10 +29,24 @@ DEFAULT_COLORS = [
     "tab:cyan",
 ]
 
+LEGEND_POSITIONS = [
+    "best",
+    "upper-right",
+    "upper-left",
+    "lower-left",
+    "lower-right",
+    "right",
+    "center-left",
+    "center-right",
+    "lower-center",
+    "upper-center",
+    "center",
+]
 
 class GraphConfiguration:
     y_axis_range: tuple[int | None, int | None]
     show_legend: bool
+    legend_position: str
     output_name: str | None
     h_line: int | None
 
@@ -40,6 +54,7 @@ class GraphConfiguration:
         self.y_axis_range = (0 if args.start_from_zero else None, args.y_axis_max_value)
         self.h_line = args.h_line
         self.show_legend = args.show_legend
+        self.legend_position = args.legend_position
         self.output_name = args.output_file_path
 
 
@@ -74,7 +89,6 @@ def convert_unique_str_to_colors(values: list[str]) -> list[str]:
     return [DEFAULT_COLORS[unique.index(x)] for x in values]
 
 
-
 def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
     column_name, pretty_name = return_default_x(results)
 
@@ -96,16 +110,16 @@ def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
         colors_index += 1
 
     if config.h_line:
-        ax.axhline(y=config.h_line / 1000, color='r', linestyle='--', label='Baseline')
+        ax.axhline(y=config.h_line / 1000, color="r", linestyle="--", label="Baseline")
     ax.set_ylim(config.y_axis_range)
+
+    if config.show_legend:
+        ax.legend(loc=config.legend_position.replace('-', ' '))
+
     plt.xlabel(pretty_name)
     plt.ylabel("Average execution speed (us)")
 
-    if config.show_legend:
-        plt.legend()
     output_graph(config.output_name)
-
-
 
 
 def load_dataframes(filenames: str) -> pl.DataFrame:
@@ -159,6 +173,14 @@ if __name__ == "__main__":
         default=False,
         action=argparse.BooleanOptionalAction,
         help="Adds a legend to the graph",
+    )
+    parser.add_argument(
+        "-lp",
+        "--legend-position",
+        type=str,
+        choices=LEGEND_POSITIONS,
+        default=LEGEND_POSITIONS[0],
+        help="Defines the position of the legend",
     )
     parser.add_argument(
         "-sfz",

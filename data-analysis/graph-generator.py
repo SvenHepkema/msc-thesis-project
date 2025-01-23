@@ -10,6 +10,8 @@ import enum
 import polars as pl
 import matplotlib.pyplot as plt
 
+plt.style.use('classic')
+
 
 class GraphTypes(enum.Enum):
     SCATTER_SPEED = 1
@@ -76,6 +78,7 @@ def get_sets(df: pl.DataFrame) -> list[str]:
 
 
 def output_graph(output_name: str | None = None):
+    plt.tight_layout()
     if output_name is None:
         plt.show()
     elif output_name[-4:] == "eps":
@@ -94,6 +97,7 @@ def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
 
     colors_index = 0
     fig, ax = plt.subplots()
+
     for name, set_results in results.group_by("set_name", maintain_order=True):
         name = name[0]
         x = []
@@ -105,7 +109,7 @@ def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
             x.append(function_results[column_name][0])
             y.append(function_results["execution_speed"].mean() / 1000)
 
-        ax.scatter(x, y, s=20, c=DEFAULT_COLORS[colors_index], label=name)
+        ax.scatter(x, y, s=20, linewidths=0, c=DEFAULT_COLORS[colors_index], label=name)
 
         colors_index += 1
 
@@ -114,7 +118,7 @@ def plot_scatter(results: pl.DataFrame, config: GraphConfiguration):
     ax.set_ylim(config.y_axis_range)
 
     if config.show_legend:
-        ax.legend(loc=config.legend_position.replace('-', ' '))
+        ax.legend(fontsize=12, loc=config.legend_position.replace('-', ' '))
 
     plt.xlabel(pretty_name)
     plt.ylabel("Average execution speed (us)")

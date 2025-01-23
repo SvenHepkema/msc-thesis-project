@@ -42,17 +42,19 @@ template <typename T> struct BP_FLSCompressorFn {
 };
 
 template <typename T> struct FFOR_FLSCompressorFn {
-  T base;
+  T *base_p;
 
-  FFOR_FLSCompressorFn(T a_base) : base(a_base) {}
+  FFOR_FLSCompressorFn(T a_base_p) : base_p(a_base_p) {}
 
   void operator()(const T *a_in, T *&a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
-    T *base_p = &base;
+    T *base_p_alias = base_p;
     apply_fls_compression_to_column<T>(
         a_in, a_out, a_value_bit_width, a_count,
-        [base_p](const T *in, T *out, const int32_t value_bit_width) -> void {
-          fls::ffor(in, out, static_cast<uint8_t>(value_bit_width), base_p);
+        [base_p_alias](const T *in, T *out,
+                       const int32_t value_bit_width) -> void {
+          fls::ffor(in, out, static_cast<uint8_t>(value_bit_width),
+                    base_p_alias);
         });
   }
 };
@@ -65,6 +67,5 @@ template <typename T> struct ALP_FLSCompressorFn {
     alp::int_encode<T>(in, count, out);
   }
 };
-
 
 #endif // COMPRESSORS_H

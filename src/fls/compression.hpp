@@ -2,8 +2,24 @@
 #define FFOR_FFOR_HPP
 
 #include <cstdint>
+#include <cstddef>
 
 namespace fls {
+
+template<typename T>
+struct FLSColumn {
+	const T* column;
+	uint8_t vbw;
+	const size_t size;
+};
+
+template<typename T>
+struct FFORColumn {
+	const T* column;
+	const T* base_p;
+	uint8_t vbw;
+	const size_t size;
+};
 
 void pack(const uint64_t *__restrict in, uint64_t *__restrict out, uint8_t bw);
 void pack(const uint32_t *__restrict in, uint32_t *__restrict out, uint8_t bw);

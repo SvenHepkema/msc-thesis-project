@@ -18,6 +18,7 @@
 #include "../alp/alp-bindings.hpp"
 #include "../alp/constants.hpp"
 #include "../common/consts.hpp"
+#include "../common/runspec.hpp"
 #include "../common/utils.hpp"
 #include "../fls/compression.hpp"
 #include "verification.hpp"
@@ -181,36 +182,6 @@ std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
     column_p[i] *= decimal_offset;
 
     if (exception_picker() < exception_percentage) {
-      column_p[i] = exception_generator();
-    } else {
-      column_p[i] += static_cast<T>(base);
-    }
-  }
-
-  return column;
-}
-
-template <typename T>
-std::unique_ptr<T> generate_ffor_column_with_real_doubles(const size_t count) {
-  auto column = generate_random_column<T>(count, 0, 100000.0);
-
-  auto base_generator = get_random_floating_point_generator<T>(0.0, 1000.0);
-
-  const uint16_t exceptions_per_vector = 30;
-  auto exception_picker =
-      get_random_number_generator<uint16_t>(0, consts::VALUES_PER_VECTOR);
-  auto exception_generator = generation::get_random_floating_point_generator(
-      std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
-
-  auto column_p = column.get();
-
-  T base = static_cast<T>(base_generator());
-  for (size_t i{0}; i < count; ++i) {
-    if (i % consts::VALUES_PER_VECTOR == 0) {
-      base = static_cast<T>(base_generator());
-    }
-
-    if (exception_picker() < exceptions_per_vector) {
       column_p[i] = exception_generator();
     } else {
       column_p[i] += static_cast<T>(base);
@@ -495,22 +466,22 @@ get_alp_data(const std::string dataset_name) {
 
 template <typename T, unsigned UNPACK_N_VECTORS = 1>
 verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_alp_datastructure(const std::string dataset_name) {
+get_alp_datastructure(const runspec::DataGenerationParametersType spec) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "T should be float or double");
 
-  if (dataset_name == "random") {
+  if (spec == runspec::DataGenerationParametersType::NONE) {
     return []([[__maybe_unused__]] int32_t unused,
               size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T, UNPACK_N_VECTORS>(count);
     };
-  } else if (dataset_name == "exceptions_per_vec") {
+  } else if (spec == runspec::DataGenerationParametersType::EC) {
     return [](int32_t exceptions_per_vec,
               size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T, UNPACK_N_VECTORS>(
           count, exceptions_per_vec);
     };
-  } else if (dataset_name == "value_bit_width") {
+  } else if (spec == runspec::DataGenerationParametersType::VBW) {
     return [](int32_t value_bit_width,
               size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T, UNPACK_N_VECTORS>(
@@ -525,18 +496,18 @@ get_alp_datastructure(const std::string dataset_name) {
 template <typename T, unsigned UNPACK_N_VECTORS = 1>
 std::pair<alp::AlpCompressionData<T> *,
           verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>>
-get_alp_reusable_datastructure(const std::string dataset_name,
+get_alp_reusable_datastructure(const runspec::DataGenerationParametersType spec,
                                const size_t a_count) {
-  auto data = data::lambda::get_alp_datastructure<T, UNPACK_N_VECTORS>(
-      dataset_name)(0, a_count);
+  auto data = data::lambda::get_alp_datastructure<T, UNPACK_N_VECTORS>(spec)(
+      0, a_count);
 
-  if (dataset_name == "exceptions_per_vec") {
+  if (spec == runspec::DataGenerationParametersType::EC) {
     return std::make_pair(
         data, [data](int32_t exceptions_per_vec, size_t count) {
           return data::generation::modify_alp_exception_count<T>(
               count, exceptions_per_vec, data);
         });
-  } else if (dataset_name == "value_bit_width") {
+  } else if (spec == runspec::DataGenerationParametersType::VBW) {
     return std::make_pair(data, [data](int32_t value_bit_width, size_t count) {
       return data::generation::modify_alp_value_bit_width<T>(
           count, value_bit_width, data);
@@ -550,21 +521,21 @@ get_alp_reusable_datastructure(const std::string dataset_name,
 template <typename T>
 std::pair<alp::AlpCompressionData<T> *,
           verification::DataGenerator<alp::ALPMagicCompressionData<T>, int32_t>>
-get_reusable_compressed_binary_column(const std::string dataset_name,
-                                      const size_t a_count) {
-  auto [d, g] = get_alp_reusable_datastructure<T>(dataset_name, a_count);
+get_reusable_compressed_binary_column(
+    const runspec::DataGenerationParametersType spec, const size_t a_count) {
+  auto [d, g] = get_alp_reusable_datastructure<T>(spec, a_count);
   auto data = d;
   auto generator = g;
 
   return std::make_pair(
       data,
       [generator](const int32_t value_bit_width,
-                  const size_t count) -> alp::ALPMagicCompressionData<T>* {
+                  const size_t count) -> alp::ALPMagicCompressionData<T> * {
         using INT_T = typename utils::same_width_int<T>::type;
         const int32_t safe_value_bit_width =
             value_bit_width % static_cast<INT_T>(sizeof(T) * 4);
-        const int32_t generated_value_bit_width = generation::get_random_number_generator(0, 
-						safe_value_bit_width)();
+        const int32_t generated_value_bit_width =
+            generation::get_random_number_generator(0, safe_value_bit_width)();
 
         T magic_value = consts::as<T>::MAGIC_NUMBER;
 
@@ -584,28 +555,8 @@ get_reusable_compressed_binary_column(const std::string dataset_name,
           delete[] output_array;
         }
 
-				return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
+        return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
       });
-}
-
-template <typename T>
-verification::DataGenerator<T, int32_t>
-get_alprd_data([[maybe_unused]] const std::string dataset_name) {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "T should be float or double");
-
-  if (dataset_name == "random") {
-    return []([[maybe_unused]] int32_t value_bit_width, size_t count) -> T * {
-      T *data;
-      do {
-        data = generation::generate_ffor_column_with_real_doubles<T>(count)
-                   .release();
-      } while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP_RD));
-      return data;
-    };
-  } else {
-    throw std::invalid_argument("This data generator only accepts 'random'");
-  }
 }
 
 } // namespace lambda

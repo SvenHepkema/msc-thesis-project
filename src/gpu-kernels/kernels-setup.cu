@@ -11,37 +11,6 @@
 #include "host-utils.cuh"
 #include "kernels-global.cuh"
 
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// FIX: The unpack vectors > 1 do not work, as block size is decided beforehand
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
 namespace kernels {
 namespace fls {
 
@@ -66,7 +35,7 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
                                         const size_t count,
                                         const int32_t value_bit_width) {
   using T = uint32_t;
-  const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
   const auto n_threads = utils::get_n_lanes<T>();
   const auto n_blocks = n_vecs / spec.n_vectors;
   const auto encoded_count =
@@ -74,17 +43,22 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
           ? 1
           : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
 
-  GPUArray<T> device_in(encoded_count, in);
+  // The branchless version always does 1 access too many for each lane
+  // That is why we allocate a little extra memory
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>();
+  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
   GPUArray<T> device_out(count);
 
   switch (spec.kernel) {
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless, 1,
-           1)
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_4_1, BitUnpackerStateless, 4, 1)
     FLS_DC(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateful, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_1_1,
-           BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_1_1,
-           BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATEFUL_4_1, BitUnpackerStateful, 4, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -114,11 +88,9 @@ void query_column_contains_zero<uint32_t>(
     uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width) {
   using T = uint32_t;
-  const auto n_vecs = static_cast<uint32_t>(count / consts::VALUES_PER_VECTOR);
-  constexpr auto UNPACK_N_VECTORS = 1;
-  const auto n_vectors_per_block = 2 * UNPACK_N_VECTORS;
-  const auto n_blocks = n_vecs / n_vectors_per_block;
-  const auto n_threads = utils::get_n_lanes<T>() * 2;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+  const auto n_threads = utils::get_n_lanes<T>();
+  const auto n_blocks = n_vecs / spec.n_vectors;
 
   const auto encoded_count =
       value_bit_width == 0
@@ -178,8 +150,8 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
                               const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_blocks = n_vecs / 1;
   const auto n_threads = utils::get_n_lanes<T>();
+  const auto n_blocks = n_vecs / spec.n_vectors;
 
   GPUArray<T> d_out(count);
   constant_memory::load_alp_constants<T>();
@@ -236,9 +208,8 @@ void query_column_contains_magic(const runspec::KernelSpecification spec,
                                  const T magic_value) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_warps_per_block = 2;
-  const auto n_blocks = n_vecs / n_warps_per_block;
-  const auto n_threads = n_warps_per_block * consts::THREADS_PER_WARP;
+  const auto n_threads = utils::get_n_lanes<T>();
+  const auto n_blocks = n_vecs / spec.n_vectors;
 
   GPUArray<T> d_out(1);
   constant_memory::load_alp_constants<T>();

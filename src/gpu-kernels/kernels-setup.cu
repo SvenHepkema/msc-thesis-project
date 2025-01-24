@@ -53,16 +53,16 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
   switch (spec.kernel) {
     FLS_DC(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
     FLS_DC(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_1_4, BitUnpackerStateless, 1, 4)
     FLS_DC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
     FLS_DC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
-           BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
-           BitUnpackerStatelessBranchless, 4, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
-           BitUnpackerStatefulBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
-           BitUnpackerStatefulBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -106,6 +106,17 @@ void query_column_contains_zero<uint32_t>(
 
   switch (spec.kernel) {
     FLS_QCCZ(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_1_4, BitUnpackerStateless, 1, 4)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -156,18 +167,16 @@ void compute_column<uint32_t>(const runspec::KernelSpecification spec,
   switch (spec.kernel) {
     FLS_CC(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
     FLS_CC(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
-    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
-           BitUnpackerStatelessBranchless, 1, 1)
-    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
-           BitUnpackerStatelessBranchless, 4, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStatefulBranchless,
-           1, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStatefulBranchless,
-           4, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
-           BitUnpackerStatefulBranchless, 1, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
-           BitUnpackerStatefulBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_1_4, BitUnpackerStateless, 1, 4)
+    FLS_CC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;

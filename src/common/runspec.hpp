@@ -15,12 +15,16 @@ enum KernelOption {
 	CPU,
   STATELESS_1_1,
   STATELESS_4_1,
+  STATELESS_1_4,
   STATEFUL_1_1,
   STATEFUL_4_1,
+  STATEFUL_1_4,
   STATELESS_BRANCHLESS_1_1,
   STATELESS_BRANCHLESS_4_1,
+  STATELESS_BRANCHLESS_1_4,
   STATEFUL_BRANCHLESS_1_1,
   STATEFUL_BRANCHLESS_4_1,
+  STATEFUL_BRANCHLESS_1_4,
 };
 
 struct KernelSpecification {
@@ -35,16 +39,16 @@ static inline const std::unordered_map<std::string, KernelSpecification>
         {"cpu", KernelSpecification{CPU, 1, 1}},
         {"stateless_1_1", KernelSpecification{STATELESS_1_1, 1, 1}},
         {"stateless_4_1", KernelSpecification{STATELESS_4_1, 4, 1}},
+        {"stateless_1_4", KernelSpecification{STATELESS_1_4, 1, 4}},
         {"stateful_1_1", KernelSpecification{STATEFUL_1_1, 1, 1}},
         {"stateful_4_1", KernelSpecification{STATEFUL_4_1, 4, 1}},
-        {"stateless_branchless_1_1",
-         KernelSpecification{STATELESS_BRANCHLESS_1_1, 1, 1}},
-        {"stateless_branchless_4_1",
-         KernelSpecification{STATELESS_BRANCHLESS_4_1, 4, 1}},
-        {"stateful_branchless_1_1",
-         KernelSpecification{STATEFUL_BRANCHLESS_1_1, 1, 1}},
-        {"stateful_branchless_4_1",
-         KernelSpecification{STATEFUL_BRANCHLESS_4_1, 4, 1}},
+        {"stateful_1_4", KernelSpecification{STATEFUL_1_4, 1, 4}},
+        {"stateless_branchless_1_1", KernelSpecification{STATELESS_BRANCHLESS_1_1, 1, 1}},
+        {"stateless_branchless_4_1", KernelSpecification{STATELESS_BRANCHLESS_4_1, 4, 1}},
+        {"stateless_branchless_1_4", KernelSpecification{STATELESS_BRANCHLESS_1_4, 1, 4}},
+        {"stateful_branchless_1_1", KernelSpecification{STATEFUL_BRANCHLESS_1_1, 1, 1}},
+        {"stateful_branchless_4_1", KernelSpecification{STATEFUL_BRANCHLESS_4_1, 4, 1}},
+        {"stateful_branchless_1_4", KernelSpecification{STATEFUL_BRANCHLESS_1_4, 1, 4}},
     };
 
 enum DataGenerationParametersType {

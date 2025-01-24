@@ -26,6 +26,16 @@ bench_bp_vbw(const runspec::RunSpecification spec) {
 
 template <typename T>
 verification::VerificationResult<T>
+bench_bp_vbw_compute(const runspec::RunSpecification spec) {
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(), queries::cpu::DummyFn<T>(),
+          queries::gpu::FLSComputeColumnFn<T>(spec.kernel)));
+}
+
+template <typename T>
+verification::VerificationResult<T>
 bench_alp_vbw(const runspec::RunSpecification spec) {
   auto [data, generator] =
       data::lambda::get_reusable_compressed_binary_column<T>(

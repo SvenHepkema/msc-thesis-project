@@ -4,8 +4,8 @@
 
 #include "device-utils.cuh"
 
-#include "fls.cuh"
 #include "alp.cuh"
+#include "fls.cuh"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
@@ -65,7 +65,7 @@ struct OldFLSAdjusted : BitUnpackerBase<T> {
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
 __global__ void decompress_column(T *__restrict out, const T *__restrict in,
-                          const vbw_t value_bit_width) {
+                                  const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -110,6 +110,43 @@ __global__ void query_column_contains_zero(T *__restrict out,
   checker.write_result(out);
 }
 
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
+          typename UnpackerT, int N_REPETITIONS>
+__global__ void compute_column(T *__restrict out, const T *__restrict in,
+                               const vbw_t value_bit_width,
+                               const T runtime_zero) {
+  constexpr T RANDOM_VALUE = 3;
+  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const lane_t lane = mapping.get_lane();
+  const vi_t vector_index = mapping.get_vector_index();
+
+  in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
+
+  T registers[N_VALUES];
+  auto checker = MagicChecker<T, UNPACK_N_VALUES>(1);
+  UnpackerT unpacker(in, lane, value_bit_width, BPFunctor<T>());
+
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+    unpacker.unpack_next_into(registers);
+
+#pragma unroll
+    for (int32_t j{0}; j < N_VALUES; ++j) {
+#pragma unroll
+      for (int32_t k{0}; k < N_REPETITIONS; ++k) {
+        registers[j] *= RANDOM_VALUE;
+        registers[j] <<= RANDOM_VALUE;
+        registers[j] += RANDOM_VALUE;
+        registers[j] &= runtime_zero;
+      }
+    }
+
+    checker.check(registers);
+  }
+
+  checker.write_result(out);
+}
+
 } // namespace fls
 
 namespace alp {
@@ -141,14 +178,15 @@ struct DummyALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 public:
   void __device__ __forceinline__ patch_if_needed(T *out) override {}
 
-  __device__ __forceinline__ DummyALPExceptionPatcher(
-      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane) {}
+  __device__ __forceinline__ DummyALPExceptionPatcher(const AlpColumn<T> column,
+                                                      const vi_t vector_index,
+                                                      const lane_t lane) {}
 };
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT, typename ColumnT>
-__global__ void
-query_column_contains_magic(T *out, ColumnT column, const T magic_value) {
+__global__ void query_column_contains_magic(T *out, ColumnT column,
+                                            const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -166,8 +204,6 @@ query_column_contains_magic(T *out, ColumnT column, const T magic_value) {
 
   checker.write_result(out);
 }
-
-
 
 } // namespace alp
 

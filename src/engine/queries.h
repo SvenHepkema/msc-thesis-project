@@ -34,6 +34,14 @@ template <typename T> struct BaselineIntAnyValueIsMagicFn {
   }
 };
 
+template <typename T> struct DummyFn {
+  void operator()([[maybe_unused]] const T *a_in, T *a_out,
+                  [[maybe_unused]] const int32_t a_value_bit_width,
+                  [[maybe_unused]] const size_t a_count) {
+    *a_out = 0;
+  }
+};
+
 template <typename T> struct BaselineFloatAnyValueIsMagicFn {
   void operator()(const T *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
@@ -100,6 +108,18 @@ template <typename T> struct FLSAnyValueIsMagicFn {
                   const size_t a_count) {
     kernels::fls::query_column_contains_zero(spec, a_in, a_out, a_count,
                                              a_value_bit_width);
+  }
+};
+
+template <typename T> struct FLSComputeColumnFn {
+  const runspec::KernelSpecification spec;
+
+  FLSComputeColumnFn(const runspec::KernelSpecification a_spec)
+      : spec(a_spec) {}
+
+  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
+                  const size_t a_count) {
+    kernels::fls::compute_column(spec, a_in, a_out, a_count, a_value_bit_width);
   }
 };
 

@@ -32,6 +32,7 @@ template <class T> struct Fastlanes {
       OPTION("verify_fls_bp", verifiers::verify_fls_bp),
       OPTION("verify_gpu_bp", verifiers::verify_gpu_bp),
       OPTION("bench_bp_vbw", benchmarks::bench_bp_vbw),
+      OPTION("bench_bp_vbw_compute", benchmarks::bench_bp_vbw_compute),
   };
 };
 

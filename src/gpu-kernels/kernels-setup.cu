@@ -55,10 +55,14 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
     FLS_DC(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
     FLS_DC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
     FLS_DC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
+           BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
+           BitUnpackerStatelessBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
+           BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
+           BitUnpackerStatefulBranchless, 4, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -101,8 +105,69 @@ void query_column_contains_zero<uint32_t>(
   GPUArray<T> device_out(1);
 
   switch (spec.kernel) {
-    FLS_QCCZ(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless,
-             1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
+  default: {
+    throw std::invalid_argument("Did not find this spec");
+  } break;
+  }
+
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(out);
+
+  if (*out != 1) {
+    *out = 0;
+  }
+}
+
+#define FLS_CC(CASE, UNPACKER_T, N_VEC, N_VAL)                                 \
+  case CASE: {                                                                 \
+    kernels::device::fls::compute_column<                                      \
+        T, N_VEC, N_VAL, UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>,            \
+        N_REPETITIONS><<<n_blocks, n_threads>>>(                               \
+        device_out.get(), device_in.get(), value_bit_width, runtime_zero);     \
+  } break;
+
+template <typename T>
+void compute_column(const runspec::KernelSpecification spec,
+                    const T *__restrict in, T *__restrict out,
+                    const size_t count, const int32_t value_bit_width) {}
+
+template <>
+void compute_column<uint32_t>(const runspec::KernelSpecification spec,
+                              const uint32_t *__restrict in,
+                              uint32_t *__restrict out, const size_t count,
+                              const int32_t value_bit_width) {
+  using T = uint32_t;
+  const auto n_vecs = utils::get_n_vecs_from_size(count);
+  const auto n_threads = utils::get_n_lanes<T>();
+  const auto n_blocks = n_vecs / spec.n_vectors;
+
+  const auto encoded_count =
+      value_bit_width == 0
+          ? 1
+          : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
+
+  GPUArray<T> device_in(encoded_count, in);
+  GPUArray<T> device_out(1);
+  uint32_t runtime_zero = 0;
+
+  constexpr int N_REPETITIONS = 10;
+  switch (spec.kernel) {
+    FLS_CC(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
+           BitUnpackerStatelessBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
+           BitUnpackerStatelessBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStatefulBranchless,
+           1, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStatefulBranchless,
+           4, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
+           BitUnpackerStatefulBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
+           BitUnpackerStatefulBranchless, 4, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -262,6 +327,18 @@ template void kernels::fls::query_column_contains_zero<uint16_t>(
     uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 template void kernels::fls::query_column_contains_zero<uint64_t>(
+    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
+    uint64_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+
+template void kernels::fls::compute_column<uint8_t>(
+    const runspec::KernelSpecification spec, const uint8_t *__restrict in,
+    uint8_t *__restrict out, const size_t count, const int32_t value_bit_width);
+template void kernels::fls::compute_column<uint16_t>(
+    const runspec::KernelSpecification spec, const uint16_t *__restrict in,
+    uint16_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+template void kernels::fls::compute_column<uint64_t>(
     const runspec::KernelSpecification spec, const uint64_t *__restrict in,
     uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);

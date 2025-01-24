@@ -392,7 +392,7 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
   const vbw_t value_bit_width;
 
   int32_t offset_first = 0;
-	UINT_T value_mask;
+  UINT_T value_mask;
 
   __device__ __forceinline__ BitUnpackerStatefulBranchless(
       const UINT_T *__restrict a_in, const lane_t lane,
@@ -408,21 +408,24 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
     constexpr int32_t BIT_COUNT = utils::sizeof_in_bits<T>();
     constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<UINT_T>();
 
-    const auto offset_second = BIT_COUNT - offset_first; 
+#pragma unroll
+    for (int32_t i{0}; i < UNPACK_N_VALUES; i++) {
+      const auto offset_second = BIT_COUNT - offset_first;
 
-    UINT_T values[UNPACK_N_VECTORS] = {0};
+      UINT_T values[UNPACK_N_VECTORS] = {0};
 
 #pragma unroll
-    for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
-      const auto v_in = in + v * compressed_vector_size;
-      values[v] |= (v_in[0] & (value_mask << offset_first)) >> offset_first;
-      values[v] |= (v_in[N_LANES] & (value_mask >> offset_second))
-                   << offset_second;
-      out[v] = processor(values[v]);
-    }
+      for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
+        const auto v_in = in + v * compressed_vector_size;
+        values[v] |= (v_in[0] & (value_mask << offset_first)) >> offset_first;
+        values[v] |= (v_in[N_LANES] & (value_mask >> offset_second))
+                     << offset_second;
+        out[UNPACK_N_VALUES * v + i] = processor(values[v]);
+      }
 
-    in += (offset_second <= value_bit_width) * N_LANES;
-    offset_first = (offset_first + value_bit_width) % LANE_BIT_WIDTH;
+      in += (offset_second <= value_bit_width) * N_LANES;
+      offset_first = (offset_first + value_bit_width) % LANE_BIT_WIDTH;
+    }
   }
 };
 

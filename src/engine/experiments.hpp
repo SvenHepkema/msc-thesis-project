@@ -10,14 +10,15 @@
 #include "./decompressors.h"
 #include "./queries.h"
 
-#ifndef VERIFIERS_HPP
-#define VERIFIERS_HPP
 
-namespace verifiers {
+#ifndef EXPERIMENTS_HPP
+#define EXPERIMENTS_HPP
+
+namespace experiments {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_fls_bp(const runspec::RunSpecification spec) {
+verify_fls(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, spec.data.count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
@@ -28,13 +29,34 @@ verify_fls_bp(const runspec::RunSpecification spec) {
 
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_bp(const runspec::RunSpecification spec) {
+fls_decompress_column(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, spec.data.count,
       verification::get_compression_and_decompression_verifier<T, T, int32_t,
                                                                int32_t>(
           data::lambda::get_bp_data<T>(spec.data.name), BP_FLSCompressorFn<T>(),
           BP_GPUDecompressorFn<T>(spec.kernel)));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+fls_query_column(const runspec::RunSpecification spec) {
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(),
+          queries::cpu::FLSQueryColumnFn<T>(),
+          queries::gpu::FLSQueryColumnFn<T>(spec.kernel)));
+}
+
+template <typename T>
+verification::VerificationResult<T>
+fls_compute_column(const runspec::RunSpecification spec) {
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(), queries::cpu::DummyFn<T>(),
+          queries::gpu::FLSComputeColumnFn<T>(spec.kernel)));
 }
 
 template <typename T>
@@ -49,9 +71,12 @@ verify_alp(const runspec::RunSpecification spec) {
           ALP_FLSCompressorFn<T>(), ALP_FLSDecompressorFn<T>()));
 }
 
+
+
+
 template <typename T>
 verification::VerificationResult<T>
-verify_gpu_alp(const runspec::RunSpecification spec) {
+alp_decompress_column(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
                                                   int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, spec.data.count,
@@ -61,20 +86,22 @@ verify_gpu_alp(const runspec::RunSpecification spec) {
           ALP_FLSCompressorFn<T>(), ALP_GPUDecompressorFn<T>(spec.kernel)));
 }
 
+
 template <typename T>
 verification::VerificationResult<T>
-verify_magic_query_alp(const runspec::RunSpecification spec) {
+alp_query_column(const runspec::RunSpecification spec) {
   auto [data, generator] =
       data::lambda::get_reusable_compressed_binary_column<T>(
           spec.data.params_type, spec.data.count);
 
-  auto result = verification::run_verifier_on_parameters<
-      T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
-      spec.data.params, spec.data.params, spec.data.count, 1,
-      verification::get_equal_decompression_verifier<
-          T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
-          generator, queries::cpu::ALPAnyValueIsMagicFn<T>(),
-          queries::gpu::ALPAnyValueIsMagicFn<T>(spec.kernel), false));
+  auto result =
+      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                               int32_t, int32_t>(
+          spec.data.params, spec.data.params, spec.data.count, 1,
+          verification::get_equal_decompression_verifier<
+              T, alp::ALPMagicCompressionData<T>, int32_t, int32_t>(
+              generator, queries::cpu::ALPQueryColumnFn<T>(),
+              queries::gpu::ALPQueryColumnFn<T>(spec.kernel), false));
 
   delete data;
   return result;
@@ -82,4 +109,4 @@ verify_magic_query_alp(const runspec::RunSpecification spec) {
 
 } // namespace verifiers
 
-#endif // VERIFIERS_HPP
+#endif // EXPERIMENTS_HPP

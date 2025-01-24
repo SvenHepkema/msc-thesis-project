@@ -3,9 +3,8 @@
 #include <functional>
 #include <string>
 
-#include "../engine/benchmarkers.hpp"
 #include "../engine/verification.hpp"
-#include "../engine/verifiers.hpp"
+#include "../engine/experiments.hpp"
 
 #include "../gpu-kernels/kernels-bindings.hpp"
 
@@ -29,19 +28,18 @@ using Verifier = std::function<verification::VerificationResult<T>(
 
 template <class T> struct Fastlanes {
   static inline const std::unordered_map<std::string, Verifier<T>> functions = {
-      OPTION("verify_fls_bp", verifiers::verify_fls_bp),
-      OPTION("verify_gpu_bp", verifiers::verify_gpu_bp),
-      OPTION("bench_bp_vbw", benchmarks::bench_bp_vbw),
-      OPTION("bench_bp_vbw_compute", benchmarks::bench_bp_vbw_compute),
+      OPTION("verify_fls", experiments::verify_fls),
+      OPTION("fls_decompress", experiments::fls_decompress_column),
+      OPTION("fls_query", experiments::fls_query_column),
+      OPTION("fls_compute", experiments::fls_compute_column),
   };
 };
 
 template <class T> struct Alp {
   static inline std::unordered_map<std::string, Verifier<T>> functions = {
-      OPTION("verify_alp", verifiers::verify_alp),
-      OPTION("verify_gpu_alp", verifiers::verify_gpu_alp),
-      OPTION("verify_magic_query_alp", verifiers::verify_magic_query_alp),
-      OPTION("bench_alp_vbw", benchmarks::bench_alp_vbw),
+      OPTION("verify_alp", experiments::verify_alp),
+      OPTION("alp_decompress", experiments::alp_decompress_column),
+      OPTION("alp_query", experiments::alp_query_column),
   };
 };
 } // namespace functions

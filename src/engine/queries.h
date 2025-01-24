@@ -54,7 +54,7 @@ template <typename T> struct BaselineFloatAnyValueIsMagicFn {
   }
 };
 
-template <typename T> struct FLSAnyValueIsMagicFn {
+template <typename T> struct FLSQueryColumnFn {
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
                   const size_t a_count) {
     bool none_magic = 1;
@@ -77,7 +77,7 @@ template <typename T> struct FLSAnyValueIsMagicFn {
   }
 };
 
-template <typename T> struct ALPAnyValueIsMagicFn {
+template <typename T> struct ALPQueryColumnFn {
   void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,
                   [[maybe_unused]] const int32_t a_value_bit_width,
                   [[maybe_unused]] const size_t a_count) {
@@ -98,10 +98,10 @@ template <typename T> struct ALPAnyValueIsMagicFn {
 
 namespace gpu {
 
-template <typename T> struct FLSAnyValueIsMagicFn {
+template <typename T> struct FLSQueryColumnFn {
   const runspec::KernelSpecification spec;
 
-  FLSAnyValueIsMagicFn(const runspec::KernelSpecification a_spec)
+  FLSQueryColumnFn(const runspec::KernelSpecification a_spec)
       : spec(a_spec) {}
 
   void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
@@ -123,10 +123,10 @@ template <typename T> struct FLSComputeColumnFn {
   }
 };
 
-template <typename T> struct ALPAnyValueIsMagicFn {
+template <typename T> struct ALPQueryColumnFn {
   const runspec::KernelSpecification spec;
 
-  ALPAnyValueIsMagicFn(const runspec::KernelSpecification a_spec)
+  ALPQueryColumnFn(const runspec::KernelSpecification a_spec)
       : spec(a_spec) {}
 
   void operator()(const alp::ALPMagicCompressionData<T> *a_in, T *a_out,

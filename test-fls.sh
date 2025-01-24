@@ -4,5 +4,5 @@ TYPES_TO_VERIFY="32"
 VECTOR_COUNT=1024
 
 LOG_FILE=/tmp/log
-parallel --joblog $LOG_FILE ./bin/executable verify_gpu_bp {1} {2} random vbw-0-{2} $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY 2> /dev/null
+parallel --joblog $LOG_FILE ./bin/executable fls_decompress {1} {2} random vbw-0-{2} $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY 2> /dev/null
 ./print-joblog.sh

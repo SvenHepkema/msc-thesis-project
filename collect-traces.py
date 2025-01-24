@@ -278,9 +278,18 @@ class NvprofCommand:
 
     def __call__(self) -> list[NvprofLine]:
         logging.info(f"Executing: {self.command}")
-        output = subprocess.run(
+        result = subprocess.run(
             self.command, stderr=subprocess.PIPE, shell=True
-        ).stderr.decode("utf-8")
+        )
+
+        if result.returncode != 0:
+            logging.critical("")
+            logging.critical("")
+            logging.critical(f"FAILED WITH CODE {result.returncode} : {self.command} ")
+            logging.critical("")
+            logging.critical("")
+
+        output = result.stderr.decode("utf-8")
         output = output.split("Profiling result:")[1]
 
         lines = [line.strip() for line in output.split("\n")]
@@ -400,11 +409,16 @@ def apply_properties_to_df(
 
 
 def measure_command(
-        nvprof_command: NvprofCommand, metrics: Metrics, repeat: int, merge_strategy: str
+    nvprof_command: NvprofCommand, metrics: Metrics, repeat: int, merge_strategy: str
 ) -> pl.DataFrame:
     all_measurements = collect_measurements(nvprof_command, repeat)
     merged_measurements = merge_measurements(all_measurements, metrics, merge_strategy)
     return create_df_from_measurements(metrics, merged_measurements)
+
+
+def write_results_to_stdout(command: str, df: pl.DataFrame) -> None:
+    print(command)
+    df.write_csv(sys.stdout)
 
 
 def main(args):
@@ -421,24 +435,20 @@ def main(args):
 
     if args.timing_runs is not None and metrics is not None:
         timing_command = NvprofCommand(args.command, None, args.nvprof_path)
-        timing_df = measure_command(timing_command, None, args.timing_runs, args.merge_strategy)
+        timing_df = measure_command(
+            timing_command, None, args.timing_runs, args.merge_strategy
+        )
         df = df.with_columns(timing_df["execution_time"])
 
     exec_properties = ExecutableProperties(args.command)
     df = apply_properties_to_df(exec_properties, df)
 
-    if args.out_file:
-        df.write_csv(args.out_file)
-    else:
-        df.write_csv(sys.stdout)
+    write_results_to_stdout(args.command, df)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="program")
 
-    parser.add_argument(
-        "-o", "--out-file", type=argparse.FileType("w"), help="Output file"
-    )
     parser.add_argument(
         "-r",
         "--repeat",

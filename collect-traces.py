@@ -18,8 +18,8 @@ MeasurementsAllRuns = list[list[list[int | float]]]
 MergedMeasurementsPerKernel = list[list[int | float]]
 
 MERGE_STRATEGIES = [
-    "mean",
     "median",
+    "mean",
     "median_without_outliers",
 ]
 
@@ -310,9 +310,9 @@ def merge_metrics_values(values: list[Any], merge_strategy: str) -> Any:
     return merged_value
 
 
-def collect_measurements(command: NvprofCommand) -> MeasurementsAllRuns:
+def collect_measurements(command: NvprofCommand, repeat: int) -> MeasurementsAllRuns:
     measurements_all_runs: MeasurementsAllRuns = []
-    for _ in range(args.repeat):
+    for _ in range(repeat):
         nvprof_output = command()
 
         measurements_values_run = []
@@ -399,6 +399,14 @@ def apply_properties_to_df(
     return df
 
 
+def measure_command(
+        nvprof_command: NvprofCommand, metrics: Metrics, repeat: int, merge_strategy: str
+) -> pl.DataFrame:
+    all_measurements = collect_measurements(nvprof_command, repeat)
+    merged_measurements = merge_measurements(all_measurements, metrics, merge_strategy)
+    return create_df_from_measurements(metrics, merged_measurements)
+
+
 def main(args):
     if args.command is None:
         print_metrics()
@@ -409,12 +417,12 @@ def main(args):
         exit("nvprof needs root access ")
 
     nvprof_command = NvprofCommand(args.command, metrics, args.nvprof_path)
+    df = measure_command(nvprof_command, metrics, args.repeat, args.merge_strategy)
 
-    all_measurements = collect_measurements(nvprof_command)
-    merged_measurements = merge_measurements(
-        all_measurements, metrics, args.merge_strategy
-    )
-    df = create_df_from_measurements(metrics, merged_measurements)
+    if args.timing_runs is not None and metrics is not None:
+        timing_command = NvprofCommand(args.command, None, args.nvprof_path)
+        timing_df = measure_command(timing_command, None, args.timing_runs, args.merge_strategy)
+        df = df.with_columns(timing_df["execution_time"])
 
     exec_properties = ExecutableProperties(args.command)
     df = apply_properties_to_df(exec_properties, df)
@@ -450,6 +458,13 @@ if __name__ == "__main__":
         "--metrics",
         type=str,
         help="Metrics, comma separated",
+        default=None,
+    )
+    parser.add_argument(
+        "-tr",
+        "--timing-runs",
+        type=int,
+        help="Adds timing runs if metrics are enabled, will add an extra column",
         default=None,
     )
     parser.add_argument(

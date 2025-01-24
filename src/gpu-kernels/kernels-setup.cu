@@ -51,14 +51,14 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
   GPUArray<T> device_out(count);
 
   switch (spec.kernel) {
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_4_1, BitUnpackerStateless, 4, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateful, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATEFUL_4_1, BitUnpackerStateful, 4, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::TEST_STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_4_1, BitUnpackerStateless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -101,7 +101,7 @@ void query_column_contains_zero<uint32_t>(
   GPUArray<T> device_out(1);
 
   switch (spec.kernel) {
-    FLS_QCCZ(runspec::KernelOption::QUERY_STATELESS_1_1, BitUnpackerStateless,
+    FLS_QCCZ(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless,
              1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
@@ -160,9 +160,9 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
   AlpExtendedColumn<T> device_extended_column;
 
   switch (spec.kernel) {
-    ALP_DC(runspec::KernelOption::TEST_STATELESS_1_1, BitUnpackerStateless,
+    ALP_DC(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless,
            StatelessALPExceptionPatcher, 1, 1)
-    ALP_DCE(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateless,
+    ALP_DCE(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateless,
             PrefetchAllALPExceptionPatcher, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
@@ -218,13 +218,10 @@ void query_column_contains_magic(const runspec::KernelSpecification spec,
   AlpExtendedColumn<T> device_extended_column;
 
   switch (spec.kernel) {
-    ALP_QCCM(runspec::KernelOption::QUERY_STATELESS_1_1, BitUnpackerStateless,
+    ALP_QCCM(runspec::KernelOption::STATELESS_1_1, BitUnpackerStateless,
              StatelessALPExceptionPatcher, 1, 1)
-    ALP_QCCME(runspec::KernelOption::TEST_STATEFUL_1_1, BitUnpackerStateless,
+    ALP_QCCME(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateless,
               PrefetchAllALPExceptionPatcher, 1, 1)
-    ALP_QCCM(runspec::KernelOption::TEST_STATELESS_1_1,
-             kernels::device::fls::Baseline,
-             kernels::device::alp::DummyALPExceptionPatcher, 1, 1)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;

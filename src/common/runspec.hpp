@@ -12,31 +12,15 @@ namespace runspec {
 
 // The divider is used to do some logic
 enum KernelOption {
-  TEST_STATELESS_1_1,
-  TEST_STATELESS_4_1,
-  TEST_STATEFUL_1_1,
-  TEST_STATEFUL_4_1,
-  TEST_STATELESS_BRANCHLESS_1_1,
-  TEST_STATELESS_BRANCHLESS_4_1,
-  TEST_STATEFUL_BRANCHLESS_1_1,
-  TEST_STATEFUL_BRANCHLESS_4_1,
-  QUERY_STATELESS_1_1,
-  // ===================
-  DIVIDER_FLS_ALP_KERNELS,
-  // ===================
-};
-
-enum VerifierOption {
-  FLSDECOMPRESSOR,
-  // ===================
-  DIVIDER_FLS_DECOMPRESSION_VERIFIERS,
-  // ===================
-  // ===================
-  DIVIDER_FLS_ALP_VERIFIERS,
-  // ===================
-  // ===================
-  DIVIDER_ALP_DECOMPRESSION_VERIFIERS,
-  // ===================
+	CPU,
+  STATELESS_1_1,
+  STATELESS_4_1,
+  STATEFUL_1_1,
+  STATEFUL_4_1,
+  STATELESS_BRANCHLESS_1_1,
+  STATELESS_BRANCHLESS_4_1,
+  STATEFUL_BRANCHLESS_1_1,
+  STATEFUL_BRANCHLESS_4_1,
 };
 
 struct KernelSpecification {
@@ -44,28 +28,23 @@ struct KernelSpecification {
 
   const unsigned n_vectors;
   const unsigned n_values;
-
-  const VerifierOption verifier;
-
-  bool verifier_is_decompressor() const {
-    return ((DIVIDER_FLS_DECOMPRESSION_VERIFIERS < verifier) &&
-            (verifier < DIVIDER_FLS_ALP_VERIFIERS)) ||
-           (DIVIDER_ALP_DECOMPRESSION_VERIFIERS < verifier);
-  }
 };
 
 static inline const std::unordered_map<std::string, KernelSpecification>
     kernel_options{
-        {"none", KernelSpecification{TEST_STATELESS_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateless_1_1", KernelSpecification{TEST_STATELESS_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateless_4_1", KernelSpecification{TEST_STATELESS_4_1, 4, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateful_1_1", KernelSpecification{TEST_STATEFUL_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateful_4_1", KernelSpecification{TEST_STATEFUL_4_1, 4, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateless_branchless_1_1", KernelSpecification{TEST_STATELESS_BRANCHLESS_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateless_branchless_4_1", KernelSpecification{TEST_STATELESS_BRANCHLESS_4_1, 4, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateful_branchless_1_1", KernelSpecification{TEST_STATEFUL_BRANCHLESS_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"test_stateful_branchless_4_1", KernelSpecification{TEST_STATEFUL_BRANCHLESS_4_1, 4, 1, DIVIDER_FLS_ALP_VERIFIERS}},
-        {"query_stateless_1_1", KernelSpecification{QUERY_STATELESS_1_1, 1, 1, DIVIDER_FLS_ALP_VERIFIERS}},
+        {"cpu", KernelSpecification{CPU, 1, 1}},
+        {"stateless_1_1", KernelSpecification{STATELESS_1_1, 1, 1}},
+        {"stateless_4_1", KernelSpecification{STATELESS_4_1, 4, 1}},
+        {"stateful_1_1", KernelSpecification{STATEFUL_1_1, 1, 1}},
+        {"stateful_4_1", KernelSpecification{STATEFUL_4_1, 4, 1}},
+        {"stateless_branchless_1_1",
+         KernelSpecification{STATELESS_BRANCHLESS_1_1, 1, 1}},
+        {"stateless_branchless_4_1",
+         KernelSpecification{STATELESS_BRANCHLESS_4_1, 4, 1}},
+        {"stateful_branchless_1_1",
+         KernelSpecification{STATEFUL_BRANCHLESS_1_1, 1, 1}},
+        {"stateful_branchless_4_1",
+         KernelSpecification{STATEFUL_BRANCHLESS_4_1, 4, 1}},
     };
 
 enum DataGenerationParametersType {

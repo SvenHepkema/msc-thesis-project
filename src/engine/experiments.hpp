@@ -6,9 +6,9 @@
 
 #include "../gpu-kernels/kernels-bindings.hpp"
 
-#include "./compressors.h"
-#include "./decompressors.h"
-#include "./queries.h"
+#include "./compressors.hpp"
+#include "./decompressors.hpp"
+#include "./queries.hpp"
 
 
 #ifndef EXPERIMENTS_HPP

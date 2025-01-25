@@ -51,7 +51,18 @@ COLUMN_ALIASES_FOR_AXIS = {
     "execution_time": "Median execution time (us)",
     "ipc": "Instructions executed per cycle",
     "inst_executed_global_loads": "Global loads executed",
-    "dram_read_bytes": "Total bytes read from DRAM to L2 cache",
+    "dram_read_bytes": "Total bytes read from DRAM",
+    "dram_write_bytes": "Total bytes written to DRAM",
+    "global_hit_rate": "L1 Cache global load hit rate",
+    "eligible_warps_per_cycle": "Average number of eligible warps / active cycle",
+}
+
+COLUMN_ALIASES_FOR_TITLE  = {
+    "execution_time": "Execution time",
+    "ipc": "Instructions executed per cycle",
+    "inst_executed_global_loads": "Global loads executed",
+    "dram_read_bytes": "Total bytes read from DRAM",
+    "dram_write_bytes": "Total bytes written to DRAM",
     "global_hit_rate": "L1 Cache global load hit rate",
     "eligible_warps_per_cycle": "Average number of eligible warps / active cycle",
 }
@@ -88,12 +99,12 @@ class GraphConfiguration:
         #ax.set_xticks(range(32), minor=True)
         #ax.tick_params(axis='x', which='minor', length=4, color='r', labelbottom=False)  # Minor ticks in red, no labels
 
-        ax.grid(which='both', linestyle='--', linewidth=0.08)
+        ax.grid(which='both', linestyle='--', linewidth=0.1)
         ax.set_xlim(self.x_axis_range)
         ax.set_ylim(self.y_axis_range)
 
         if self.show_legend:
-            ax.legend(fontsize=12, loc=self.legend_position.replace("-", " "))
+            ax.legend(scatterpoints=1, fontsize=12, loc=self.legend_position.replace("-", " "))
 
 
 
@@ -166,32 +177,28 @@ def plot_scatter(
     plt.style.use("classic")
     fig, ax = plt.subplots()
 
-    # we do not support multiple column plotting (yet)
-    assert len(columns) == 1
-    column = columns[0]
-
     x_axis_column, pretty_x_axis_name = get_default_x_axis_column(datasets[0].data)
 
-    for i, dataset in enumerate(datasets):
-        x = dataset.data[x_axis_column]
-        y = dataset.data[column]
+    for column in columns:
+        for i, dataset in enumerate(datasets):
+            x = dataset.data[x_axis_column]
+            y = dataset.data[column]
 
-        if columns[0] == "execution_time":
-            y = [value / 1000 for value in y]
+            if columns[0] == "execution_time":
+                y = [value / 1000 for value in y]
+            ax.scatter(
+                x,
+                y,
+                s=24,
+                linewidths=0,
+                c=COLOR_SET[i],
+                label=dataset.name,
+            )
 
-        ax.scatter(
-            x,
-            y,
-            s=24,
-            linewidths=0,
-            c=COLOR_SET[i],
-            label=dataset.name,
-        )
-
-    config.apply_to_ax(ax)
-
-    plt.xlabel(pretty_x_axis_name)
-    plt.ylabel(COLUMN_ALIASES_FOR_AXIS.get(column, column))
+        ax.set_xlabel(pretty_x_axis_name)
+        ax.set_ylabel(COLUMN_ALIASES_FOR_AXIS.get(column, column))
+        ax.set_title(COLUMN_ALIASES_FOR_TITLE[column], fontsize=20)
+        config.apply_to_ax(ax)
 
     config.output_graph()
 

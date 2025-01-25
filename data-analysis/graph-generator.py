@@ -6,6 +6,7 @@ import sys
 import argparse
 import logging
 import enum
+import math
 from typing import NewType
 from io import StringIO
 
@@ -175,11 +176,24 @@ def plot_scatter(
     datasets: list[ResultsFile], columns: list[ColumnName], config: GraphConfiguration
 ):
     plt.style.use("classic")
-    fig, ax = plt.subplots()
+
+    n_cols = len(columns)
+    n_cols_in_fig = math.ceil(n_cols ** 0.5)  
+    n_rows_in_fig = math.ceil(n_cols / n_cols_in_fig)  
+
+    figsize = (6 * n_cols_in_fig, 6 * n_rows_in_fig)
+    fig, axes = plt.subplots(n_rows_in_fig, n_cols_in_fig, figsize=figsize)
+
+    if n_cols > 1:
+        axes = axes.flatten()  
+    else:
+        axes = [axes]
 
     x_axis_column, pretty_x_axis_name = get_default_x_axis_column(datasets[0].data)
 
-    for column in columns:
+    for i, column in enumerate(columns):
+        ax = axes[i]
+
         for i, dataset in enumerate(datasets):
             x = dataset.data[x_axis_column]
             y = dataset.data[column]
@@ -199,6 +213,9 @@ def plot_scatter(
         ax.set_ylabel(COLUMN_ALIASES_FOR_AXIS.get(column, column))
         ax.set_title(COLUMN_ALIASES_FOR_TITLE[column], fontsize=20)
         config.apply_to_ax(ax)
+
+    for ax in axes[n_cols:]:
+        ax.axis("off")
 
     config.output_graph()
 

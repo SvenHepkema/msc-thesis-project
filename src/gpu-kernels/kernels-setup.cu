@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -12,14 +13,30 @@
 #include "kernels-global.cuh"
 
 namespace kernels {
+
+template <typename T> struct ThreadblockMapping {
+  static constexpr unsigned N_WARPS_PER_BLOCK =
+      std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
+  static constexpr unsigned N_THREADS_PER_BLOCK =
+      N_WARPS_PER_BLOCK * consts::THREADS_PER_WARP;
+  static constexpr unsigned N_CONCURRENT_VECTORS_PER_BLOCK =
+      N_THREADS_PER_BLOCK / utils::get_n_lanes<T>();
+
+  const unsigned n_blocks;
+
+  ThreadblockMapping(const runspec::KernelSpecification spec,
+                     const size_t n_vecs)
+      : n_blocks(n_vecs / (spec.n_vectors * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
+};
+
 namespace fls {
 
 #define FLS_DC(CASE, UNPACKER_T, N_VEC, N_VAL)                                 \
   case CASE: {                                                                 \
     kernels::device::fls::decompress_column<                                   \
         T, N_VEC, N_VAL, UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>>            \
-        <<<n_blocks, n_threads>>>(device_out.get(), device_in.get(),           \
-                                  value_bit_width);                            \
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(                   \
+            device_out.get(), device_in.get(), value_bit_width);               \
   } break;
 
 template <typename T>
@@ -35,9 +52,7 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
                                         const size_t count,
                                         const int32_t value_bit_width) {
   using T = uint32_t;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_threads = utils::get_n_lanes<T>();
-  const auto n_blocks = n_vecs / spec.n_vectors;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
   const auto encoded_count =
       value_bit_width == 0
           ? 1
@@ -57,12 +72,18 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
     FLS_DC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
     FLS_DC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
     FLS_DC(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
-    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
-    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
+           BitUnpackerStatelessBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
+           BitUnpackerStatelessBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4,
+           BitUnpackerStatelessBranchless, 1, 4)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
+           BitUnpackerStatefulBranchless, 1, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
+           BitUnpackerStatefulBranchless, 4, 1)
+    FLS_DC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4,
+           BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -76,8 +97,8 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
   case CASE: {                                                                 \
     kernels::device::fls::query_column_contains_zero<                          \
         T, N_VEC, N_VAL, UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>>            \
-        <<<n_blocks, n_threads>>>(device_out.get(), device_in.get(),           \
-                                  value_bit_width);                            \
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(                   \
+            device_out.get(), device_in.get(), value_bit_width);               \
   } break;
 
 template <typename T>
@@ -92,9 +113,7 @@ void query_column_contains_zero<uint32_t>(
     uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width) {
   using T = uint32_t;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_threads = utils::get_n_lanes<T>();
-  const auto n_blocks = n_vecs / spec.n_vectors;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
 
   const auto encoded_count =
       value_bit_width == 0
@@ -111,12 +130,18 @@ void query_column_contains_zero<uint32_t>(
     FLS_QCCZ(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
     FLS_QCCZ(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
     FLS_QCCZ(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
-    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
-    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
-    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
-    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
-    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
+             BitUnpackerStatelessBranchless, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
+             BitUnpackerStatelessBranchless, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATELESS_BRANCHLESS_1_4,
+             BitUnpackerStatelessBranchless, 1, 4)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
+             BitUnpackerStatefulBranchless, 1, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
+             BitUnpackerStatefulBranchless, 4, 1)
+    FLS_QCCZ(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4,
+             BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -135,7 +160,7 @@ void query_column_contains_zero<uint32_t>(
   case CASE: {                                                                 \
     kernels::device::fls::compute_column<                                      \
         T, N_VEC, N_VAL, UNPACKER_T<T, N_VEC, N_VAL, BPFunctor<T>>,            \
-        N_REPETITIONS><<<n_blocks, n_threads>>>(                               \
+        N_REPETITIONS><<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(     \
         device_out.get(), device_in.get(), value_bit_width, runtime_zero);     \
   } break;
 
@@ -150,9 +175,7 @@ void compute_column<uint32_t>(const runspec::KernelSpecification spec,
                               uint32_t *__restrict out, const size_t count,
                               const int32_t value_bit_width) {
   using T = uint32_t;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_threads = utils::get_n_lanes<T>();
-  const auto n_blocks = n_vecs / spec.n_vectors;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
 
   const auto encoded_count =
       value_bit_width == 0
@@ -171,12 +194,18 @@ void compute_column<uint32_t>(const runspec::KernelSpecification spec,
     FLS_CC(runspec::KernelOption::STATEFUL_1_1, BitUnpackerStateful, 1, 1)
     FLS_CC(runspec::KernelOption::STATEFUL_4_1, BitUnpackerStateful, 4, 1)
     FLS_CC(runspec::KernelOption::STATEFUL_1_4, BitUnpackerStateful, 1, 4)
-    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1, BitUnpackerStatelessBranchless, 1, 1)
-    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1, BitUnpackerStatelessBranchless, 4, 1)
-    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4, BitUnpackerStatelessBranchless, 1, 4)
-    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1, BitUnpackerStatefulBranchless, 1, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1, BitUnpackerStatefulBranchless, 4, 1)
-    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4, BitUnpackerStatefulBranchless, 1, 4)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_1,
+           BitUnpackerStatelessBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_4_1,
+           BitUnpackerStatelessBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATELESS_BRANCHLESS_1_4,
+           BitUnpackerStatelessBranchless, 1, 4)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_1,
+           BitUnpackerStatefulBranchless, 1, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_4_1,
+           BitUnpackerStatefulBranchless, 4, 1)
+    FLS_CC(runspec::KernelOption::STATEFUL_BRANCHLESS_1_4,
+           BitUnpackerStatefulBranchless, 1, 4)
   default: {
     throw std::invalid_argument("Did not find this spec");
   } break;
@@ -203,7 +232,8 @@ namespace gpualp {
         AlpUnpacker<T, N_VEC, N_VAL,                                           \
                     UNPACKER_T<T, N_VEC, N_VAL, ALPFunctor<T>>,                \
                     PATCHER_T<T, N_VEC, N_VAL>, AlpColumn<T>>,                 \
-        AlpColumn<T>><<<n_blocks, n_threads>>>(d_out.get(), device_column);    \
+        AlpColumn<T>><<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(      \
+        d_out.get(), device_column);                                           \
   } break;
 
 #define ALP_DCE(CASE, UNPACKER_T, PATCHER_T, N_VEC, N_VAL)                     \
@@ -215,7 +245,8 @@ namespace gpualp {
                     UNPACKER_T<T, N_VEC, N_VAL, ALPFunctor<T>>,                \
                     PATCHER_T<T, N_VEC, N_VAL>, AlpExtendedColumn<T>>,         \
         AlpExtendedColumn<T>>                                                  \
-        <<<n_blocks, n_threads>>>(d_out.get(), device_extended_column);        \
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(                   \
+            d_out.get(), device_extended_column);                              \
   } break;
 
 template <typename T>
@@ -223,9 +254,7 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
                               T *__restrict out,
                               const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_threads = utils::get_n_lanes<T>();
-  const auto n_blocks = n_vecs / spec.n_vectors;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
 
   GPUArray<T> d_out(count);
   constant_memory::load_alp_constants<T>();
@@ -259,8 +288,8 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
         AlpUnpacker<T, N_VEC, N_VAL,                                           \
                     UNPACKER_T<T, N_VEC, N_VAL, ALPFunctor<T>>,                \
                     PATCHER_T<T, N_VEC, N_VAL>, AlpColumn<T>>,                 \
-        AlpColumn<T>>                                                          \
-        <<<n_blocks, n_threads>>>(d_out.get(), device_column, magic_value);    \
+        AlpColumn<T>><<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(      \
+        d_out.get(), device_column, magic_value);                              \
   } break;
 
 #define ALP_QCCME(CASE, UNPACKER_T, PATCHER_T, N_VEC, N_VAL)                   \
@@ -271,8 +300,9 @@ void verify_decompress_column(const runspec::KernelSpecification spec,
         AlpUnpacker<T, N_VEC, N_VAL,                                           \
                     UNPACKER_T<T, N_VEC, N_VAL, ALPFunctor<T>>,                \
                     PATCHER_T<T, N_VEC, N_VAL>, AlpExtendedColumn<T>>,         \
-        AlpExtendedColumn<T>><<<n_blocks, n_threads>>>(                        \
-        d_out.get(), device_extended_column, magic_value);                     \
+        AlpExtendedColumn<T>>                                                  \
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(                   \
+            d_out.get(), device_extended_column, magic_value);                 \
   } break;
 
 template <typename T>
@@ -281,9 +311,7 @@ void query_column_contains_magic(const runspec::KernelSpecification spec,
                                  const alp::AlpCompressionData<T> *data,
                                  const T magic_value) {
   const auto count = data->size;
-  const auto n_vecs = utils::get_n_vecs_from_size(count);
-  const auto n_threads = utils::get_n_lanes<T>();
-  const auto n_blocks = n_vecs / spec.n_vectors;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
 
   GPUArray<T> d_out(1);
   constant_memory::load_alp_constants<T>();

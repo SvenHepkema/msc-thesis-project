@@ -3,6 +3,7 @@
 import os
 import sys
 
+import typing
 from collections import defaultdict
 import numpy as np
 import polars as pl
@@ -416,9 +417,9 @@ def measure_command(
     return create_df_from_measurements(metrics, merged_measurements)
 
 
-def write_results_to_stdout(command: str, df: pl.DataFrame) -> None:
-    print(command)
-    df.write_csv(sys.stdout)
+def write_results_to_sink(command: str, df: pl.DataFrame, sink: typing.TextIO) -> None:
+    print(command, file=sink)
+    df.write_csv(sink)
 
 
 def main(args):
@@ -443,12 +444,19 @@ def main(args):
     exec_properties = ExecutableProperties(args.command)
     df = apply_properties_to_df(exec_properties, df)
 
-    write_results_to_stdout(args.command, df)
+    write_results_to_sink(args.command, df, args.out)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="program")
 
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=argparse.FileType("w"), 
+        help="Out file",
+        default=sys.stdout,
+    )
     parser.add_argument(
         "-r",
         "--repeat",

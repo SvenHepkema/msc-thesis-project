@@ -77,6 +77,7 @@ class GraphConfiguration:
     y_axis_range: tuple[int | None, int | None]
     show_legend: bool
     legend_position: str
+    legend_font_size: int
     output_name: str | None
     title: str | None
     h_line: int | None
@@ -87,6 +88,7 @@ class GraphConfiguration:
         self.h_line = args.h_line
         self.show_legend = args.show_legend
         self.legend_position = args.legend_position
+        self.legend_font_size = args.legend_size
         self.output_name = args.output_file_path
         self.title = args.title
 
@@ -105,8 +107,11 @@ class GraphConfiguration:
         ax.set_ylim(self.y_axis_range)
 
         if self.show_legend:
-            ax.legend(scatterpoints=1, fontsize=12, loc=self.legend_position.replace("-", " "))
+            ax.legend(scatterpoints=1, fontsize=self.legend_font_size, loc=self.legend_position.replace("-", " "))
 
+    def apply_to_figure(self):
+        if self.title:
+            plt.suptitle(self.title, fontsize=25)
 
 
     def output_graph(self):
@@ -116,7 +121,7 @@ class GraphConfiguration:
         elif self.output_name[-4:] == "eps":
             plt.savefig(self.output_name, format="eps")
         else:
-            plt.savefig(self.output_name, dpi=1000, format="png", bbox_inches="tight")
+            plt.savefig(self.output_name, format="png", bbox_inches="tight")
 
 
 class ResultsFile:
@@ -124,8 +129,8 @@ class ResultsFile:
     command: str
     data: pl.DataFrame
 
-    def __init__(self, filename: str) -> None:
-        self.name = filename
+    def __init__(self, filename: str, split_character: str) -> None:
+        self.name = filename.split(split_character)[-1]
         with open(filename) as file:
             lines = [line for line in file]
             self.command = lines[0]
@@ -133,8 +138,8 @@ class ResultsFile:
             self.data = pl.read_csv(StringIO(csv))
 
 
-def load_files(file_names_arg: str) -> list[ResultsFile]:
-    return [ResultsFile(file_name) for file_name in file_names_arg.split(":")]
+def load_files(file_names_arg: str, split_character: str) -> list[ResultsFile]:
+    return [ResultsFile(file_name, split_character) for file_name in file_names_arg.split(":")]
 
 
 def parse_column_names(
@@ -198,7 +203,7 @@ def plot_scatter(
             x = dataset.data[x_axis_column]
             y = dataset.data[column]
 
-            if columns[0] == "execution_time":
+            if column == "execution_time":
                 y = [value / 1000 for value in y]
             ax.scatter(
                 x,
@@ -217,6 +222,8 @@ def plot_scatter(
     for ax in axes[n_cols:]:
         ax.axis("off")
 
+    config.apply_to_figure()
+
     config.output_graph()
 
 
@@ -233,7 +240,7 @@ PLOT_FUNCTION_MAPPING = {
 
 
 def main(args):
-    results = load_files(args.files)
+    results = load_files(args.files, args.file_name_split_character)
     assert len(results) > 0
 
     columns = parse_column_names(args.columns, results)
@@ -285,6 +292,20 @@ if __name__ == "__main__":
         choices=LEGEND_POSITIONS,
         default=LEGEND_POSITIONS[0],
         help="Defines the position of the legend",
+    )
+    parser.add_argument(
+        "-fnsc",
+        "--file-name-split-character",
+        type=str,
+        default='-',
+        help="Defines the character to split the filename on as legend label, taking the last substring as label",
+    )
+    parser.add_argument(
+        "-ls",
+        "--legend-size",
+        type=int,
+        default=10,
+        help="Defines the fontsize of the legend",
     )
     parser.add_argument(
         "-t",

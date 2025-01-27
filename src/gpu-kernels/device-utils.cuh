@@ -60,7 +60,7 @@ template <typename T, unsigned N_VALUES> struct MagicChecker {
     // This is a branch, as we do not want to write 0s, only emit a write
     // if we found a magic value
     if (!no_magic_found) {
-      *out = 1.0;
+      *out = static_cast<T>(1);
     }
   }
 };

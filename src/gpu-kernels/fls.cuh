@@ -412,15 +412,12 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
     for (int32_t i{0}; i < UNPACK_N_VALUES; i++) {
       const auto offset_second = BIT_COUNT - offset_first;
 
-      UINT_T values[UNPACK_N_VECTORS] = {0};
-
 #pragma unroll
       for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
         const auto v_in = in + v * compressed_vector_size;
-        values[v] |= (v_in[0] & (value_mask << offset_first)) >> offset_first;
-        values[v] |= (v_in[N_LANES] & (value_mask >> offset_second))
-                     << offset_second;
-        out[UNPACK_N_VALUES * v + i] = processor(values[v]);
+        out[UNPACK_N_VALUES * v + i] = processor(
+            ((v_in[0] >> offset_first) & value_mask) |
+            ((v_in[N_LANES] & (value_mask >> offset_second)) << offset_second));
       }
 
       in += (offset_second <= value_bit_width) * N_LANES;

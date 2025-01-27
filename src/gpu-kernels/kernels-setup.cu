@@ -120,7 +120,11 @@ void query_column_contains_zero<uint32_t>(
           ? 1
           : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
 
-  GPUArray<T> device_in(encoded_count, in);
+  // The branchless version always does 1 access too many for each lane
+  // That is why we allocate a little extra memory
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>();
+  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
   GPUArray<T> device_out(1);
 
   switch (spec.kernel) {
@@ -182,7 +186,11 @@ void compute_column<uint32_t>(const runspec::KernelSpecification spec,
           ? 1
           : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
 
-  GPUArray<T> device_in(encoded_count, in);
+  // The branchless version always does 1 access too many for each lane
+  // That is why we allocate a little extra memory
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>();
+  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
   GPUArray<T> device_out(1);
   uint32_t runtime_zero = 0;
 

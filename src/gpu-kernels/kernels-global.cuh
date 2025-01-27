@@ -99,7 +99,7 @@ __global__ void query_column_contains_zero(T *__restrict out,
   in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
 
   T registers[N_VALUES];
-  auto checker = MagicChecker<T, UNPACK_N_VALUES>(consts::as<T>::MAGIC_NUMBER);
+  auto checker = MagicChecker<T, N_VALUES>(consts::as<T>::MAGIC_NUMBER);
   UnpackerT unpacker(in, lane, value_bit_width, BPFunctor<T>());
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
@@ -124,7 +124,7 @@ __global__ void compute_column(T *__restrict out, const T *__restrict in,
   in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
 
   T registers[N_VALUES];
-  auto checker = MagicChecker<T, UNPACK_N_VALUES>(1);
+  auto checker = MagicChecker<T, N_VALUES>(1);
   UnpackerT unpacker(in, lane, value_bit_width, BPFunctor<T>());
 
   for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {

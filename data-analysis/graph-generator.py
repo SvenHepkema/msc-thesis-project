@@ -80,6 +80,7 @@ class GraphConfiguration:
     legend_font_size: int
     output_name: str | None
     title: str | None
+    show_subfigure_title: str | None
     h_line: int | None
 
     def __init__(self, args: argparse.Namespace) -> None:
@@ -91,30 +92,44 @@ class GraphConfiguration:
         self.legend_font_size = args.legend_size
         self.output_name = args.output_file_path
         self.title = args.title
+        self.show_subfigure_title = args.show_subfigure_title
 
-    def apply_to_ax(self, ax):
+    def apply_to_ax(self, ax) -> None:
         if self.h_line:
             ax.axhline(
                 y=self.h_line / 1000, color="r", linestyle="--", label="Baseline"
             )
 
-        #ax.set_xticks(range(0, 35, 5))  
-        #ax.set_xticks(range(32), minor=True)
-        #ax.tick_params(axis='x', which='minor', length=4, color='r', labelbottom=False)  # Minor ticks in red, no labels
 
-        ax.grid(which='both', linestyle='--', linewidth=0.1)
-        ax.set_xlim(self.x_axis_range)
+        ax.grid(which='major', linestyle='--', linewidth=0.1)
         ax.set_ylim(self.y_axis_range)
 
         if self.show_legend:
             ax.legend(scatterpoints=1, fontsize=self.legend_font_size, loc=self.legend_position.replace("-", " "))
 
-    def apply_to_figure(self):
+    def set_x_axis(self, ax, x_values:list[int], is_vbw: bool) -> None:
+        x_values.sort()
+
+        x_min = x_values[0]
+        x_max = x_values[-1]
+
+        if is_vbw:
+            ax.set_xticks(range(x_min, x_max + 1, 8))  
+        else:
+            ax.set_xticks(range(x_min, x_max + 1, 5))  
+
+        ax.set_xticks(range(x_min, x_max), minor=True)
+        ax.tick_params(axis='x', which='minor', length=4, labelbottom=False)  
+
+        ax.set_xlim((x_min , x_max ))
+        
+
+    def apply_to_figure(self) -> None:
         if self.title:
             plt.suptitle(self.title, fontsize=25)
 
 
-    def output_graph(self):
+    def output_graph(self) -> None:
         plt.tight_layout()
         if self.output_name is None:
             plt.show()
@@ -216,8 +231,10 @@ def plot_scatter(
 
         ax.set_xlabel(pretty_x_axis_name)
         ax.set_ylabel(COLUMN_ALIASES_FOR_AXIS.get(column, column))
-        ax.set_title(COLUMN_ALIASES_FOR_TITLE[column], fontsize=20)
+        if config.show_subfigure_title:
+            ax.set_title(COLUMN_ALIASES_FOR_TITLE[column], fontsize=20)
         config.apply_to_ax(ax)
+        config.set_x_axis(ax, dataset.data[x_axis_column], x_axis_column == "vbw")
 
     for ax in axes[n_cols:]:
         ax.axis("off")
@@ -306,6 +323,14 @@ if __name__ == "__main__":
         type=int,
         default=10,
         help="Defines the fontsize of the legend",
+    )
+    parser.add_argument(
+        "-sst",
+        "--show-subfigure-title",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Show subfigure title",
     )
     parser.add_argument(
         "-t",

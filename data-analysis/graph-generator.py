@@ -7,11 +7,12 @@ import argparse
 import logging
 import enum
 import math
-from typing import NewType
+from typing import Any, Callable, NewType
 from io import StringIO
 
 import polars as pl
 import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
 
 
 class GraphTypes(enum.Enum):
@@ -48,25 +49,85 @@ LEGEND_POSITIONS = [
     "center",
 ]
 
-COLUMN_ALIASES_FOR_AXIS = {
-    "execution_time": "Median execution time (us)",
-    "ipc": "Instructions executed per cycle",
-    "inst_executed_global_loads": "Global loads executed",
-    "dram_read_bytes": "Total bytes read from DRAM",
-    "dram_write_bytes": "Total bytes written to DRAM",
-    "global_hit_rate": "L1 Cache global load hit rate",
-    "eligible_warps_per_cycle": "Average number of eligible warps / active cycle",
-}
 
-COLUMN_ALIASES_FOR_TITLE  = {
-    "execution_time": "Execution time",
-    "ipc": "Instructions executed per cycle",
-    "inst_executed_global_loads": "Global loads executed",
-    "dram_read_bytes": "Total bytes read from DRAM",
-    "dram_write_bytes": "Total bytes written to DRAM",
-    "global_hit_rate": "L1 Cache global load hit rate",
-    "eligible_warps_per_cycle": "Average number of eligible warps / active cycle",
-}
+class Metric:
+    name: str
+    column_alias: str
+    title_alias: str
+
+    y_max: int | None
+    mutator: Callable[[Any], Any]
+    formatter: Callable[[plt.Axes], None]
+
+    def __init__(
+        self,
+        name: str,
+        column_alias: str,
+        title_alias: str | None = None,
+        y_max: int | None = None,
+        is_percentage: bool = False,
+        mutator: Callable[[Any], Any] | None = None,
+        formatter: Callable[[plt.Axes], None] | None = None,
+    ) -> None:
+        self.name = name
+        self.column_alias = column_alias 
+        self.title_alias = title_alias if title_alias else column_alias
+
+        if is_percentage:
+            y_max = 100
+            formatter = lambda ax: ax.yaxis.set_major_formatter(
+                PercentFormatter(xmax=100)
+            )
+
+        self.y_max = y_max
+        self.mutator = mutator if mutator else lambda x: x
+        self.formatter = formatter if formatter else lambda _: None
+
+
+BYTES_PER_KILOBYTE = 1024
+CONVERT_BYTES_TO_KILOBYTES = lambda x: x / BYTES_PER_KILOBYTE
+
+NVPROF_METRICS = [
+    Metric(
+        "execution_time",
+        "Median execution time (us)",
+        title_alias="Execution time",
+        mutator=lambda x: x / 1000,
+    ),
+    Metric("ipc", "Instructions executed per cycle", y_max=4),
+    Metric("inst_executed_global_loads", "Global loads executed"),
+    Metric(
+        "dram_read_bytes",
+        "Total kilobytes read from DRAM",
+        mutator=CONVERT_BYTES_TO_KILOBYTES,
+    ),
+    Metric(
+        "dram_write_bytes",
+        "Total kilobytes written to DRAM",
+        mutator=CONVERT_BYTES_TO_KILOBYTES,
+    ),
+    Metric(
+        "global_hit_rate",
+        "L1 Cache global load hit rate",
+        is_percentage=True,
+    ),
+    Metric(
+        "l2_tex_hit_rate",
+        "L2 Cache all request hit rate",
+        is_percentage=True,
+    ),
+    Metric(
+        "stall_memory_dependency", "% Stalls due to memory dependency", is_percentage=True
+    ),
+    Metric(
+        "stall_memory_throttle", "% Stalls due to memory throttle", is_percentage=True
+    ),
+    Metric("inst_issued", "Instructions issued"),
+    Metric(
+        "eligible_warps_per_cycle", "Average number of eligible warps / active cycle"
+    ),
+]
+NVPROF_METRICS_MAPPING = {metric.name: metric for metric in NVPROF_METRICS}
 
 
 ColumnName = NewType("ColumnName", str)
@@ -94,40 +155,45 @@ class GraphConfiguration:
         self.title = args.title
         self.show_subfigure_title = args.show_subfigure_title
 
-    def apply_to_ax(self, ax) -> None:
+    def apply_to_ax(self, ax: plt.Axes, metric: Metric) -> None:
         if self.h_line:
             ax.axhline(
                 y=self.h_line / 1000, color="r", linestyle="--", label="Baseline"
             )
 
+        ax.grid(which="major", linestyle="--", linewidth=0.1)
 
-        ax.grid(which='major', linestyle='--', linewidth=0.1)
-        ax.set_ylim(self.y_axis_range)
+        y_axis_range = list(self.y_axis_range)
+        if metric.y_max:
+            y_axis_range[1] = metric.y_max
+        ax.set_ylim(y_axis_range)
 
         if self.show_legend:
-            ax.legend(scatterpoints=1, fontsize=self.legend_font_size, loc=self.legend_position.replace("-", " "))
+            ax.legend(
+                scatterpoints=1,
+                fontsize=self.legend_font_size,
+                loc=self.legend_position.replace("-", " "),
+            )
 
-    def set_x_axis(self, ax, x_values:list[int], is_vbw: bool) -> None:
+    def set_x_axis(self, ax, x_values: list[int], is_vbw: bool) -> None:
         x_values.sort()
 
         x_min = x_values[0]
         x_max = x_values[-1]
 
         if is_vbw:
-            ax.set_xticks(range(x_min, x_max + 1, 8))  
+            ax.set_xticks(range(x_min, x_max + 1, 8))
         else:
-            ax.set_xticks(range(x_min, x_max + 1, 5))  
+            ax.set_xticks(range(x_min, x_max + 1, 5))
 
         ax.set_xticks(range(x_min, x_max), minor=True)
-        ax.tick_params(axis='x', which='minor', length=4, labelbottom=False)  
+        ax.tick_params(axis="x", which="minor", length=4, labelbottom=False)
 
-        ax.set_xlim((x_min , x_max ))
-        
+        ax.set_xlim((x_min, x_max))
 
     def apply_to_figure(self) -> None:
         if self.title:
             plt.suptitle(self.title, fontsize=25)
-
 
     def output_graph(self) -> None:
         plt.tight_layout()
@@ -154,7 +220,10 @@ class ResultsFile:
 
 
 def load_files(file_names_arg: str, split_character: str) -> list[ResultsFile]:
-    return [ResultsFile(file_name, split_character) for file_name in file_names_arg.split(":")]
+    return [
+        ResultsFile(file_name, split_character)
+        for file_name in file_names_arg.split(":")
+    ]
 
 
 def parse_column_names(
@@ -193,47 +262,47 @@ def get_default_x_axis_column(df: pl.DataFrame) -> tuple[str, str]:
 
 
 def plot_scatter(
-    datasets: list[ResultsFile], columns: list[ColumnName], config: GraphConfiguration
+    datasets: list[ResultsFile], metrics: list[Metric], config: GraphConfiguration
 ):
     plt.style.use("classic")
 
-    n_cols = len(columns)
-    n_cols_in_fig = math.ceil(n_cols ** 0.5)  
-    n_rows_in_fig = math.ceil(n_cols / n_cols_in_fig)  
+    n_cols = len(metrics)
+    n_cols_in_fig = math.ceil(n_cols**0.5)
+    n_rows_in_fig = math.ceil(n_cols / n_cols_in_fig)
 
     figsize = (6 * n_cols_in_fig, 6 * n_rows_in_fig)
     fig, axes = plt.subplots(n_rows_in_fig, n_cols_in_fig, figsize=figsize)
 
     if n_cols > 1:
-        axes = axes.flatten()  
+        axes = axes.flatten()
     else:
         axes = [axes]
 
     x_axis_column, pretty_x_axis_name = get_default_x_axis_column(datasets[0].data)
 
-    for i, column in enumerate(columns):
+    for i, metric in enumerate(metrics):
         ax = axes[i]
 
         for i, dataset in enumerate(datasets):
             x = dataset.data[x_axis_column]
-            y = dataset.data[column]
+            y = dataset.data[metric.name]
 
-            if column == "execution_time":
-                y = [value / 1000 for value in y]
+            y = list(map(metric.mutator, y))
             ax.scatter(
                 x,
                 y,
-                s=24,
+                s=26,
                 linewidths=0,
                 c=COLOR_SET[i],
                 label=dataset.name,
             )
 
         ax.set_xlabel(pretty_x_axis_name)
-        ax.set_ylabel(COLUMN_ALIASES_FOR_AXIS.get(column, column))
+        ax.set_ylabel(metric.column_alias)
+        metric.formatter(ax)
         if config.show_subfigure_title:
-            ax.set_title(COLUMN_ALIASES_FOR_TITLE[column], fontsize=20)
-        config.apply_to_ax(ax)
+            ax.set_title(metric.title_alias, fontsize=20)
+        config.apply_to_ax(ax, metric)
         config.set_x_axis(ax, dataset.data[x_axis_column], x_axis_column == "vbw")
 
     for ax in axes[n_cols:]:
@@ -245,7 +314,7 @@ def plot_scatter(
 
 
 def plot_bar(
-    data: list[ResultsFile], columns: list[ColumnName], config: GraphConfiguration
+    data: list[ResultsFile], metrics: list[Metric], config: GraphConfiguration
 ):
     pass
 
@@ -263,9 +332,11 @@ def main(args):
     columns = parse_column_names(args.columns, results)
     assert len(columns) > 0
 
+    metrics = [NVPROF_METRICS_MAPPING[column] for column in columns]
+
     config = GraphConfiguration(args)
 
-    PLOT_FUNCTION_MAPPING[args.plot](results, columns, config)
+    PLOT_FUNCTION_MAPPING[args.plot](results, metrics, config)
 
 
 if __name__ == "__main__":
@@ -314,7 +385,7 @@ if __name__ == "__main__":
         "-fnsc",
         "--file-name-split-character",
         type=str,
-        default='-',
+        default="-",
         help="Defines the character to split the filename on as legend label, taking the last substring as label",
     )
     parser.add_argument(

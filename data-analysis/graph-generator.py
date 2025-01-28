@@ -7,7 +7,7 @@ import argparse
 import logging
 import enum
 import math
-from typing import Any, Callable, NewType
+from typing import Any, Callable, NewType, TextIO
 from io import StringIO
 
 import polars as pl
@@ -19,6 +19,8 @@ class GraphTypes(enum.Enum):
     SCATTER = 1
     BAR = 2
 
+
+OUTPUT_FILE_SECTION_BOUNDARY = "=DATA="
 
 GRAPH_TYPES_CLI_OPTIONS = {
     "scatter": GraphTypes.SCATTER,
@@ -70,7 +72,7 @@ class Metric:
         formatter: Callable[[plt.Axes], None] | None = None,
     ) -> None:
         self.name = name
-        self.column_alias = column_alias 
+        self.column_alias = column_alias
         self.title_alias = title_alias if title_alias else column_alias
 
         if is_percentage:
@@ -117,7 +119,9 @@ NVPROF_METRICS = [
         is_percentage=True,
     ),
     Metric(
-        "stall_memory_dependency", "% Stalls due to memory dependency", is_percentage=True
+        "stall_memory_dependency",
+        "% Stalls due to memory dependency",
+        is_percentage=True,
     ),
     Metric(
         "stall_memory_throttle", "% Stalls due to memory throttle", is_percentage=True
@@ -205,6 +209,24 @@ class GraphConfiguration:
             plt.savefig(self.output_name, format="png", bbox_inches="tight")
 
 
+def read_file_format(text: str) -> tuple[str, pl.DataFrame]:
+    runs_output, csv = text.split(OUTPUT_FILE_SECTION_BOUNDARY)
+    runs_output = runs_output.split("\n")
+
+    command = runs_output[0]
+
+    for line in runs_output[1:]:
+        if len(line.strip()) > 0:
+            logging.critical("")
+            logging.critical("")
+            logging.critical(f"Reading failed run ({command}): {line}")
+            logging.critical("")
+            logging.critical("")
+
+    data = pl.read_csv(StringIO(csv.strip()))
+    return command, data
+
+
 class ResultsFile:
     name: str
     command: str
@@ -213,10 +235,8 @@ class ResultsFile:
     def __init__(self, filename: str, split_character: str) -> None:
         self.name = filename.split(split_character)[-1]
         with open(filename) as file:
-            lines = [line for line in file]
-            self.command = lines[0]
-            csv = "".join(lines[1:])
-            self.data = pl.read_csv(StringIO(csv))
+            text = "".join([line for line in file])
+            self.command, self.data = read_file_format(text)
 
 
 def load_files(file_names_arg: str, split_character: str) -> list[ResultsFile]:

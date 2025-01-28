@@ -14,9 +14,12 @@ import subprocess
 from typing import Any, NewType
 
 NanoSeconds = NewType("NanoSeconds", int)
+ReturnCode = NewType("StatusCode", int)
 Metrics = list[str] | None
 MeasurementsAllRuns = list[list[list[int | float]]]
 MergedMeasurementsPerKernel = list[list[int | float]]
+
+OUTPUT_FILE_SECTION_BOUNDARY = "=DATA="
 
 MERGE_STRATEGIES = [
     "median",
@@ -277,11 +280,9 @@ class NvprofCommand:
 
         self.command += command
 
-    def __call__(self) -> list[NvprofLine]:
+    def __call__(self) -> tuple[ReturnCode, list[NvprofLine]]:
         logging.info(f"Executing: {self.command}")
-        result = subprocess.run(
-            self.command, stderr=subprocess.PIPE, shell=True
-        )
+        result = subprocess.run(self.command, stderr=subprocess.PIPE, shell=True)
 
         if result.returncode != 0:
             logging.critical("")
@@ -298,7 +299,10 @@ class NvprofCommand:
 
         is_execution_times = lines[0][0].isnumeric()
 
-        return [NvprofLine(line, is_execution_times) for line in lines]
+        return (
+            ReturnCode(result.returncode),
+            [NvprofLine(line, is_execution_times) for line in lines],
+        )
 
 
 def merge_metrics_values(values: list[Any], merge_strategy: str) -> Any:
@@ -320,10 +324,14 @@ def merge_metrics_values(values: list[Any], merge_strategy: str) -> Any:
     return merged_value
 
 
-def collect_measurements(command: NvprofCommand, repeat: int) -> MeasurementsAllRuns:
+def collect_measurements(
+    command: NvprofCommand, repeat: int
+) -> tuple[list[ReturnCode], MeasurementsAllRuns]:
     measurements_all_runs: MeasurementsAllRuns = []
+    return_codes: list[ReturnCode] = []
     for _ in range(repeat):
-        nvprof_output = command()
+        return_code, nvprof_output = command()
+        return_codes.append(return_code)
 
         measurements_values_run = []
         for nvprof_line in nvprof_output:
@@ -331,7 +339,7 @@ def collect_measurements(command: NvprofCommand, repeat: int) -> MeasurementsAll
 
         measurements_all_runs.append(measurements_values_run)
 
-    return measurements_all_runs
+    return (return_codes, measurements_all_runs)
 
 
 def merge_measurements(
@@ -411,14 +419,22 @@ def apply_properties_to_df(
 
 def measure_command(
     nvprof_command: NvprofCommand, metrics: Metrics, repeat: int, merge_strategy: str
-) -> pl.DataFrame:
-    all_measurements = collect_measurements(nvprof_command, repeat)
+) -> tuple[ReturnCode, pl.DataFrame]:
+    return_codes, all_measurements = collect_measurements(nvprof_command, repeat)
     merged_measurements = merge_measurements(all_measurements, metrics, merge_strategy)
-    return create_df_from_measurements(metrics, merged_measurements)
+    return (return_codes, create_df_from_measurements(metrics, merged_measurements))
 
 
-def write_results_to_sink(command: str, df: pl.DataFrame, sink: typing.TextIO) -> None:
+def write_results_to_sink(
+    command: str, return_codes: list[ReturnCode], df: pl.DataFrame, sink: typing.TextIO
+) -> None:
     print(command, file=sink)
+
+    for return_code in return_codes:
+        if return_code is not 0:
+            print(f"Failed run with return code: {return_code}", file=sink)
+
+    print(OUTPUT_FILE_SECTION_BOUNDARY, file=sink)
     df.write_csv(sink)
 
 
@@ -432,19 +448,22 @@ def main(args):
         exit("nvprof needs root access ")
 
     nvprof_command = NvprofCommand(args.command, metrics, args.nvprof_path)
-    df = measure_command(nvprof_command, metrics, args.repeat, args.merge_strategy)
+    return_codes, df = measure_command(
+        nvprof_command, metrics, args.repeat, args.merge_strategy
+    )
 
     if args.timing_runs is not None and metrics is not None:
         timing_command = NvprofCommand(args.command, None, args.nvprof_path)
-        timing_df = measure_command(
+        return_codes_timing_runs, timing_df = measure_command(
             timing_command, None, args.timing_runs, args.merge_strategy
         )
+        return_codes += return_codes_timing_runs
         df = df.with_columns(timing_df["execution_time"])
 
     exec_properties = ExecutableProperties(args.command)
     df = apply_properties_to_df(exec_properties, df)
 
-    write_results_to_sink(args.command, df, args.out)
+    write_results_to_sink(args.command, return_codes, df, args.out)
 
 
 if __name__ == "__main__":
@@ -453,7 +472,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--out",
-        type=argparse.FileType("w"), 
+        type=argparse.FileType("w"),
         help="Out file",
         default=sys.stdout,
     )

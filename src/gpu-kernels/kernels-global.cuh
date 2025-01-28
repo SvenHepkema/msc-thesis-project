@@ -88,7 +88,7 @@ __global__ void decompress_column(T *__restrict out, const T *__restrict in,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
-__global__ void query_column_contains_zero(T *__restrict out,
+__global__ void query_column(T *__restrict out,
                                            const T *__restrict in,
                                            const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
@@ -111,7 +111,7 @@ __global__ void query_column_contains_zero(T *__restrict out,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
-          typename UnpackerT, int N_REPETITIONS>
+          typename UnpackerT, int N_REPETITIONS=10>
 __global__ void compute_column(T *__restrict out, const T *__restrict in,
                                const vbw_t value_bit_width,
                                const T runtime_zero) {
@@ -185,7 +185,7 @@ public:
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT, typename ColumnT>
-__global__ void query_column_contains_magic(T *out, ColumnT column,
+__global__ void query_column(T *out, ColumnT column,
                                             const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();

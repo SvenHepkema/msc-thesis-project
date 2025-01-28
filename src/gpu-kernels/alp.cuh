@@ -395,7 +395,7 @@ public:
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchPositionALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
@@ -489,7 +489,7 @@ public:
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchAllLessBranchesALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;
@@ -549,7 +549,7 @@ public:
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS>
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchAllBranchlessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
   uint16_t count;

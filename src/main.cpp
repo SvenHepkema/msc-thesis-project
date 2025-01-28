@@ -51,16 +51,21 @@ parse_data_parameters(std::string input) {
 }
 
 static CLIArgs parse_cli_args(int argc, char **argv) {
-  if (argc != 8) {
+  if (argc != 11) {
     throw std::invalid_argument(
         "Not the required amount of arguments.\n"
-        "executable <function_name> <kernel> <datatype_width> <dataset_name> "
-        "<(none|ec|vbw)(-d?)(-d?)> <n_vecs> <print_debug>");
+        "executable <function_name> <unpacker> <patcher> <unpack_n_vecs> "
+        "<unpack_n_vals>"
+        " <datatype_width> <dataset_name> <(none|ec|vbw)(-d?)(-d?)>"
+        " <n_vecs> <print_debug>");
   }
   int32_t argcounter = 0;
 
   std::string function_name = argv[++argcounter];
-  std::string kernelspec = argv[++argcounter];
+  std::string unpacker = argv[++argcounter];
+  std::string patcher = argv[++argcounter];
+  unsigned unpack_n_vecs = static_cast<unsigned>(std::atoi(argv[++argcounter]));
+  unsigned unpack_n_vals = static_cast<unsigned>(std::atoi(argv[++argcounter]));
   int32_t datatype_width = std::atoi(argv[++argcounter]);
   std::string dataset_name = argv[++argcounter];
   auto [data_params_type, data_params] =
@@ -73,7 +78,12 @@ static CLIArgs parse_cli_args(int argc, char **argv) {
   return CLIArgs{datatype_width,
                  runspec::RunSpecification{
                      function_name,
-                     runspec::kernel_options.at(kernelspec),
+                     runspec::KernelSpecification{
+                         runspec::unpacker_options.at(unpacker),
+                         runspec::patcher_options.at(patcher),
+                         unpack_n_vecs,
+                         unpack_n_vals,
+                     },
                      runspec::DataSpecification{
                          count,
                          data_params_type,
@@ -150,7 +160,7 @@ int main(int argc, char **argv) {
     }
     }
   } else if (functions::Alp<float>::functions.find(args.runspec.function) !=
-      functions::Alp<float>::functions.end()) {
+             functions::Alp<float>::functions.end()) {
     switch (args.datatype_width) {
     case 64: {
       return run_kernel<double>(args);

@@ -240,7 +240,7 @@ class NvprofLine:
             self.values = [parse_execution_time_value(line.split()[1])]
         else:
             self.values = []
-            for value in line.split()[6:]:
+            for value in line.split()[9:]:
                 parsed_value = parse_metrics_value(value)
                 if parsed_value is not None:
                     self.values.append(parsed_value)

@@ -10,45 +10,53 @@
 
 namespace runspec {
 
-// The divider is used to do some logic
-enum KernelOption {
-	CPU,
-  STATELESS_1_1,
-  STATELESS_4_1,
-  STATELESS_1_4,
-  STATEFUL_1_1,
-  STATEFUL_4_1,
-  STATEFUL_1_4,
-  STATELESS_BRANCHLESS_1_1,
-  STATELESS_BRANCHLESS_4_1,
-  STATELESS_BRANCHLESS_1_4,
-  STATEFUL_BRANCHLESS_1_1,
-  STATEFUL_BRANCHLESS_4_1,
-  STATEFUL_BRANCHLESS_1_4,
+enum UnpackerOption {
+  CPU,
+  STATELESS,
+  STATEFUL,
+  STATELESS_BRANCHLESS,
+  STATEFUL_BRANCHLESS,
+};
+
+enum PatcherOption {
+  NO_PATCHER,
+	STATELESS_P,
+	STATELESS_WITH_SCANNER_P,
+	STATEFUL_P,
+  NAIVE,
+  NAIVE_BRANCHLESS,
+  PREFETCH_POSITION,
+  PREFETCH_ALL,
+  PREFETCH_ALL_BRANCHLESS,
 };
 
 struct KernelSpecification {
-  const KernelOption kernel;
-
-  const unsigned n_vectors;
-  const unsigned n_values;
+  const UnpackerOption unpacker;
+  const PatcherOption patcher;
+  const unsigned n_vecs;
+  const unsigned n_vals;
 };
 
-static inline const std::unordered_map<std::string, KernelSpecification>
-    kernel_options{
-        {"cpu", KernelSpecification{CPU, 1, 1}},
-        {"stateless_1_1", KernelSpecification{STATELESS_1_1, 1, 1}},
-        {"stateless_4_1", KernelSpecification{STATELESS_4_1, 4, 1}},
-        {"stateless_1_4", KernelSpecification{STATELESS_1_4, 1, 4}},
-        {"stateful_1_1", KernelSpecification{STATEFUL_1_1, 1, 1}},
-        {"stateful_4_1", KernelSpecification{STATEFUL_4_1, 4, 1}},
-        {"stateful_1_4", KernelSpecification{STATEFUL_1_4, 1, 4}},
-        {"stateless_branchless_1_1", KernelSpecification{STATELESS_BRANCHLESS_1_1, 1, 1}},
-        {"stateless_branchless_4_1", KernelSpecification{STATELESS_BRANCHLESS_4_1, 4, 1}},
-        {"stateless_branchless_1_4", KernelSpecification{STATELESS_BRANCHLESS_1_4, 1, 4}},
-        {"stateful_branchless_1_1", KernelSpecification{STATEFUL_BRANCHLESS_1_1, 1, 1}},
-        {"stateful_branchless_4_1", KernelSpecification{STATEFUL_BRANCHLESS_4_1, 4, 1}},
-        {"stateful_branchless_1_4", KernelSpecification{STATEFUL_BRANCHLESS_1_4, 1, 4}},
+static inline const std::unordered_map<std::string, UnpackerOption>
+    unpacker_options{
+        {"cpu", CPU},
+        {"stateless", STATELESS},
+        {"stateful", STATEFUL},
+        {"stateless_branchless", STATELESS_BRANCHLESS},
+        {"stateful_branchless", STATEFUL_BRANCHLESS},
+    };
+
+static inline const std::unordered_map<std::string, PatcherOption>
+    patcher_options{
+        {"none", NO_PATCHER},
+        {"stateless", STATELESS_P},
+        {"stateless_with_scanner", STATELESS_WITH_SCANNER_P},
+        {"stateful", STATEFUL_P},
+        {"naive", NAIVE},
+        {"naive_branchless", NAIVE_BRANCHLESS},
+        {"prefetch_position", PREFETCH_POSITION},
+        {"prefetch_all", PREFETCH_ALL},
+        {"prefetch_all_branchless", PREFETCH_ALL_BRANCHLESS},
     };
 
 enum DataGenerationParametersType {

@@ -132,11 +132,14 @@ public:
   }
 };
 
+
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename UnpackerT, typename PatcherT, typename ColumnT>
 struct AlpUnpacker {
   UnpackerT unpacker;
   PatcherT patcher;
+
+	int start_index = 0;
 
   __device__ __forceinline__ AlpUnpacker(const ColumnT column,
                                          const vi_t vector_index,
@@ -152,6 +155,7 @@ struct AlpUnpacker {
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
     unpacker.unpack_next_into(out);
     patcher.patch_if_needed(out);
+		++start_index;
   }
 };
 

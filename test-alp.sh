@@ -10,5 +10,3 @@ VECTOR_COUNT=256
 LOG_FILE=/tmp/log
 parallel --progress --joblog $LOG_FILE ./bin/executable {3} {1} {6} {4} {5} {2} random vbw-0-16 $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY ::: $EXPERIMENTS_TO_VERIFY ::: $UNPACK_N_VECTORS ::: $UNPACK_N_VALUES ::: $PATCHERS_TO_VERIFY 
 ./print-joblog.sh
-parallel --progress --joblog $LOG_FILE ./bin/executable {3} {1} {6} {4} {5} {2} random ec-0-2 $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY ::: $EXPERIMENTS_TO_VERIFY ::: $UNPACK_N_VECTORS ::: $UNPACK_N_VALUES ::: $PATCHERS_TO_VERIFY 
-./print-joblog.sh

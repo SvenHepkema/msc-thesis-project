@@ -252,6 +252,15 @@ void fill_array_with_random_data(T *array, const size_t count,
 }
 
 template <typename T>
+std::vector<T> generate_indices() {
+  std::vector<T> indices(consts::VALUES_PER_VECTOR);
+  for (T i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
+    indices[i] = i;
+  }
+	return indices;
+}
+
+template <typename T>
 alp::AlpCompressionData<T> *generate_alp_datastructure(
     const size_t count, const int32_t exceptions_per_vec = -1,
     const int32_t value_bit_width = -1, const unsigned repeat = 1) {
@@ -300,13 +309,10 @@ alp::AlpCompressionData<T> *generate_alp_datastructure(
   fill_array_with_random_bytes(data->exceptions.exceptions, count);
 
   // Create a vector with all indices
-  uint16_t *positions = data->exceptions.positions;
-  std::vector<uint16_t> indices(consts::VALUES_PER_VECTOR);
-  for (uint16_t i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
-    indices[i] = i;
-  }
+  auto indices = generate_indices<uint16_t>();
 
   // Shuffle them and copy to the positions array
+  uint16_t *positions = data->exceptions.positions;
   std::random_device random_device;
   auto rng = std::default_random_engine(random_device());
   for (size_t i{0}; i < n_vecs; ++i) {
@@ -317,6 +323,7 @@ alp::AlpCompressionData<T> *generate_alp_datastructure(
     // See modify_alp_exception_count
     std::memcpy(positions, indices.data(),
                 sizeof(uint16_t) * consts::VALUES_PER_VECTOR);
+    std::sort(positions, positions + data->exceptions.counts[i]);
     positions += consts::VALUES_PER_VECTOR;
   }
 
@@ -328,6 +335,16 @@ alp::AlpCompressionData<T> *
 modify_alp_exception_count(const size_t count, const int32_t exceptions_per_vec,
                            alp::AlpCompressionData<T> *data) {
   const size_t n_vecs = utils::get_n_vecs_from_size(count);
+
+  uint16_t *positions = data->exceptions.positions;
+  std::random_device random_device;
+  auto rng = std::default_random_engine(random_device());
+  for (size_t i{0}; i < n_vecs; ++i) {
+    std::shuffle(positions, positions + data->exceptions.counts[i], rng);
+    std::sort(positions, positions + exceptions_per_vec);
+    positions += consts::VALUES_PER_VECTOR;
+  }
+
   fill_array_with_constant<uint16_t>(data->exceptions.counts, n_vecs,
                                      static_cast<uint16_t>(exceptions_per_vec));
 

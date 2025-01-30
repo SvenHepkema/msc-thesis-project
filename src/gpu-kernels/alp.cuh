@@ -310,7 +310,7 @@ public:
 #pragma unroll
       for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
         if (count[v] > 0 && current_position == *(positions[v])) {
-          out[v* UNPACK_N_VALUES + w] = *(exceptions[v]);
+          out[v * UNPACK_N_VALUES + w] = *(exceptions[v]);
           ++(positions[v]);
           ++(exceptions[v]);
           --(count[v]);
@@ -370,13 +370,17 @@ public:
 
   void __device__ __forceinline__ patch_if_needed(T *out) override {
 #pragma unroll
-    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      // It is possible to easily prefetch *positions[v] here
-      bool comp = (count[v] > 0) && (current_position == (*positions[v]));
-      overwrite_if_true<T>(&out[v], exceptions[v], comp);
-      positions[v] += comp;
-      exceptions[v] += comp;
-      count[v] -= comp;
+    for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+        // It is possible to easily prefetch *positions[v] here
+        bool comp = (count[v] > 0) && (current_position == (*positions[v]));
+        overwrite_if_true<T>(&out[v * UNPACK_N_VALUES + w], exceptions[v],
+                             comp);
+        positions[v] += comp;
+        exceptions[v] += comp;
+        count[v] -= comp;
+      }
       current_position += utils::get_n_lanes<T>();
     }
   }

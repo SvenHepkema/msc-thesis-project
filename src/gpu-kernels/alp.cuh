@@ -103,25 +103,32 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 }
 } // namespace constant_memory
 
-template <typename T> struct ALPFunctor {
+template <typename T, unsigned UNPACK_N_VECTORS> struct ALPFunctor {
 private:
   using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
-  UINT_T base;
-  INT_T factor;
-  T frac10;
+  UINT_T base[UNPACK_N_VECTORS];
+  INT_T factor[UNPACK_N_VECTORS];
+  T frac10[UNPACK_N_VECTORS];
 
 public:
-  __device__ __forceinline__ ALPFunctor(const UINT_T base,
-                                        const uint8_t factor_index,
-                                        const uint8_t frac10_index)
-      : base(base),
-        factor(constant_memory::get_fact_arr<INT_T>()[factor_index]),
-        frac10(constant_memory::get_frac_arr<T>()[frac10_index]) {}
+  __device__ __forceinline__ ALPFunctor(const UINT_T *bases,
+                                        const uint8_t *factor_indices,
+                                        const uint8_t *frac10_indices) {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      base[v] = bases[v];
+      factor[v] = constant_memory::get_fact_arr<INT_T>()[factor_indices[v]];
+      frac10[v] = constant_memory::get_frac_arr<T>()[frac10_indices[v]];
+    }
+  }
 
-  T __device__ __forceinline__ operator()(UINT_T value) const {
-    return static_cast<T>(static_cast<INT_T>((value + base) * factor)) * frac10;
+  T __device__ __forceinline__ operator()(const UINT_T value,
+                                          const vi_t vector_index) const {
+    return static_cast<T>(static_cast<INT_T>((value + base[vector_index]) *
+                                             factor[vector_index])) *
+           frac10[vector_index];
   }
 };
 
@@ -134,12 +141,12 @@ struct AlpUnpacker {
   __device__ __forceinline__ AlpUnpacker(const ColumnT column,
                                          const vi_t vector_index,
                                          const lane_t lane)
-      : unpacker(UnpackerT(column.ffor_array +
-                               consts::VALUES_PER_VECTOR * vector_index,
-                           lane, column.bit_widths[vector_index],
-                           ALPFunctor<T>(column.ffor_bases[vector_index],
-                                         column.factors[vector_index],
-                                         column.exponents[vector_index]))),
+      : unpacker(UnpackerT(
+            column.ffor_array + consts::VALUES_PER_VECTOR * vector_index, lane,
+            column.bit_widths[vector_index],
+            ALPFunctor<T, UNPACK_N_VECTORS>(column.ffor_bases + vector_index,
+                                            column.factors + vector_index,
+                                            column.exponents + vector_index))),
         patcher(PatcherT(column, vector_index, lane)) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
@@ -293,13 +300,13 @@ private:
   uint16_t count[UNPACK_N_VECTORS];
   uint16_t *positions[UNPACK_N_VECTORS];
   T *exceptions[UNPACK_N_VECTORS];
-  uint16_t position;
+  uint16_t current_position;
 
 public:
   __device__ __forceinline__
   NaiveALPExceptionPatcher(const AlpExtendedColumn<T> column,
                            const vi_t vector_index, const lane_t lane)
-      : position(lane) {
+      : current_position(lane) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       const vi_t current_vector_index = vector_index + v;
@@ -321,16 +328,14 @@ public:
   void __device__ __forceinline__ patch_if_needed(T *out) override {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      if (count[v] > 0) {
-        if (position == *(positions[v])) {
-          out[v] = *(exceptions[v]);
-          ++(positions[v]);
-          ++(exceptions[v]);
-          --(count[v]);
-        }
-        position += utils::get_n_lanes<T>();
+      if (count[v] > 0 && current_position == *(positions[v])) {
+        out[v] = *(exceptions[v]);
+        ++(positions[v]);
+        ++(exceptions[v]);
+        --(count[v]);
       }
     }
+    current_position += utils::get_n_lanes<T>();
   }
 };
 
@@ -502,9 +507,9 @@ private:
   uint16_t current_position;
 
 public:
-  __device__ __forceinline__
-  PrefetchAllLessBranchesALPExceptionPatcher(const AlpExtendedColumn<T> column,
-                                 const vi_t vector_index, const lane_t lane)
+  __device__ __forceinline__ PrefetchAllLessBranchesALPExceptionPatcher(
+      const AlpExtendedColumn<T> column, const vi_t vector_index,
+      const lane_t lane)
       : current_position(lane) {
     // Parse the data from the column
     // These consts should be N_LANES, but the arrays are not packed yet
@@ -586,9 +591,9 @@ public:
   }
 
   void __device__ __forceinline__ patch_if_needed(T *out) override {
-		// NOTES: It is probably possible to remove the next_position variable
-		// as well as the next_exception, if you use prefetching. This would make 
-		// it easier to do multiple vectors. 
+    // NOTES: It is probably possible to remove the next_position variable
+    // as well as the next_exception, if you use prefetching. This would make
+    // it easier to do multiple vectors.
 
     bool comparison = current_position == next_position;
     overwrite_if_true<T>(out, &next_exception, comparison);

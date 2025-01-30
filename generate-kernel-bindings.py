@@ -129,7 +129,7 @@ if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec
     kernels::device::alp::decompress_column<                                   
         T, XXN_VEC, XXN_VAL, 
         AlpUnpacker<T, XXN_VEC, XXN_VAL,
-            XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T>>,
+            XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T, XXN_VEC>, consts::VALUES_PER_VECTOR>,
             XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
             XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -153,7 +153,7 @@ if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec
     kernels::device::alp::query_column<                                   
         T, XXN_VEC, XXN_VAL, 
         AlpUnpacker<T, XXN_VEC, XXN_VAL,
-            XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T>>,
+        XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T, XXN_VEC>, consts::VALUES_PER_VECTOR>,
             XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
             XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
         <<<n_blocks, n_threads>>>(                 

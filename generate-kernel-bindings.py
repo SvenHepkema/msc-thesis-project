@@ -179,6 +179,7 @@ FLS_PARAMETERS = [
             Parameter(
                 "XXUNPACKER_ENUM",
                 [
+                    "NON_INTERLEAVED",
                     "STATELESS",
                     "STATEFUL",
                     "STATELESS_BRANCHLESS",
@@ -188,6 +189,7 @@ FLS_PARAMETERS = [
             Parameter(
                 "XXUNPACKER_T",
                 [
+                    "BitUnpackerNonInterleaved",
                     "BitUnpackerStateless",
                     "BitUnpackerStateful",
                     "BitUnpackerStatelessBranchless",

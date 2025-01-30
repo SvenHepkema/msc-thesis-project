@@ -12,6 +12,7 @@ namespace runspec {
 
 enum UnpackerOption {
   CPU,
+  NON_INTERLEAVED,
   STATELESS,
   STATEFUL,
   STATELESS_BRANCHLESS,
@@ -39,6 +40,7 @@ struct KernelSpecification {
 static inline const std::unordered_map<std::string, UnpackerOption>
     unpacker_options{
         {"cpu", CPU},
+        {"noninterleaved", NON_INTERLEAVED},
         {"stateless", STATELESS},
         {"stateful", STATEFUL},
         {"stateless_branchless", STATELESS_BRANCHLESS},

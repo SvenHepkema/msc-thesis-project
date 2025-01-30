@@ -1,4 +1,4 @@
-KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless"
+KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless noninterleaved"
 UNPACK_N_VECTORS="1 4"
 UNPACK_N_VALUES="1"
 DATATYPE_WIDTH=32

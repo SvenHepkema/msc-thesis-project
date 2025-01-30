@@ -25,6 +25,34 @@ void fls_decompress_column(const runspec::KernelSpecification spec,
     const T *in,
     const int32_t value_bit_width) {
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::decompress_column<                                   
+        T, 4, 1, BitUnpackerNonInterleaved<T, 4, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 4, BitUnpackerNonInterleaved<T, 1, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::decompress_column<                                   
+        T, 4, 4, BitUnpackerNonInterleaved<T, 4, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
 if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::decompress_column<                                   
         T, 1, 1, BitUnpackerStateless<T, 1, 1, BPFunctor<T>>>           
@@ -147,6 +175,34 @@ void fls_query_column(const runspec::KernelSpecification spec,
     const int32_t value_bit_width
     ) {
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column<                                   
+        T, 4, 1, BitUnpackerNonInterleaved<T, 4, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 4, BitUnpackerNonInterleaved<T, 1, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column<                                   
+        T, 4, 4, BitUnpackerNonInterleaved<T, 4, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
 if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::query_column<                                   
         T, 1, 1, BitUnpackerStateless<T, 1, 1, BPFunctor<T>>>           
@@ -268,6 +324,34 @@ void fls_compute_column(const runspec::KernelSpecification spec,
     const T *in,
     const int32_t value_bit_width) {
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::compute_column<                                   
+        T, 4, 1, BitUnpackerNonInterleaved<T, 4, 1, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 4, BitUnpackerNonInterleaved<T, 1, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::compute_column<                                   
+        T, 4, 4, BitUnpackerNonInterleaved<T, 4, 4, BPFunctor<T>>>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
 if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::compute_column<                                   
         T, 1, 1, BitUnpackerStateless<T, 1, 1, BPFunctor<T>>>           
@@ -388,6 +472,58 @@ void alp_decompress_column(const runspec::KernelSpecification spec,
     T *out,
 const alp::AlpCompressionData<T> *data
 ) {
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 1, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 4, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 1, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 4, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
 
 if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_column_to_gpu(data);
@@ -591,6 +727,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
         AlpUnpacker<T, 4, 4,
             BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 1, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 4, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 1, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column);            
@@ -805,6 +993,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::decompress_column<                                   
@@ -1007,6 +1247,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
         AlpUnpacker<T, 4, 4,
             BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column);            
@@ -1221,6 +1513,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::decompress_column<                                   
@@ -1429,6 +1773,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::decompress_column<                                   
@@ -1631,6 +2027,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
         AlpUnpacker<T, 4, 4,
             BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+            BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+            BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+            BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::decompress_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+            BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column);            
@@ -1855,6 +2303,58 @@ const alp::AlpCompressionData<T> *data,
  const T magic_value
 ) {
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 1, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 4, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 1, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatelessALPExceptionPatcher<T, 4, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_column_to_gpu(data);
     kernels::device::alp::query_column<                                   
@@ -2057,6 +2557,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
         AlpUnpacker<T, 4, 4,
         BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 1, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 4, 1 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 1, 4 >, 
+            AlpColumn<T>>, AlpColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::STATEFUL_P == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column, magic_value);            
@@ -2271,6 +2823,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::query_column<                                   
@@ -2473,6 +3077,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
         AlpUnpacker<T, 4, 4,
         BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column, magic_value);            
@@ -2687,6 +3343,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::query_column<                                   
@@ -2895,6 +3603,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     transfer::destroy_alp_column(column);
 }
 
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
 if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
     auto column = transfer::copy_alp_extended_column_to_gpu(data);
     kernels::device::alp::query_column<                                   
@@ -3097,6 +3857,58 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
         AlpUnpacker<T, 4, 4,
         BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 1, 
+        AlpUnpacker<T, 1, 1,
+        BitUnpackerNonInterleaved<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 1) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 1, 
+        AlpUnpacker<T, 4, 1,
+        BitUnpackerNonInterleaved<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 1 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 1, 4, 
+        AlpUnpacker<T, 1, 4,
+        BitUnpackerNonInterleaved<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
+            AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
+        <<<n_blocks, n_threads>>>(                 
+            out, column, magic_value);            
+    transfer::destroy_alp_column(column);
+}
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == spec.patcher && spec.n_vecs == 4 && spec.n_vals == 4) {
+    auto column = transfer::copy_alp_extended_column_to_gpu(data);
+    kernels::device::alp::query_column<                                   
+        T, 4, 4, 
+        AlpUnpacker<T, 4, 4,
+        BitUnpackerNonInterleaved<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
+            PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
             out, column, magic_value);            

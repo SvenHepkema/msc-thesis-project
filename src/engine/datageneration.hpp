@@ -548,16 +548,10 @@ get_reusable_compressed_binary_column(const runspec::DataSpecification spec) {
       data,
       [generator](const int32_t value_bit_width,
                   const size_t count) -> alp::ALPMagicCompressionData<T> * {
-        using INT_T = typename utils::same_width_int<T>::type;
-        const int32_t safe_value_bit_width =
-            value_bit_width % static_cast<INT_T>(sizeof(T) * 4);
-        const int32_t generated_value_bit_width =
-            generation::get_random_number_generator(0, safe_value_bit_width)();
-
         T magic_value = consts::as<T>::MAGIC_NUMBER;
 
         alp::AlpCompressionData<T> *generated_data =
-            generator(generated_value_bit_width, count);
+            generator(value_bit_width, count);
 
         int32_t should_contain_magic_number =
             generation::get_random_number_generator<int32_t>(0, 100)();

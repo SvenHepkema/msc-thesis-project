@@ -174,9 +174,6 @@ void query_column_contains_magic(const runspec::KernelSpecification spec,
   GPUArray<T> d_out(1);
   constant_memory::load_alp_constants<T>();
 
-  AlpColumn<T> device_column;
-  AlpExtendedColumn<T> device_extended_column;
-
   generated_kernel_calls::alp_query_column(spec, mapping.n_blocks,
                                            mapping.N_THREADS_PER_BLOCK,
                                            d_out.get(), data, magic_value);
@@ -187,9 +184,6 @@ void query_column_contains_magic(const runspec::KernelSpecification spec,
   if (*out != static_cast<T>(true)) {
     *out = static_cast<T>(false);
   }
-
-  transfer::destroy_alp_column(device_column);
-  transfer::destroy_alp_column(device_extended_column);
 }
 } // namespace gpualp
 

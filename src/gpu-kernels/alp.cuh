@@ -306,15 +306,18 @@ public:
 
   void __device__ __forceinline__ patch_if_needed(T *out) override {
 #pragma unroll
-    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      if (count[v] > 0 && current_position == *(positions[v])) {
-        out[v] = *(exceptions[v]);
-        ++(positions[v]);
-        ++(exceptions[v]);
-        --(count[v]);
+    for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+        if (count[v] > 0 && current_position == *(positions[v])) {
+          out[v* UNPACK_N_VALUES + w] = *(exceptions[v]);
+          ++(positions[v]);
+          ++(exceptions[v]);
+          --(count[v]);
+        }
       }
+      current_position += utils::get_n_lanes<T>();
     }
-    current_position += utils::get_n_lanes<T>();
   }
 };
 

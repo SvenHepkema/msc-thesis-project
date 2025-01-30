@@ -205,9 +205,8 @@ ALP_PARAMETERS = [
             Parameter(
                 "XXPATCHER_ENUM",
                 [
-                    "STATELESS_P",
-                    #"STATELESS_WITH_SCANNER_P",
-                    #"STATEFUL_P",
+                    #"STATELESS_P",
+                    "STATEFUL_P",
                     #"NAIVE",
                     #"NAIVE_BRANCHLESS",
                     #"PREFETCH_POSITION",
@@ -218,9 +217,8 @@ ALP_PARAMETERS = [
             Parameter(
                 "XXPATCHER_T",
                 [
-                    "StatelessALPExceptionPatcher",
-                    #"StatelessWithScannerALPExceptionPatcher",
-                    #"StatefulALPExceptionPatcher",
+                    #"StatelessALPExceptionPatcher",
+                    "StatefulALPExceptionPatcher",
                     #"NaiveALPExceptionPatcher",
                     #"NaiveBranchlessALPExceptionPatcher",
                     #"PrefetchPositionALPExceptionPatcher",
@@ -231,9 +229,8 @@ ALP_PARAMETERS = [
             Parameter(
                 "XXCOLUMN_T",
                 [
+                    #ALP_COLUMN,
                     ALP_COLUMN,
-                    #ALP_COLUMN,
-                    #ALP_COLUMN,
                     #ALP_COLUMN_EXTENDED,
                     #ALP_COLUMN_EXTENDED,
                     #ALP_COLUMN_EXTENDED,
@@ -244,9 +241,8 @@ ALP_PARAMETERS = [
             Parameter(
                 "XXCOLUMN_COPY",
                 [
+                    #ALP_COLUMN_COPY,
                     ALP_COLUMN_COPY,
-                    #ALP_COLUMN_COPY,
-                    #ALP_COLUMN_COPY,
                     #ALP_COLUMN_EXTENDED_COPY,
                     #ALP_COLUMN_EXTENDED_COPY,
                     #ALP_COLUMN_EXTENDED_COPY,

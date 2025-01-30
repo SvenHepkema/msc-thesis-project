@@ -224,11 +224,11 @@ struct StatefulALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
-  const uint16_t exceptions_count;
-  const uint16_t *vec_exceptions_positions;
-  const T *vec_exceptions;
+  uint16_t exceptions_count[UNPACK_N_VECTORS];
+  uint16_t *vec_exceptions_positions[UNPACK_N_VECTORS];
+  T *vec_exceptions[UNPACK_N_VECTORS];
   const lane_t lane;
-  int32_t exception_index = 0;
+  int32_t exception_index[UNPACK_N_VECTORS] = {0};
 
 public:
   void __device__ __forceinline__ patch_if_needed(T *out) override {
@@ -238,28 +238,39 @@ public:
     const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
     start_index += UNPACK_N_VALUES;
 
-    for (; exception_index < exceptions_count; exception_index++) {
-      auto position = vec_exceptions_positions[exception_index];
-      auto exception = vec_exceptions[exception_index];
-      if (position >= first_pos) {
-        if (position <= last_pos && position % N_LANES == lane) {
-          out[(position - first_pos) / N_LANES] = exception;
-        }
-        if (position + 1 > last_pos) {
-          return;
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      for (; exception_index[v] < exceptions_count[v]; exception_index[v]++) {
+        auto position = vec_exceptions_positions[v][exception_index[v]];
+        auto exception = vec_exceptions[v][exception_index[v]];
+        if (position >= first_pos) {
+          if (position <= last_pos && position % N_LANES == lane) {
+            out[(position - first_pos) / N_LANES + v * UNPACK_N_VALUES] =
+                exception;
+          }
+          if (position + 1 > last_pos) {
+            break;
+          }
         }
       }
     }
   }
 
-  __device__ __forceinline__ StatefulALPExceptionPatcher(
-      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane)
-      : exceptions_count(column.counts[vector_index]),
-        vec_exceptions_positions(column.positions +
-                                 consts::VALUES_PER_VECTOR * vector_index),
-        vec_exceptions(column.exceptions +
-                       consts::VALUES_PER_VECTOR * vector_index),
-        lane(lane) {}
+  __device__ __forceinline__
+  StatefulALPExceptionPatcher(const AlpColumn<T> column,
+                              const vi_t first_vector_index, const lane_t lane)
+      : lane(lane) {
+
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      auto vec_index = first_vector_index + v;
+      exceptions_count[v] = column.counts[vec_index];
+      vec_exceptions_positions[v] =
+          column.positions + consts::VALUES_PER_VECTOR * vec_index;
+      vec_exceptions[v] =
+          column.exceptions + consts::VALUES_PER_VECTOR * vec_index;
+    }
+  }
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>

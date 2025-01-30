@@ -1,6 +1,14 @@
-COMPRESSIONS_TO_VERIFY="alp gpu_alp_stateless gpu_alp_stateful gpu_alp_extended_state"
-VECTOR_COUNT=1024
+KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless"
+PATCHERS_TO_VERIFY="stateless stateless_with_scanner stateful naive naive_branchless prefetch_position prefetch_all prefetch_all_branchless"
+UNPACK_N_VECTORS="1 4"
+UNPACK_N_VALUES="1 4"
+EXPERIMENTS_TO_VERIFY="alp_decompress alp_query"
+#TYPES_TO_VERIFY="8 16 32 64"
+TYPES_TO_VERIFY="32"
+VECTOR_COUNT=256
 
 LOG_FILE=/tmp/log
-parallel --joblog $LOG_FILE ./bin/executable {1} {2} random $VECTOR_COUNT 0 ::: $COMPRESSIONS_TO_VERIFY ::: 32 64 2> /dev/null
+parallel --progress --joblog $LOG_FILE ./bin/executable {3} {1} {6} {4} {5} {2} random vbw-0-16 $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY ::: $EXPERIMENTS_TO_VERIFY ::: $UNPACK_N_VECTORS ::: $UNPACK_N_VALUES ::: $PATCHERS_TO_VERIFY 
+./print-joblog.sh
+parallel --progress --joblog $LOG_FILE ./bin/executable {3} {1} {6} {4} {5} {2} random ec-0-2 $VECTOR_COUNT 0 ::: $KERNELS_TO_VERIFY ::: $TYPES_TO_VERIFY ::: $EXPERIMENTS_TO_VERIFY ::: $UNPACK_N_VECTORS ::: $UNPACK_N_VALUES ::: $PATCHERS_TO_VERIFY 
 ./print-joblog.sh

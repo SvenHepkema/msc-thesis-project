@@ -503,37 +503,41 @@ public:
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchAllBranchlessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
-  uint16_t count;
-  uint16_t *positions;
-  T *exceptions;
+  uint16_t count[UNPACK_N_VECTORS];
+  uint16_t *positions[UNPACK_N_VECTORS];
+  T *exceptions[UNPACK_N_VECTORS];
 
-  uint16_t index = 0;
-  uint16_t next_position;
-  T next_exception;
+  uint16_t index[UNPACK_N_VECTORS] = {0};
+  uint16_t next_position[UNPACK_N_VECTORS];
+  T next_exception[UNPACK_N_VECTORS];
   uint16_t current_position;
 
 public:
   void __device__ __forceinline__ read_next_exception() {}
 
   __device__ __forceinline__ PrefetchAllBranchlessALPExceptionPatcher(
-      const AlpExtendedColumn<T> column, const vi_t vector_index,
+      const AlpExtendedColumn<T> column, const vi_t first_vector_index,
       const lane_t lane)
       : current_position(lane) {
-    // These consts should be N_LANES, but the arrays are not packed yet
-    const auto offset_count =
-        column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
-    count = offset_count >> 10;
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      const vi_t vector_index = first_vector_index + v;
+      // These consts should be N_LANES, but the arrays are not packed yet
+      const auto offset_count =
+          column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
+      count[v] = offset_count >> 10;
 
-    const auto offset =
-        vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
-    positions = column.positions + offset;
-    exceptions = column.exceptions + offset;
+      const auto offset =
+          vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+      positions[v] = column.positions + offset;
+      exceptions[v] = column.exceptions + offset;
 
-    next_position = *positions;
-    next_exception = *exceptions;
+      next_position[v] = *positions[v];
+      next_exception[v] = *exceptions[v];
 
-    bool comparison = count > 0;
-    next_position += (!comparison) * consts::VALUES_PER_VECTOR;
+      bool comparison = count[v] > 0;
+      next_position[v] += (!comparison) * consts::VALUES_PER_VECTOR;
+    }
   }
 
   void __device__ __forceinline__ patch_if_needed(T *out) override {
@@ -541,19 +545,24 @@ public:
     // as well as the next_exception, if you use prefetching. This would make
     // it easier to do multiple vectors.
 
-    bool comparison = current_position == next_position;
-    overwrite_if_true<T>(out, &next_exception, comparison);
+#pragma unroll
+    for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+        bool comparison = current_position == next_position[v];
+        overwrite_if_true<T>(out + v * UNPACK_N_VALUES + w, &next_exception[v], comparison);
 
-    positions += comparison;
-    exceptions += comparison;
-    next_position = *positions;
-    next_exception = *exceptions;
-    index += comparison;
+        positions[v] += comparison;
+        exceptions[v] += comparison;
+        next_position[v] = *positions[v];
+        next_exception[v] = *exceptions[v];
+        index[v] += comparison;
 
-    comparison = index < count;
-    next_position += (!comparison) * consts::VALUES_PER_VECTOR;
-
-    current_position += utils::get_n_lanes<T>();
+        comparison = index[v] < count[v];
+        next_position[v] += (!comparison) * consts::VALUES_PER_VECTOR;
+      }
+      current_position += utils::get_n_lanes<T>();
+    }
   }
 };
 

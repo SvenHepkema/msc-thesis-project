@@ -1,7 +1,7 @@
 #KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless"
 #PATCHERS_TO_VERIFY="stateless stateful naive naive_branchless prefetch_position prefetch_all prefetch_all_branchless"
 KERNELS_TO_VERIFY="stateless"
-PATCHERS_TO_VERIFY="prefetch_all"
+PATCHERS_TO_VERIFY="prefetch_all_branchless"
 UNPACK_N_VECTORS="1 4"
 UNPACK_N_VALUES="1 4"
 EXPERIMENTS_TO_VERIFY="alp_decompress alp_query"

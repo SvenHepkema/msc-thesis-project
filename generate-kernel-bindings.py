@@ -210,8 +210,8 @@ ALP_PARAMETERS = [
                     #"NAIVE",
                     #"NAIVE_BRANCHLESS",
                     #"PREFETCH_POSITION",
-                    "PREFETCH_ALL",
-                    #"PREFETCH_ALL_BRANCHLESS",
+                    #"PREFETCH_ALL",
+                    "PREFETCH_ALL_BRANCHLESS",
                 ],
             ),
             Parameter(
@@ -222,8 +222,8 @@ ALP_PARAMETERS = [
                     #"NaiveALPExceptionPatcher",
                     #"NaiveBranchlessALPExceptionPatcher",
                     #"PrefetchPositionALPExceptionPatcher",
-                    "PrefetchAllALPExceptionPatcher",
-                    #"PrefetchAllBranchlessALPExceptionPatcher",
+                    #"PrefetchAllALPExceptionPatcher",
+                    "PrefetchAllBranchlessALPExceptionPatcher",
                 ],
             ),
             Parameter(

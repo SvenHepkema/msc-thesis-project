@@ -10,7 +10,6 @@
 #include "./decompressors.hpp"
 #include "./queries.hpp"
 
-
 #ifndef EXPERIMENTS_HPP
 #define EXPERIMENTS_HPP
 
@@ -71,28 +70,30 @@ verify_alp(const runspec::RunSpecification spec) {
           ALP_FLSCompressorFn<T>(), ALP_FLSDecompressorFn<T>()));
 }
 
-
-
-
 template <typename T>
 verification::VerificationResult<T>
 alp_decompress_column(const runspec::RunSpecification spec) {
-  return verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
-                                                  int32_t, int32_t>(
-      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
-      verification::get_compression_and_decompression_verifier<
-          T, alp::AlpCompressionData<T>, int32_t, int32_t>(
-          data::lambda::get_alp_data<T>(spec.data.name),
-          ALP_FLSCompressorFn<T>(), ALP_GPUDecompressorFn<T>(spec.kernel)));
-}
+  auto [data, generator] =
+      data::lambda::get_alp_reusable_datastructure<T>(spec.data);
 
+  auto result =
+      verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
+                                               int32_t, int32_t>(
+          spec.data.params, spec.data.params, spec.data.count, spec.data.count,
+          verification::get_equal_decompression_verifier<
+              T, alp::AlpCompressionData<T>, int32_t, int32_t>(
+              generator, ALP_FLSDecompressorFn<T>(),
+              ALP_GPUDecompressorFn<T>(spec.kernel), false));
+
+  delete data;
+  return result;
+}
 
 template <typename T>
 verification::VerificationResult<T>
 alp_query_column(const runspec::RunSpecification spec) {
   auto [data, generator] =
-      data::lambda::get_reusable_compressed_binary_column<T>(
-          spec.data.params_type, spec.data.count);
+      data::lambda::get_reusable_compressed_binary_column<T>(spec.data);
 
   auto result =
       verification::run_verifier_on_parameters<T, alp::AlpCompressionData<T>,
@@ -107,6 +108,6 @@ alp_query_column(const runspec::RunSpecification spec) {
   return result;
 }
 
-} // namespace verifiers
+} // namespace experiments
 
 #endif // EXPERIMENTS_HPP

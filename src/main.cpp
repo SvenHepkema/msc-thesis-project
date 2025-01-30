@@ -86,6 +86,7 @@ static CLIArgs parse_cli_args(int argc, char **argv) {
                      },
                      runspec::DataSpecification{
                          count,
+												 n_vecs,
                          data_params_type,
                          data_params,
                          dataset_name,

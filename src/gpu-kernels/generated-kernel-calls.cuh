@@ -394,7 +394,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -407,7 +407,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -420,7 +420,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -433,7 +433,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -446,7 +446,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -459,7 +459,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -472,7 +472,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -485,7 +485,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -498,7 +498,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -511,7 +511,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -524,7 +524,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -537,7 +537,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -550,7 +550,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -563,7 +563,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -576,7 +576,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -589,7 +589,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -602,7 +602,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -615,7 +615,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -628,7 +628,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -641,7 +641,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -654,7 +654,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -667,7 +667,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -680,7 +680,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -693,7 +693,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -706,7 +706,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -719,7 +719,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -732,7 +732,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -745,7 +745,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -758,7 +758,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -771,7 +771,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -784,7 +784,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -797,7 +797,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -810,7 +810,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -823,7 +823,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -836,7 +836,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -849,7 +849,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -862,7 +862,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -875,7 +875,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -888,7 +888,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -901,7 +901,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -914,7 +914,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -927,7 +927,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -940,7 +940,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -953,7 +953,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -966,7 +966,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -979,7 +979,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -992,7 +992,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1005,7 +1005,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1018,7 +1018,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1031,7 +1031,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1044,7 +1044,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1057,7 +1057,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1070,7 +1070,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1083,7 +1083,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1096,7 +1096,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1109,7 +1109,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1122,7 +1122,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1135,7 +1135,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1148,7 +1148,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1161,7 +1161,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1174,7 +1174,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1187,7 +1187,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1200,7 +1200,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1213,7 +1213,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1226,7 +1226,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1239,7 +1239,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1252,7 +1252,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1265,7 +1265,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1278,7 +1278,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1291,7 +1291,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1304,7 +1304,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1317,7 +1317,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1330,7 +1330,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1343,7 +1343,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1356,7 +1356,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1369,7 +1369,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1382,7 +1382,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1395,7 +1395,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1408,7 +1408,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1421,7 +1421,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1434,7 +1434,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1447,7 +1447,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1460,7 +1460,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1473,7 +1473,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1486,7 +1486,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1499,7 +1499,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1512,7 +1512,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1525,7 +1525,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1538,7 +1538,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1551,7 +1551,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1564,7 +1564,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1577,7 +1577,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1590,7 +1590,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1603,7 +1603,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1616,7 +1616,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1629,7 +1629,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1642,7 +1642,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1655,7 +1655,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1668,7 +1668,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1681,7 +1681,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1694,7 +1694,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1707,7 +1707,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1720,7 +1720,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1733,7 +1733,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1746,7 +1746,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1759,7 +1759,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1772,7 +1772,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1785,7 +1785,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1798,7 +1798,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1811,7 +1811,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1824,7 +1824,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1837,7 +1837,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1850,7 +1850,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1863,7 +1863,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1876,7 +1876,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1889,7 +1889,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1902,7 +1902,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1915,7 +1915,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1928,7 +1928,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1941,7 +1941,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1954,7 +1954,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1967,7 +1967,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1980,7 +1980,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -1993,7 +1993,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2006,7 +2006,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::decompress_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2019,7 +2019,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::decompress_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2032,7 +2032,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::decompress_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2045,7 +2045,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::decompress_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2068,7 +2068,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2081,7 +2081,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2094,7 +2094,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2107,7 +2107,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_P == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2120,7 +2120,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2133,7 +2133,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2146,7 +2146,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2159,7 +2159,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2172,7 +2172,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2185,7 +2185,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2198,7 +2198,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2211,7 +2211,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == sp
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2224,7 +2224,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2237,7 +2237,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2250,7 +2250,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2263,7 +2263,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_P == spe
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2276,7 +2276,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2289,7 +2289,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2302,7 +2302,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2315,7 +2315,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == 
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2328,7 +2328,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2341,7 +2341,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2354,7 +2354,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2367,7 +2367,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATELESS_WITH_SCANNER_P == s
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2380,7 +2380,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2393,7 +2393,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2406,7 +2406,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2419,7 +2419,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SC
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2432,7 +2432,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2445,7 +2445,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2458,7 +2458,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2471,7 +2471,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATELESS_WITH_SCA
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatelessWithScannerALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2484,7 +2484,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2497,7 +2497,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2510,7 +2510,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2523,7 +2523,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::STATEFUL_P == spec.patcher &
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2536,7 +2536,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2549,7 +2549,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2562,7 +2562,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2575,7 +2575,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::STATEFUL_P == spec.patcher &&
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2588,7 +2588,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2601,7 +2601,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2614,7 +2614,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2627,7 +2627,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spe
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2640,7 +2640,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2653,7 +2653,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 1 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2666,7 +2666,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 1, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2679,7 +2679,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::STATEFUL_P == spec
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             StatefulALPExceptionPatcher<T, 4, 4 >, 
             AlpColumn<T>>, AlpColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2692,7 +2692,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2705,7 +2705,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2718,7 +2718,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2731,7 +2731,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE == spec.patcher && spe
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2744,7 +2744,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2757,7 +2757,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2770,7 +2770,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2783,7 +2783,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE == spec.patcher && spec
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2796,7 +2796,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2809,7 +2809,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2822,7 +2822,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2835,7 +2835,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2848,7 +2848,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2861,7 +2861,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2874,7 +2874,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2887,7 +2887,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE == spec.patc
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2900,7 +2900,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2913,7 +2913,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2926,7 +2926,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2939,7 +2939,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2952,7 +2952,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2965,7 +2965,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2978,7 +2978,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -2991,7 +2991,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::NAIVE_BRANCHLESS == spec.patc
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3004,7 +3004,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3017,7 +3017,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3030,7 +3030,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3043,7 +3043,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS 
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3056,7 +3056,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3069,7 +3069,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3082,7 +3082,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3095,7 +3095,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::NAIVE_BRANCHLESS =
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             NaiveBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3108,7 +3108,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3121,7 +3121,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3134,7 +3134,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3147,7 +3147,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_POSITION == spec.pa
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3160,7 +3160,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3173,7 +3173,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3186,7 +3186,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3199,7 +3199,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_POSITION == spec.pat
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3212,7 +3212,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3225,7 +3225,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3238,7 +3238,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3251,7 +3251,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3264,7 +3264,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3277,7 +3277,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3290,7 +3290,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3303,7 +3303,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_POSITION 
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchPositionALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3316,7 +3316,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3329,7 +3329,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3342,7 +3342,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3355,7 +3355,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3368,7 +3368,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3381,7 +3381,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3394,7 +3394,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3407,7 +3407,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL == spec.patcher 
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3420,7 +3420,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3433,7 +3433,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3446,7 +3446,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3459,7 +3459,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == s
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3472,7 +3472,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3485,7 +3485,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3498,7 +3498,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3511,7 +3511,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL == sp
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3524,7 +3524,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3537,7 +3537,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3550,7 +3550,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3563,7 +3563,7 @@ if (runspec::STATELESS == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == s
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3576,7 +3576,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStateful<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3589,7 +3589,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStateful<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3602,7 +3602,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStateful<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3615,7 +3615,7 @@ if (runspec::STATEFUL == spec.unpacker && runspec::PREFETCH_ALL_BRANCHLESS == sp
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStateful<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStateful<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3628,7 +3628,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3641,7 +3641,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3654,7 +3654,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3667,7 +3667,7 @@ if (runspec::STATELESS_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRAN
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatelessBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3680,7 +3680,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::query_column<                                   
         T, 1, 1, 
         AlpUnpacker<T, 1, 1,
-            BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 1, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3693,7 +3693,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::query_column<                                   
         T, 4, 1, 
         AlpUnpacker<T, 4, 1,
-            BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 1, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 1 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3706,7 +3706,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::query_column<                                   
         T, 1, 4, 
         AlpUnpacker<T, 1, 4,
-            BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 1, 4, ALPFunctor<T, 1>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 1, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -3719,7 +3719,7 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && runspec::PREFETCH_ALL_BRANC
     kernels::device::alp::query_column<                                   
         T, 4, 4, 
         AlpUnpacker<T, 4, 4,
-            BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T>>,
+        BitUnpackerStatefulBranchless<T, 4, 4, ALPFunctor<T, 4>, consts::VALUES_PER_VECTOR>,
             PrefetchAllBranchlessALPExceptionPatcher<T, 4, 4 >, 
             AlpExtendedColumn<T>>, AlpExtendedColumn<T>>
         <<<n_blocks, n_threads>>>(                 

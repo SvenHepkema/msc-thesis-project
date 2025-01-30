@@ -67,6 +67,7 @@ enum DataGenerationParametersType {
 
 struct DataSpecification {
   const size_t count;
+  const size_t n_vecs;
   const DataGenerationParametersType params_type;
   const std::vector<int32_t> params;
   const std::string name;

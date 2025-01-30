@@ -278,7 +278,7 @@ def get_default_x_axis_column(df: pl.DataFrame) -> tuple[str, str]:
         if column_name in df:
             return column_name, pretty_name
 
-    return "id", "Function ID"
+    return "kernel_id", "Kernel ID"
 
 
 def plot_scatter(

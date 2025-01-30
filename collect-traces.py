@@ -385,7 +385,7 @@ class ExecutableProperties:
 
     def __init__(self, exec_str: str) -> None:
         split_exec_str = exec_str.split()
-        data_param = split_exec_str[5]
+        data_param = split_exec_str[8]
 
         if "ec" in data_param:
             self.datagen_type = "ec"

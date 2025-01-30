@@ -389,39 +389,48 @@ public:
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct PrefetchPositionALPExceptionPatcher : ALPExceptionPatcherBase<T> {
 private:
-  uint16_t count;
-  uint16_t *positions;
-  T *exceptions;
-  uint16_t next_position;
+  uint16_t count[UNPACK_N_VECTORS];
+  uint16_t *positions[UNPACK_N_VECTORS];
+  T *exceptions[UNPACK_N_VECTORS];
+  uint16_t next_position[UNPACK_N_VECTORS];
   uint16_t position;
 
 public:
   __device__ __forceinline__ PrefetchPositionALPExceptionPatcher(
-      const AlpExtendedColumn<T> column, const vi_t vector_index,
+      const AlpExtendedColumn<T> column, const vi_t first_vector_index,
       const lane_t lane)
       : position(lane) {
-    const auto offset_count =
-        column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
-    count = offset_count >> 10;
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      const vi_t vector_index = first_vector_index + v;
+      const auto offset_count =
+          column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
+      count[v] = offset_count >> 10;
 
-    const auto offset =
-        vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
-    positions = column.positions + offset;
-    exceptions = column.exceptions + offset;
+      const auto offset =
+          vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
+      positions[v] = column.positions + offset;
+      exceptions[v] = column.exceptions + offset;
 
-    next_position = *positions;
+      next_position[v] = *positions[v];
+    }
   }
 
   void __device__ __forceinline__ patch_if_needed(T *out) override {
-    if (count > 0 && position == next_position) {
-      *out = *exceptions;
-      ++positions;
-      ++exceptions;
-      --count;
-      next_position = *positions;
+#pragma unroll
+    for (int w{0}; w < UNPACK_N_VALUES; ++w) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+        if (count[v] > 0 && position == next_position[v]) {
+          out[v * UNPACK_N_VALUES + w] = *exceptions[v];
+          ++positions[v];
+          ++exceptions[v];
+          --count[v];
+          next_position[v] = *positions[v];
+        }
+      }
+      position += utils::get_n_lanes<T>();
     }
-
-    position += utils::get_n_lanes<T>();
   }
 };
 

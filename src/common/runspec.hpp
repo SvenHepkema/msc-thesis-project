@@ -21,7 +21,6 @@ enum UnpackerOption {
 enum PatcherOption {
   NO_PATCHER,
 	STATELESS_P,
-	STATELESS_WITH_SCANNER_P,
 	STATEFUL_P,
   NAIVE,
   NAIVE_BRANCHLESS,
@@ -50,7 +49,6 @@ static inline const std::unordered_map<std::string, PatcherOption>
     patcher_options{
         {"none", NO_PATCHER},
         {"stateless", STATELESS_P},
-        {"stateless_with_scanner", STATELESS_WITH_SCANNER_P},
         {"stateful", STATEFUL_P},
         {"naive", NAIVE},
         {"naive_branchless", NAIVE_BRANCHLESS},

@@ -132,14 +132,13 @@ public:
   }
 };
 
-
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename UnpackerT, typename PatcherT, typename ColumnT>
 struct AlpUnpacker {
   UnpackerT unpacker;
   PatcherT patcher;
 
-	int start_index = 0;
+  int start_index = 0;
 
   __device__ __forceinline__ AlpUnpacker(const ColumnT column,
                                          const vi_t vector_index,
@@ -155,7 +154,7 @@ struct AlpUnpacker {
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
     unpacker.unpack_next_into(out);
     patcher.patch_if_needed(out);
-		++start_index;
+    ++start_index;
   }
 };
 
@@ -164,14 +163,16 @@ public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
 };
 
+#define CONDITION
+
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;
 
   si_t start_index = 0;
-  const uint16_t exceptions_count;
-  const uint16_t *vec_exceptions_positions;
-  const T *vec_exceptions;
+  uint16_t exceptions_count[UNPACK_N_VECTORS];
+  uint16_t *vec_exceptions_positions[UNPACK_N_VECTORS];
+  T *vec_exceptions[UNPACK_N_VECTORS];
   const lane_t lane;
 
 public:
@@ -182,28 +183,40 @@ public:
     const int last_pos = first_pos + N_LANES * (UNPACK_N_VALUES - 1);
 
     start_index += UNPACK_N_VALUES;
-    for (int i{0}; i < exceptions_count; i++) {
-      auto position = vec_exceptions_positions[i];
-      auto exception = vec_exceptions[i];
-      if (position >= first_pos) {
-        if (position <= last_pos && position % N_LANES == lane) {
-          out[(position - first_pos) / N_LANES] = exception;
-        }
-        if (position + 1 > last_pos) {
-          return;
+
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      for (int i{0}; i < exceptions_count[v]; i++) {
+        auto position = vec_exceptions_positions[v][i];
+        auto exception = vec_exceptions[v][i];
+        if (position >= first_pos) {
+          if (position <= last_pos && position % N_LANES == lane) {
+            out[(position - first_pos) / N_LANES + v * UNPACK_N_VALUES] =
+                exception;
+          }
+          if (position + 1 > last_pos) {
+            break;
+          }
         }
       }
     }
   }
 
-  __device__ __forceinline__ StatelessALPExceptionPatcher(
-      const AlpColumn<T> column, const vi_t vector_index, const lane_t lane)
-      : exceptions_count(column.counts[vector_index]),
-        vec_exceptions_positions(column.positions +
-                                 consts::VALUES_PER_VECTOR * vector_index),
-        vec_exceptions(column.exceptions +
-                       consts::VALUES_PER_VECTOR * vector_index),
-        lane(lane) {}
+  __device__ __forceinline__
+  StatelessALPExceptionPatcher(const AlpColumn<T> column,
+                               const vi_t first_vector_index, const lane_t lane)
+      : lane(lane) {
+
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      auto vec_index = first_vector_index + v;
+      exceptions_count[v] = column.counts[vec_index];
+      vec_exceptions_positions[v] =
+          column.positions + consts::VALUES_PER_VECTOR * vec_index;
+      vec_exceptions[v] =
+          column.exceptions + consts::VALUES_PER_VECTOR * vec_index;
+    }
+  }
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>

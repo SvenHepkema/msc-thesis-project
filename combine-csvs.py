@@ -14,12 +14,12 @@ OUTPUT_FILE_SECTION_BOUNDARY = "=DATA="
 
 def open_files_in_dir(
     dir_path: str, extension: str | None = None
-) -> Generator[io.TextIOWrapper, None, None]:
+) -> Generator[tuple[str, io.TextIOWrapper], None, None]:
     for file_str in os.listdir(os.fsencode(dir_path)):
         file_name = os.fsdecode(file_str)
         if extension is None or file_name.endswith(extension):
             with open(os.path.join(dir_path, file_name), "r") as file:
-                yield file
+                yield file_name, file
 
 
 def process_command(command: str) -> dict[str, str]:
@@ -38,8 +38,13 @@ def process_command(command: str) -> dict[str, str]:
     }
 
 
-def process_file(content: str) -> pl.DataFrame:
-    process, csv_str = content.split(OUTPUT_FILE_SECTION_BOUNDARY)
+def process_file(content: str) -> pl.DataFrame | None:
+    split_content = content.split(OUTPUT_FILE_SECTION_BOUNDARY)
+
+    if len(split_content) != 2:
+        return None
+
+    process, csv_str = split_content
     df = pl.read_csv(io.StringIO(csv_str))
 
     process_lines = process.split("\n")
@@ -54,8 +59,13 @@ def process_file(content: str) -> pl.DataFrame:
 
 def main(args):
     dfs = []
-    for file in open_files_in_dir(args.dir):
-        dfs.append(process_file(file.read()))
+    for filename, file in open_files_in_dir(args.dir):
+        result = process_file(file.read())
+
+        if result is None:
+            logging.warning(f"Failed to process {filename}")
+        else:
+            dfs.append(result)
 
     df: pl.DataFrame = pl.concat(dfs)
     df.write_csv(args.out)

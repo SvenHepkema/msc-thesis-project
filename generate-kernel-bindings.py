@@ -71,7 +71,7 @@ void fls_decompress_column(const runspec::KernelSpecification spec,
 FLS_DECOMPRESS_COLUMN_IF_STATEMENT = """
 if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
     kernels::device::fls::decompress_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T<T, XXN_VEC, XXN_VAL, BPFunctor<T>>>           
+        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
         <<<n_blocks, n_threads>>>(                 
             out, in, value_bit_width);            
         }
@@ -90,7 +90,7 @@ void fls_query_column(const runspec::KernelSpecification spec,
 FLS_QUERY_COLUMN_IF_STATEMENT = """
 if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
     kernels::device::fls::query_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T<T, XXN_VEC, XXN_VAL, BPFunctor<T>>>           
+        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
         <<<n_blocks, n_threads>>>(                 
             out, in, value_bit_width);            
         }
@@ -108,7 +108,7 @@ void fls_compute_column(const runspec::KernelSpecification spec,
 FLS_COMPUTE_COLUMN_IF_STATEMENT = """
 if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
     kernels::device::fls::compute_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T<T, XXN_VEC, XXN_VAL, BPFunctor<T>>>           
+        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
         <<<n_blocks, n_threads>>>(                 
             out, in, value_bit_width, 0);            
         }
@@ -129,7 +129,7 @@ if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec
     kernels::device::alp::decompress_column<                                   
         T, XXN_VEC, XXN_VAL, 
         AlpUnpacker<T, XXN_VEC, XXN_VAL,
-            XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T, XXN_VEC>, consts::VALUES_PER_VECTOR>,
+            XXUNPACKER_T,
             XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
             XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -153,7 +153,7 @@ if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec
     kernels::device::alp::query_column<                                   
         T, XXN_VEC, XXN_VAL, 
         AlpUnpacker<T, XXN_VEC, XXN_VAL,
-        XXUNPACKER_T<T, XXN_VEC, XXN_VAL, ALPFunctor<T, XXN_VEC>, consts::VALUES_PER_VECTOR>,
+        XXUNPACKER_T,
             XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
             XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
         <<<n_blocks, n_threads>>>(                 
@@ -171,85 +171,131 @@ ALP_COLUMN_EXTENDED_COPY = (
 )
 
 
-FLS_PARAMETERS = [
-    Parameter("XXN_VEC", [1, 4]),
-    Parameter("XXN_VAL", [1, 4]),
-    MultiParameter(
-        [
-            Parameter(
-                "XXUNPACKER_ENUM",
-                [
-                    "NON_INTERLEAVED",
-                    "STATELESS",
-                    "STATEFUL",
-                    "STATELESS_BRANCHLESS",
-                    "STATEFUL_BRANCHLESS",
-                ],
-            ),
-            Parameter(
-                "XXUNPACKER_T",
-                [
-                    "BitUnpackerNonInterleaved",
-                    "BitUnpackerStateless",
-                    "BitUnpackerStateful",
-                    "BitUnpackerStatelessBranchless",
-                    "BitUnpackerStatefulBranchless",
-                ],
-            ),
-        ]
-    ),
-]
+def packer(name: str, is_alp: bool, additional_param: str | None = None) -> str:
+    return f'{name}<T, XXN_VEC, XXN_VAL, {"BPFunctor<T>" if not is_alp else "ALPFunctor<T, XXN_VEC>"} {", " + additional_param if additional_param else ""} {", consts::VALUES_PER_VECTOR" if is_alp else ""}>'
+
+
+def get_fls_parameters(for_alp: bool):
+    return [
+        MultiParameter(
+            [
+                Parameter(
+                    "XXUNPACKER_ENUM",
+                    [
+                        "NON_INTERLEAVED",
+                        "STATELESS",
+                        "STATEFUL_CACHE",
+                        "STATEFUL_REGISTER_1",
+                        "STATEFUL_REGISTER_2",
+                        "STATEFUL_REGISTER_4",
+                        "STATEFUL_REGISTER_BRANCHLESS_1",
+                        "STATEFUL_REGISTER_BRANCHLESS_2",
+                        "STATEFUL_REGISTER_BRANCHLESS_4",
+                        "STATELESS_BRANCHLESS",
+                        "STATEFUL_BRANCHLESS",
+                    ],
+                ),
+                Parameter(
+                    "XXUNPACKER_T",
+                    [
+                        packer("BitUnpackerNonInterleaved", for_alp),
+                        packer("BitUnpackerStateless", for_alp),
+                        packer(
+                            "BitUnpackerStateful", for_alp, "CacheLoader<T, XXN_VEC>"
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterLoader<T, XXN_VEC, 1>",
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterLoader<T, XXN_VEC, 2>",
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterLoader<T, XXN_VEC, 4>",
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterBranchlessLoader<T, XXN_VEC, 1>",
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterBranchlessLoader<T, XXN_VEC, 2>",
+                        ),
+                        packer(
+                            "BitUnpackerStateful",
+                            for_alp,
+                            "RegisterBranchlessLoader<T, XXN_VEC, 4>",
+                        ),
+                        packer("BitUnpackerStatelessBranchless", for_alp),
+                        packer("BitUnpackerStatefulBranchless", for_alp),
+                    ],
+                ),
+            ]
+        ),
+        Parameter("XXN_VEC", [1, 4]),
+        Parameter("XXN_VAL", [1, 4]),
+    ]
+
+
+FLS_PARAMETERS = get_fls_parameters(False)
 
 ALP_PARAMETERS = [
-    *FLS_PARAMETERS,
+    *get_fls_parameters(True),
     MultiParameter(
         [
             Parameter(
                 "XXPATCHER_ENUM",
                 [
                     "STATELESS_P",
-                    "STATEFUL_P",
-                    "NAIVE",
-                    "NAIVE_BRANCHLESS",
-                    "PREFETCH_POSITION",
-                    "PREFETCH_ALL",
-                    "PREFETCH_ALL_BRANCHLESS",
+                    # "STATEFUL_P",
+                    # "NAIVE",
+                    # "NAIVE_BRANCHLESS",
+                    # "PREFETCH_POSITION",
+                    # "PREFETCH_ALL",
+                    # "PREFETCH_ALL_BRANCHLESS",
                 ],
             ),
             Parameter(
                 "XXPATCHER_T",
                 [
                     "StatelessALPExceptionPatcher",
-                    "StatefulALPExceptionPatcher",
-                    "NaiveALPExceptionPatcher",
-                    "NaiveBranchlessALPExceptionPatcher",
-                    "PrefetchPositionALPExceptionPatcher",
-                    "PrefetchAllALPExceptionPatcher",
-                    "PrefetchAllBranchlessALPExceptionPatcher",
+                    # "StatefulALPExceptionPatcher",
+                    # "NaiveALPExceptionPatcher",
+                    # "NaiveBranchlessALPExceptionPatcher",
+                    # "PrefetchPositionALPExceptionPatcher",
+                    # "PrefetchAllALPExceptionPatcher",
+                    # "PrefetchAllBranchlessALPExceptionPatcher",
                 ],
             ),
             Parameter(
                 "XXCOLUMN_T",
                 [
                     ALP_COLUMN,
-                    ALP_COLUMN,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
+                    # ALP_COLUMN,
+                    # ALP_COLUMN_EXTENDED,
+                    # ALP_COLUMN_EXTENDED,
+                    # ALP_COLUMN_EXTENDED,
+                    # ALP_COLUMN_EXTENDED,
+                    # ALP_COLUMN_EXTENDED,
                 ],
             ),
             Parameter(
                 "XXCOLUMN_COPY",
                 [
                     ALP_COLUMN_COPY,
-                    ALP_COLUMN_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
+                    # ALP_COLUMN_COPY,
+                    # ALP_COLUMN_EXTENDED_COPY,
+                    # ALP_COLUMN_EXTENDED_COPY,
+                    # ALP_COLUMN_EXTENDED_COPY,
+                    # ALP_COLUMN_EXTENDED_COPY,
+                    # ALP_COLUMN_EXTENDED_COPY,
                 ],
             ),
         ]
@@ -286,23 +332,32 @@ def insert_parameters(
 
 def main(args):
     code = FILE_HEADER
-    code += FLS_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE + insert_parameters(
-        Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), FLS_PARAMETERS
-    ) + FUNCTION_FOOTER
-    code += FLS_QUERY_COLUMN_FUNCTION_SIGNATURE + insert_parameters(
-        Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS
-    ) + FUNCTION_FOOTER
-    code += FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE + insert_parameters(
-        Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), FLS_PARAMETERS
-    ) + FUNCTION_FOOTER
-    code += ALP_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE + insert_parameters(
-        Code(ALP_DECOMPRESS_COLUMN_IF_STATEMENT), ALP_PARAMETERS
-    ) + FUNCTION_FOOTER
-    code += ALP_QUERY_COLUMN_FUNCTION_SIGNATURE + insert_parameters(
-        Code(ALP_QUERY_COLUMN_IF_STATEMENT), ALP_PARAMETERS
-    ) + FUNCTION_FOOTER
+    code += (
+        FLS_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
+        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
+    code += (
+        FLS_QUERY_COLUMN_FUNCTION_SIGNATURE
+        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
+    code += (
+        FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE
+        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
+    code += (
+        ALP_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
+        + insert_parameters(Code(ALP_DECOMPRESS_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
+    code += (
+        ALP_QUERY_COLUMN_FUNCTION_SIGNATURE
+        + insert_parameters(Code(ALP_QUERY_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
     code += FILE_FOOTER
-
 
     args.out.write(code)
 

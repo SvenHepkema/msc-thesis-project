@@ -5,7 +5,7 @@ UNPACK_N_VALUES="1"
 DATATYPE_WIDTH=32
 EXPERIMENTS="alp_query"
 N_VEC=10000
-OUTPUT_DIR="alp-data-vbw"
+OUTPUT_DIR="data-benchmark/alp-data-vbw"
 METRICS="global_load_requests,global_hit_rate,l2_tex_hit_rate,inst_issued,stall_memory_dependency,stall_memory_throttle,dram_read_bytes,dram_write_bytes,ipc"
 
 mkdir $OUTPUT_DIR

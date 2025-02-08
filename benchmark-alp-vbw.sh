@@ -1,7 +1,7 @@
-KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless"
-PATCHERS_TO_VERIFY="stateless stateful naive naive_branchless prefetch_position prefetch_all prefetch_all_branchless"
+KERNELS_TO_VERIFY="noninterleaved stateless stateful-cache stateful-local-1 stateful-local-2 stateful-local-4 stateful-register-1 stateful-register-2 stateful-register-4 stateful-register-branchless-1 stateful-register-branchless-2 stateful-register-branchless-4 stateless_branchless stateful_branchless"
+PATCHERS_TO_VERIFY="none stateless stateful naive naive_branchless prefetch_position prefetch_all prefetch_all_branchless"
 UNPACK_N_VECTORS="1 4"
-UNPACK_N_VALUES="1 4"
+UNPACK_N_VALUES="1"
 DATATYPE_WIDTH=32
 EXPERIMENTS="alp_query"
 N_VEC=10000

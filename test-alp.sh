@@ -1,4 +1,4 @@
-KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless"
+KERNELS_TO_VERIFY="stateless stateful-cache stateful-register-1 stateful-register-2 stateful-register-4 stateful-register-branchless-1 stateful-register-branchless-2 stateful-register-branchless-4 stateless_branchless stateful_branchless"
 PATCHERS_TO_VERIFY="stateless stateful naive naive_branchless prefetch_position prefetch_all prefetch_all_branchless"
 UNPACK_N_VECTORS="1 4"
 UNPACK_N_VALUES="1 4"

@@ -1,8 +1,8 @@
-KERNELS_TO_VERIFY="stateless stateful stateless_branchless stateful_branchless noninterleaved"
+KERNELS_TO_VERIFY="noninterleaved stateless stateful-cache stateful-local-1 stateful-local-2 stateful-local-4 stateful-register-1 stateful-register-2 stateful-register-4 stateful-register-branchless-1 stateful-register-branchless-2 stateful-register-branchless-4 stateless_branchless stateful_branchless"
 UNPACK_N_VECTORS="1 4"
 UNPACK_N_VALUES="1"
 DATATYPE_WIDTH=32
-EXPERIMENTS="fls_decompress fls_query fls_compute"
+EXPERIMENTS="fls_query"
 N_VEC=10000
 OUTPUT_DIR="fls-data"
 METRICS="global_load_requests,global_hit_rate,l2_tex_hit_rate,inst_issued,stall_memory_dependency,stall_memory_throttle,dram_read_bytes,dram_write_bytes,ipc"

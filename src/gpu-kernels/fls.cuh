@@ -180,6 +180,48 @@ struct CacheLoader : LoaderBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned BUFFER_SIZE>
+struct LocalMemoryLoader : LoaderBase<T> {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  UINT_T buffers[UNPACK_N_VECTORS * BUFFER_SIZE];
+  const UINT_T *in;
+  int32_t vector_offset;
+  int32_t buffer_index = 0;
+
+  __device__ __forceinline__ LocalMemoryLoader(const UINT_T *in,
+                                               const int32_t vector_offset)
+      : in(in), vector_offset(vector_offset) {
+    static_assert(
+        BUFFER_SIZE <= 4,
+        "Switch in RegisterLoader is not long enough for this buffer size.");
+    next_line();
+  };
+
+  __device__ __forceinline__ void load_next_into(UINT_T *out) override {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      out[v] = buffers[v * BUFFER_SIZE + buffer_index];
+    }
+  }
+
+  __device__ __forceinline__ void next_line() override {
+    if (buffer_index == 0) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+#pragma unroll
+        for (int b{0}; b < BUFFER_SIZE; ++b) {
+          buffers[v * BUFFER_SIZE + b] =
+              *(in + v * vector_offset + b * utils::get_n_lanes<T>());
+        }
+      }
+      in += BUFFER_SIZE * utils::get_n_lanes<T>();
+      buffer_index = BUFFER_SIZE - 1;
+    } else {
+      buffer_index -= 1;
+    }
+  }
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned BUFFER_SIZE>
 struct RegisterLoader : LoaderBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T buffers[UNPACK_N_VECTORS * BUFFER_SIZE];

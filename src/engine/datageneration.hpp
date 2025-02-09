@@ -5,7 +5,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <functional>
+#include <ios>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <random>
@@ -135,6 +138,48 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   return column;
 }
 
+template <typename T>
+std::unique_ptr<T> read_file_as(runspec::DataSpecification spec) {
+  auto column = allocate_column<T>(spec.count);
+
+  std::ifstream inputFile(spec.name, std::ios::binary | std::ios::ate);
+  if (!inputFile) {
+    throw std::invalid_argument("Could not open the specified file.");
+  }
+
+  const std::streamsize file_size = inputFile.tellg();
+  inputFile.seekg(0, std::ios::beg);
+
+  bool file_size_is_multiple_of_T_size =
+      static_cast<size_t>(file_size) % static_cast<size_t>(sizeof(T)) != 0;
+  if (file_size_is_multiple_of_T_size) {
+    throw std::invalid_argument(
+        "File size is incorrect, it is not a multiple of the type's size.");
+  }
+
+  const std::streamsize read_size = std::min(
+      file_size, static_cast<std::streamsize>((spec.count * sizeof(T))));
+  if (!inputFile.read(reinterpret_cast<char *>(column.get()), read_size)) {
+    throw std::invalid_argument("Failed to read file into column");
+  }
+
+  inputFile.close();
+
+  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
+  if (values_in_file < spec.count) {
+    size_t n_filled_values = values_in_file;
+    size_t n_empty_values_column = spec.count - n_filled_values;
+    while (n_empty_values_column > 0) {
+      std::memcpy(column.get() + n_filled_values, column.get(),
+                  std::min(n_empty_values_column, values_in_file));
+      n_filled_values += values_in_file;
+      n_empty_values_column -= values_in_file;
+    }
+  }
+
+  return column;
+}
+
 template <typename T, typename U>
 std::unique_ptr<U> cast_column(const std::unique_ptr<T> column,
                                const size_t count) {
@@ -251,13 +296,12 @@ void fill_array_with_random_data(T *array, const size_t count,
   }
 }
 
-template <typename T>
-std::vector<T> generate_indices() {
+template <typename T> std::vector<T> generate_indices() {
   std::vector<T> indices(consts::VALUES_PER_VECTOR);
   for (T i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
     indices[i] = i;
   }
-	return indices;
+  return indices;
 }
 
 template <typename T>
@@ -490,7 +534,19 @@ get_alp_datastructure(const runspec::DataSpecification spec) {
                 "T should be float or double");
   unsigned repeat = static_cast<unsigned>(spec.n_vecs);
 
-  if (spec.params_type == runspec::DataGenerationParametersType::NONE) {
+  if (spec.use_index()) {
+    throw std::invalid_argument("This data generator does not support "
+                                "generating an array of sequential numbers");
+  } else if (spec.use_file()) {
+    T *data = generation::read_file_as<T>(spec).release();
+    alp::AlpCompressionData<T> *compressed_data =
+        new alp::AlpCompressionData<T>(spec.count);
+    alp::int_encode(data, spec.count, compressed_data);
+
+    return [compressed_data]([[__maybe_unused__]] int32_t unused,
+                             [[__maybe_unused__]] size_t count)
+               -> alp::AlpCompressionData<T> * { return compressed_data; };
+  } else if (spec.params_type == runspec::DataGenerationParametersType::NONE) {
     return [repeat]([[__maybe_unused__]] int32_t unused,
                     size_t count) -> alp::AlpCompressionData<T> * {
       return generation::generate_alp_datastructure<T>(count, -1, -1, repeat);
@@ -519,7 +575,11 @@ std::pair<alp::AlpCompressionData<T> *,
 get_alp_reusable_datastructure(const runspec::DataSpecification spec) {
   auto data = data::lambda::get_alp_datastructure<T>(spec)(0, spec.count);
 
-  if (spec.params_type == runspec::DataGenerationParametersType::EC) {
+  if (spec.params_type == runspec::DataGenerationParametersType::NONE) {
+    return std::make_pair(
+        data, [data]([[maybe_unused]] int32_t exceptions_per_vec,
+                     [[maybe_unused]] size_t count) { return data; });
+  } else if (spec.params_type == runspec::DataGenerationParametersType::EC) {
     return std::make_pair(
         data, [data](int32_t exceptions_per_vec, size_t count) {
           return data::generation::modify_alp_exception_count<T>(
@@ -531,8 +591,8 @@ get_alp_reusable_datastructure(const runspec::DataSpecification spec) {
           count, value_bit_width, data);
     });
   } else {
-    throw std::invalid_argument(
-        "This data generator does not accept the specified dataset_name");
+    throw std::invalid_argument("This data generator does not accept the "
+                                "specified dataset generation type");
   }
 }
 

@@ -133,6 +133,9 @@ NVPROF_METRICS = [
 ]
 NVPROF_METRICS_MAPPING = {metric.name: metric for metric in NVPROF_METRICS}
 
+def shift_list_to_right(values: list[Any]) -> list[Any]:
+    return [values[-1]] + values[:-1]
+
 
 ColumnName = NewType("ColumnName", str)
 
@@ -147,11 +150,13 @@ class GraphConfiguration:
     title: str | None
     show_subfigure_title: str | None
     h_line: int | None
+    h_line_label: str | None
 
     def __init__(self, args: argparse.Namespace) -> None:
         self.x_axis_range = (0 if args.start_from_zero else None, None)
         self.y_axis_range = (0 if args.start_from_zero else None, args.y_axis_max_value)
         self.h_line = args.h_line
+        self.h_line_label = args.h_line_label
         self.show_legend = args.show_legend
         self.legend_position = args.legend_position
         self.legend_font_size = args.legend_size
@@ -162,7 +167,7 @@ class GraphConfiguration:
     def apply_to_ax(self, ax: plt.Axes, metric: Metric) -> None:
         if self.h_line:
             ax.axhline(
-                y=self.h_line / 1000, color="r", linestyle="--", label="Baseline"
+                y=self.h_line / 1000, color="r", linestyle="--", label=self.h_line_label
             )
 
         ax.grid(which="major", linestyle="--", linewidth=0.1)
@@ -173,11 +178,17 @@ class GraphConfiguration:
         ax.set_ylim(y_axis_range)
 
         if self.show_legend:
+            loc = self.legend_position.replace("-", " ")
             ax.legend(
                 scatterpoints=1,
                 fontsize=self.legend_font_size,
-                loc=self.legend_position.replace("-", " "),
+                loc=loc,
             )
+
+            if self.h_line:
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(scatterpoints=1, fontsize=self.legend_font_size, loc=loc, handles=shift_list_to_right(handles), labels=shift_list_to_right(labels))
+
 
     def set_x_axis(self, ax, x_values: list[int], is_vbw: bool) -> None:
         x_values.sort()
@@ -228,21 +239,26 @@ def read_file_format(text: str) -> tuple[str, pl.DataFrame]:
 
 
 class ResultsFile:
-    name: str
+    label: str
     command: str
     data: pl.DataFrame
 
-    def __init__(self, filename: str, split_character: str) -> None:
-        self.name = filename.split(split_character)[-1]
+    def __init__(self, filename: str, label: str) -> None:
+        self.label = label
         with open(filename) as file:
             text = "".join([line for line in file])
             self.command, self.data = read_file_format(text)
 
 
-def load_files(file_names_arg: str, split_character: str) -> list[ResultsFile]:
+def load_files(file_names_arg: str, labels_arg: str | None) -> list[ResultsFile]:
+    file_names = file_names_arg.split(":")
+    labels = labels_arg.split(":") if labels_arg is not None else file_names
+
+    assert len(file_names) == len(labels) 
+
     return [
-        ResultsFile(file_name, split_character)
-        for file_name in file_names_arg.split(":")
+        ResultsFile(file_name, label)
+        for file_name, label in zip(file_names, labels)
     ]
 
 
@@ -314,7 +330,7 @@ def plot_scatter(
                 s=26,
                 linewidths=0,
                 c=COLOR_SET[i],
-                label=dataset.name,
+                label=dataset.label,
             )
 
         ax.set_xlabel(pretty_x_axis_name)
@@ -346,7 +362,7 @@ PLOT_FUNCTION_MAPPING = {
 
 
 def main(args):
-    results = load_files(args.files, args.file_name_split_character)
+    results = load_files(args.files, args.labels)
     assert len(results) > 0
 
     columns = parse_column_names(args.columns, results)
@@ -383,6 +399,9 @@ if __name__ == "__main__":
         default=None,
         help=f"Filename to save graph to",
     )
+    parser.add_argument(
+        "-l", "--labels", type=str, help="Labels corresponding to each file. Delimited by ':'"
+    )
 
     # Graph styling
     parser.add_argument(
@@ -400,13 +419,6 @@ if __name__ == "__main__":
         choices=LEGEND_POSITIONS,
         default=LEGEND_POSITIONS[0],
         help="Defines the position of the legend",
-    )
-    parser.add_argument(
-        "-fnsc",
-        "--file-name-split-character",
-        type=str,
-        default="-",
-        help="Defines the character to split the filename on as legend label, taking the last substring as label",
     )
     parser.add_argument(
         "-ls",
@@ -451,6 +463,14 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Horizontal, dashed line",
+    )
+
+    parser.add_argument(
+        "-hll",
+        "--h-line-label",
+        type=str,
+        default="Baseline",
+        help="Horizontal, dashed line, label name",
     )
 
     parser.add_argument(

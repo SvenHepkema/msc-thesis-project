@@ -103,7 +103,8 @@ template <> __device__ __forceinline__ int64_t *get_fact_arr() {
 }
 } // namespace constant_memory
 
-template <typename T, unsigned UNPACK_N_VECTORS> struct ALPFunctor {
+template <typename T, unsigned UNPACK_N_VECTORS>
+struct ALPFunctor : FunctorBase<T> {
 private:
   using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -124,8 +125,8 @@ public:
     }
   }
 
-  T __device__ __forceinline__ operator()(const UINT_T value,
-                                          const vi_t vector_index) const {
+  __device__ __forceinline__ T operator()(const UINT_T value,
+                                          const vi_t vector_index) override {
     return static_cast<T>(static_cast<INT_T>((value + base[vector_index]) *
                                              factor[vector_index])) *
            frac10[vector_index];
@@ -550,7 +551,8 @@ public:
 #pragma unroll
       for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
         bool comparison = current_position == next_position[v];
-        overwrite_if_true<T>(out + v * UNPACK_N_VALUES + w, &next_exception[v], comparison);
+        overwrite_if_true<T>(out + v * UNPACK_N_VALUES + w, &next_exception[v],
+                             comparison);
 
         positions[v] += comparison;
         exceptions[v] += comparison;

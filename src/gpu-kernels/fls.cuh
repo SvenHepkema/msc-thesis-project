@@ -15,21 +15,28 @@ __device__ __forceinline__ constexpr T c_set_first_n_bits(const T count) {
   return (1U << count) - 1;
 }
 
-template <typename T> struct BPFunctor {
+template <typename T> struct FunctorBase {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  virtual __device__ __forceinline__ T
+  operator()(const UINT_T value, [[maybe_unused]] const vi_t vector_index);
+};
+
+template <typename T> struct BPFunctor : FunctorBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   __device__ __forceinline__ BPFunctor(){};
   __device__ __forceinline__ T operator()(
-      const UINT_T value, [[maybe_unused]] const vi_t vector_index) const {
+      const UINT_T value, [[maybe_unused]] const vi_t vector_index) override {
     return value;
   }
 };
 
-template <typename T> struct FFORFunctor {
+template <typename T> struct FFORFunctor : FunctorBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   const T base;
   __device__ __forceinline__ FFORFunctor(const T base) : base(base){};
   __device__ __forceinline__ T operator()(
-      const UINT_T value, [[maybe_unused]] const vi_t vector_index) const {
+      const UINT_T value, [[maybe_unused]] const vi_t vector_index) override {
     return value + base;
   }
 };
@@ -528,7 +535,7 @@ struct BitUnpackerStateful : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   LoaderT loader;
   Masker<UINT_T, UNPACK_N_VECTORS> masker;
-  const OutputProcessor processor;
+  OutputProcessor processor;
 
   __device__ __forceinline__ BitUnpackerStateful(const UINT_T *__restrict in,
                                                  const lane_t lane,
@@ -573,7 +580,7 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor, int32_t OFFSET = 0>
 struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
-  const OutputProcessor processor;
+  OutputProcessor processor;
 
   const UINT_T *in;
   const int32_t vector_offset;
@@ -621,7 +628,7 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor, int32_t OFFSET = 0>
 struct BitUnpackerNonInterleaved : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
-  const OutputProcessor processor;
+  OutputProcessor processor;
 
   const UINT_T *in;
   const int32_t vector_offset;

@@ -354,6 +354,17 @@ def plot_bar(
 ):
     pass
 
+def get_metric(metric_arg: str, args: argparse.Namespace) -> Metric:
+    metric = NVPROF_METRICS_MAPPING[metric_arg]
+
+    if args.throughput:
+        default_mutator = metric.mutator
+        metric.mutator = lambda x: args.throughput / default_mutator(x)
+
+        if args.throughput_label:
+            metric.column_alias = args.throughput_label
+
+    return metric
 
 PLOT_FUNCTION_MAPPING = {
     GraphTypes.SCATTER: plot_scatter,
@@ -368,7 +379,7 @@ def main(args):
     columns = parse_column_names(args.columns, results)
     assert len(columns) > 0
 
-    metrics = [NVPROF_METRICS_MAPPING[column] for column in columns]
+    metrics = [get_metric(column, args) for column in columns]
 
     config = GraphConfiguration(args)
 
@@ -391,6 +402,18 @@ if __name__ == "__main__":
         "columns",
         type=str,
         help=f"Specify which column to plot.",
+    )
+    parser.add_argument(
+        "-tp",
+        "--throughput",
+        type=int,
+        help=f"Specify to plot the data as throughput in unit of column. The number is the amount of work units.",
+    )
+    parser.add_argument(
+        "-tpl",
+        "--throughput-label",
+        type=str,
+        help=f"Specify the label to be used on the throughput axis",
     )
     parser.add_argument(
         "-o",

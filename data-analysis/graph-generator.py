@@ -167,7 +167,8 @@ class GraphConfiguration:
     def apply_to_ax(self, ax: plt.Axes, metric: Metric) -> None:
         if self.h_line:
             ax.axhline(
-                y=self.h_line / 1000, color="r", linestyle="--", label=self.h_line_label
+                #y=self.h_line / 1000, color="r", linestyle="--", label=self.h_line_label
+                y=self.h_line / 1000, color="r", linestyle="solid", label=self.h_line_label
             )
 
         ax.grid(which="major", linestyle="--", linewidth=0.1)
@@ -214,7 +215,7 @@ class GraphConfiguration:
         plt.tight_layout()
         if self.output_name is None:
             plt.show()
-        elif self.output_name[-4:] == "eps":
+        elif self.output_name[-3:] == "eps":
             plt.savefig(self.output_name, format="eps")
         else:
             plt.savefig(self.output_name, format="png", bbox_inches="tight")

@@ -95,7 +95,7 @@ class GraphDefinition:
         files: list[str],
         labels: list[str],
         out: str,
-        title: str|None=None,
+        title: str | None = None,
         colors: Iterable[int] | None = None,
     ) -> None:
         self.files = files
@@ -114,7 +114,12 @@ def plot_stateful_unpackers(input_dir: str, output_dir: str):
                 "fls_query-stateful-register-1-1-1",
                 "fls_query-stateful-register-branchless-1-1-1",
             ],
-            ["cache-0b-1v", "local-1b-1v", "register-1b-1v", "register-branchless-1b-1v"],
+            [
+                "cache-0b-1v",
+                "local-1b-1v",
+                "register-1b-1v",
+                "register-branchless-1b-1v",
+            ],
             "stateful-v1-b1",
         ),
         GraphDefinition(
@@ -144,7 +149,12 @@ def plot_stateful_unpackers(input_dir: str, output_dir: str):
                 "fls_query-stateful-register-1-4-1",
                 "fls_query-stateful-register-branchless-1-4-1",
             ],
-            ["cache-0b-4v", "local-1b-4v", "register-1b-4v", "register-branchless-1b-4v"],
+            [
+                "cache-0b-4v",
+                "local-1b-4v",
+                "register-1b-4v",
+                "register-branchless-1b-4v",
+            ],
             "stateful-v4-b1",
         ),
         GraphDefinition(
@@ -175,6 +185,51 @@ def plot_stateful_unpackers(input_dir: str, output_dir: str):
             f'scatter execution_time -l {":".join(graph.labels)} '
             f'-hl 250488 -hll "Normal execution" '
             f"-lp upper-left -yamv 700 "
+            f'-c {":".join(map(str, graph.colors))} '
+            f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
+        )
+
+
+def plot_all_unpackers(input_dir: str, output_dir: str):
+    graphs = [
+        GraphDefinition(
+            [
+                "fls_query-stateless-1-1",
+                "fls_query-stateful-register-branchless-2-1-1",
+                "fls_query-stateless_branchless-1-1",
+                "fls_query-stateful_branchless-1-1",
+            ],
+            [
+                "stateless-1v",
+                "stateful-1v",
+                "stateless-branchless-1v",
+                "stateful-branchless-1v",
+            ],
+            "unpackers-1v",
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateless-4-1",
+                "fls_query-stateful-register-branchless-2-4-1",
+                "fls_query-stateless_branchless-4-1",
+                "fls_query-stateful_branchless-4-1",
+            ],
+            [
+                "stateless-4v",
+                "stateful-4v",
+                "stateless-branchless-4v",
+                "stateful-branchless-4v",
+            ],
+            "unpackers-4v",
+        ),
+    ]
+
+    for graph in graphs:
+        execute_command(
+            f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
+            f'scatter execution_time -l {":".join(graph.labels)} '
+            f'-hl 250488 -hll "Normal execution" '
+            f"-lp upper-left -yamv 300 "
             f'-c {":".join(map(str, graph.colors))} '
             f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
         )

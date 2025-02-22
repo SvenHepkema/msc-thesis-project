@@ -31,10 +31,11 @@ COLOR_SET = [
     "tab:blue",
     "tab:green",
     "tab:red",
-    "tab:gray",
-    "tab:pink",
     "tab:orange",
+    "tab:pink",
     "tab:cyan",
+    "tab:olive",
+    "tab:gray",
 ]
 
 LEGEND_POSITIONS = [

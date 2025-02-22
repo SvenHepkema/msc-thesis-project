@@ -10,12 +10,14 @@ import inspect
 import types
 import subprocess
 from pathlib import Path
+from typing import Iterable
 
 GRAPHER_PATH = "./data-analysis/graph-generator.py"
 
 
 def directory_exists(path: str) -> bool:
     return Path(path).is_dir()
+
 
 def get_plotting_functions() -> list[tuple[str, types.FunctionType]]:
     current_module = inspect.getmodule(inspect.currentframe())
@@ -64,6 +66,7 @@ ALL_FILES = [
 ]
 """
 
+
 def execute_command(command: str) -> str:
     if args.dry_run:
         print(command, file=sys.stderr)
@@ -78,82 +81,103 @@ def execute_command(command: str) -> str:
         exit(0)
 
     return result.stdout
-    
 
 
-def plot_unpackers_comparison(input_dir: str, output_dir:str):
-    V1_B1 = (
-        [
-            "fls_query-stateful-cache-1-1",
-            "fls_query-stateful-local-1-1-1",
-            "fls_query-stateful-register-1-1-1",
-            "fls_query-stateful-register-branchless-1-1-1",
-        ],
-        ["Cache-X-1", "Local-1-1", "Register-1-1", "Register-branchless-1-1"],
-        'stateful-v1-b1',
-        list(range(4)),
-    )
+class GraphDefinition:
+    files: list[str]
+    labels: list[str]
+    out: str
+    title: str | None
+    colors: Iterable[int]
 
-    V1_B2 = (
-        [
-            "fls_query-stateful-local-2-1-1",
-            "fls_query-stateful-register-2-1-1",
-            "fls_query-stateful-register-branchless-2-1-1",
-        ],
-        ["Local-2-1", "Register-2-1", "Register-branchless-2-1"],
-        'stateful-v1-b2',
-        list(range(1, 4)),
-    )
+    def __init__(
+        self,
+        files: list[str],
+        labels: list[str],
+        out: str,
+        title: str|None=None,
+        colors: Iterable[int] | None = None,
+    ) -> None:
+        self.files = files
+        self.labels = labels
+        self.out = out
+        self.title = title
+        self.colors = colors if colors else range(len(self.files))
 
-    V1_B4 = (
-        [
-            "fls_query-stateful-local-4-1-1",
-            "fls_query-stateful-register-4-1-1",
-            "fls_query-stateful-register-branchless-4-1-1",
-        ],
-        ["Local-4-1", "Register-4-1", "Register-branchless-4-1"],
-        'stateful-v1-b4',
-        list(range(1, 4)),
-    )
 
-    V4_B1 = (
-        [
-            "fls_query-stateful-cache-4-1",
-            "fls_query-stateful-local-1-4-1",
-            "fls_query-stateful-register-1-4-1",
-            "fls_query-stateful-register-branchless-1-4-1",
-        ],
-        ["Cache-X-4", "Local-1-4", "Register-1-4", "Register-branchless-1-4"],
-        'stateful-v4-b1',
-        list(range(4)),
-    )
+def plot_stateful_unpackers(input_dir: str, output_dir: str):
+    graphs = [
+        GraphDefinition(
+            [
+                "fls_query-stateful-cache-1-1",
+                "fls_query-stateful-local-1-1-1",
+                "fls_query-stateful-register-1-1-1",
+                "fls_query-stateful-register-branchless-1-1-1",
+            ],
+            ["cache-0b-1v", "local-1b-1v", "register-1b-1v", "register-branchless-1b-1v"],
+            "stateful-v1-b1",
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateful-local-2-1-1",
+                "fls_query-stateful-register-2-1-1",
+                "fls_query-stateful-register-branchless-2-1-1",
+            ],
+            ["local-2b-1v", "register-2-1v", "register-branchless-2b-1v"],
+            "stateful-v1-b2",
+            colors=list(range(1, 4)),
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateful-local-4-1-1",
+                "fls_query-stateful-register-4-1-1",
+                "fls_query-stateful-register-branchless-4-1-1",
+            ],
+            ["local-4b-1v", "register-4b-1v", "register-branchless-4b-1v"],
+            "stateful-v1-b4",
+            colors=list(range(1, 4)),
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateful-cache-4-1",
+                "fls_query-stateful-local-1-4-1",
+                "fls_query-stateful-register-1-4-1",
+                "fls_query-stateful-register-branchless-1-4-1",
+            ],
+            ["cache-0b-4v", "local-1b-4v", "register-1b-4v", "register-branchless-1b-4v"],
+            "stateful-v4-b1",
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateful-local-2-4-1",
+                "fls_query-stateful-register-2-4-1",
+                "fls_query-stateful-register-branchless-2-4-1",
+            ],
+            ["local-2b-4v", "register-2b-4v", "register-branchless-2b-4v"],
+            "stateful-v4-b2",
+            colors=list(range(1, 4)),
+        ),
+        GraphDefinition(
+            [
+                "fls_query-stateful-local-4-4-1",
+                "fls_query-stateful-register-4-4-1",
+                "fls_query-stateful-register-branchless-4-4-1",
+            ],
+            ["local-4b-4v", "register-4b-4v", "register-branchless-4b-4v"],
+            "stateful-v4-b4",
+            colors=list(range(1, 4)),
+        ),
+    ]
 
-    V4_B2 = (
-        [
-            "fls_query-stateful-local-2-4-1",
-            "fls_query-stateful-register-2-4-1",
-            "fls_query-stateful-register-branchless-2-4-1",
-        ],
-        ["Local-2-4", "Register-2-4", "Register-branchless-2-4"],
-        'stateful-v4-b2',
-        list(range(1, 4)),
-    )
-
-    V4_B4 = (
-        [
-            "fls_query-stateful-local-4-4-1",
-            "fls_query-stateful-register-4-4-1",
-            "fls_query-stateful-register-branchless-4-4-1",
-        ],
-        ["Local-4-4", "Register-4-4", "Register-branchless-4-4"],
-        'stateful-v4-b4',
-        list(range(1, 4)),
-    )
-
-    graph_sets = [V1_B1, V1_B2, V1_B4, V4_B1, V4_B2, V4_B4]
-
-    for files, labels, title, colors in graph_sets:
-        execute_command(f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in files])} scatter execution_time -l {":".join(labels)} -hl 250488 -hll "Normal execution" -lp lower-right -yamv 700 -c {":".join(map(str, colors))} -o {os.path.join(output_dir,f"{title}.eps")}')
+    for graph in graphs:
+        execute_command(
+            f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
+            f'scatter execution_time -l {":".join(graph.labels)} '
+            f'-hl 250488 -hll "Normal execution" '
+            f"-lp upper-left -yamv 700 "
+            f'-c {":".join(map(str, graph.colors))} '
+            f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
+        )
 
 
 def main(args):

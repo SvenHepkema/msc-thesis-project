@@ -91,6 +91,7 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Cache-X-1", "Local-1-1", "Register-1-1", "Register-branchless-1-1"],
         'stateful-v1-b1',
+        list(range(4)),
     )
 
     V1_B2 = (
@@ -101,6 +102,7 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Local-2-1", "Register-2-1", "Register-branchless-2-1"],
         'stateful-v1-b2',
+        list(range(1, 4)),
     )
 
     V1_B4 = (
@@ -111,6 +113,7 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Local-4-1", "Register-4-1", "Register-branchless-4-1"],
         'stateful-v1-b4',
+        list(range(1, 4)),
     )
 
     V4_B1 = (
@@ -122,6 +125,7 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Cache-X-4", "Local-1-4", "Register-1-4", "Register-branchless-1-4"],
         'stateful-v4-b1',
+        list(range(4)),
     )
 
     V4_B2 = (
@@ -132,6 +136,7 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Local-2-4", "Register-2-4", "Register-branchless-2-4"],
         'stateful-v4-b2',
+        list(range(1, 4)),
     )
 
     V4_B4 = (
@@ -142,12 +147,13 @@ def plot_unpackers_comparison(input_dir: str, output_dir:str):
         ],
         ["Local-4-4", "Register-4-4", "Register-branchless-4-4"],
         'stateful-v4-b4',
+        list(range(1, 4)),
     )
 
     graph_sets = [V1_B1, V1_B2, V1_B4, V4_B1, V4_B2, V4_B4]
 
-    for files, labels, title in graph_sets:
-        execute_command(f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in files])} scatter execution_time -l {":".join(labels)} -hl 250488 -hll "Normal execution" -lp lower-right -yamv 700 -o {os.path.join(output_dir,f"{title}.eps")}')
+    for files, labels, title, colors in graph_sets:
+        execute_command(f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in files])} scatter execution_time -l {":".join(labels)} -hl 250488 -hll "Normal execution" -lp lower-right -yamv 700 -c {":".join(map(str, colors))} -o {os.path.join(output_dir,f"{title}.eps")}')
 
 
 def main(args):

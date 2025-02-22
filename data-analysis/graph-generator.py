@@ -30,10 +30,10 @@ GRAPH_TYPES_CLI_OPTIONS = {
 COLOR_SET = [
     "tab:blue",
     "tab:green",
-    "tab:orange",
     "tab:red",
-    "tab:pink",
     "tab:gray",
+    "tab:pink",
+    "tab:orange",
     "tab:cyan",
 ]
 
@@ -178,6 +178,7 @@ class GraphConfiguration:
             y_axis_range[1] = metric.y_max
         ax.set_ylim(y_axis_range)
 
+
         if self.show_legend:
             loc = self.legend_position.replace("-", " ")
             ax.legend(
@@ -243,23 +244,25 @@ class ResultsFile:
     label: str
     command: str
     data: pl.DataFrame
+    color: int
 
-    def __init__(self, filename: str, label: str) -> None:
+    def __init__(self, filename: str, label: str, color: int) -> None:
         self.label = label
+        self.color = color
         with open(filename) as file:
             text = "".join([line for line in file])
             self.command, self.data = read_file_format(text)
 
 
-def load_files(file_names_arg: str, labels_arg: str | None) -> list[ResultsFile]:
+def load_files(file_names_arg: str, labels_arg: str | None, colors: list[int]|None) -> list[ResultsFile]:
     file_names = file_names_arg.split(":")
     labels = labels_arg.split(":") if labels_arg is not None else file_names
 
     assert len(file_names) == len(labels) 
 
     return [
-        ResultsFile(file_name, label)
-        for file_name, label in zip(file_names, labels)
+        ResultsFile(file_names[i], labels[i], i if colors is None else colors[i])
+        for i in range(len(file_names))
     ]
 
 
@@ -330,7 +333,7 @@ def plot_scatter(
                 y,
                 s=26,
                 linewidths=0,
-                c=COLOR_SET[i],
+                c=COLOR_SET[dataset.color],
                 label=dataset.label,
             )
 
@@ -374,11 +377,17 @@ PLOT_FUNCTION_MAPPING = {
 
 
 def main(args):
-    results = load_files(args.files, args.labels)
+    colors = None
+    if args.colors is not None:
+        colors = list(map(int,args.colors.split(':')))
+
+    results = load_files(args.files, args.labels, colors)
     assert len(results) > 0
 
     columns = parse_column_names(args.columns, results)
     assert len(columns) > 0
+
+    
 
     metrics = [get_metric(column, args) for column in columns]
 
@@ -450,6 +459,12 @@ if __name__ == "__main__":
         type=int,
         default=10,
         help="Defines the fontsize of the legend",
+    )
+    parser.add_argument(
+        "-c",
+        "--colors",
+        type=str,
+        help="Defines the colors used, must have equal length to number of files",
     )
     parser.add_argument(
         "-sst",

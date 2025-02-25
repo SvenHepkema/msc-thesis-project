@@ -5,6 +5,7 @@ import sys
 
 import argparse
 import logging
+import itertools
 
 import inspect
 import types
@@ -34,7 +35,7 @@ def get_plotting_functions() -> list[tuple[str, types.FunctionType]]:
 
 
 """
-ALL_FILES = [
+FLS_QUERY_FILES = [
     "fls_query-noninterleaved-1-1",
     "fls_query-noninterleaved-4-1",
     "fls_query-stateful_branchless-1-1",
@@ -64,6 +65,10 @@ ALL_FILES = [
     "fls_query-stateless_branchless-1-1",
     "fls_query-stateless_branchless-4-1",
 ]
+
+ALP_QUERY_FILES = [
+"alp_query-stateless-prefetch_position-4-1",
+]
 """
 
 
@@ -73,6 +78,7 @@ def execute_command(command: str) -> str:
         return ""
 
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    logging.info(f"EXECUTED: {command}")
 
     if result.returncode != 0:
         logging.critical(f"Exited with code {result.returncode}: {command}")
@@ -233,6 +239,59 @@ def plot_all_unpackers(input_dir: str, output_dir: str):
             f'-c {":".join(map(str, graph.colors))} '
             f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
         )
+
+
+def plot_all_patchers(input_dir: str, output_dir: str):
+    def get_filename(unpacker: str, patcher: str, n_vecs: int) -> str:
+        return f"alp_query-{unpacker}-{patcher}-{n_vecs}-1"
+
+    counter = 0
+    def get_graphs_for_patchers(patchers: list[str], out: str, color_offset: int) -> list[GraphDefinition]:
+        return [
+            GraphDefinition(
+                [
+                    get_filename(
+                        (
+                            "stateful_branchless"
+                            if n_vecs == 1
+                            else "stateful-register-2"
+                        ),
+                        patcher,
+                        n_vecs,
+                    )
+                    for patcher in patchers
+                ],
+                patchers,
+                out=out + f"-v{n_vecs}",
+                colors=range(color_offset, color_offset + len(patchers))
+            )
+            for n_vecs in [1, 4]
+        ]
+
+    nonparallel_patchers = [
+        "stateless",
+        "stateful",
+    ], "nonparallel-exception-patchers", 2500, 0
+    parallel_patchers = [
+        "naive",
+        "naive_branchless",
+    ], "parallel-exception-patchers", 400, 0
+    prefetch_parallel_patchers = [
+        "prefetch_position",
+        "prefetch_all",
+        "prefetch_all_branchless",
+    ], "prefetch-parallel-exception-patchers", 400, len(parallel_patchers[0])
+
+    for patcher_set, out, yamv, color_offset in [nonparallel_patchers, parallel_patchers, prefetch_parallel_patchers]:
+        for graph in get_graphs_for_patchers(patcher_set, out, color_offset):
+            execute_command(
+                f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
+                f'scatter execution_time -l {":".join(graph.labels)} '
+                f'-hl 250488 -hll "Normal execution" '
+                f"-lp lower-right -yamv {yamv} "
+                f'-c {":".join(map(str, graph.colors))} '
+                f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
+            )
 
 
 def main(args):

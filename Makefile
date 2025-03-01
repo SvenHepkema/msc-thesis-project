@@ -2,7 +2,7 @@ INC := -I $(CUDA_LIBRARY_PATH)/include -I.
 LIB := -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand 
 CUDA_OBJ_FLAGS = $(INC) $(LIB) 
 OPTIMIZATION_LEVEL = -O3
-CLANG_FLAGS = -std=c++17 -g $(WARNINGS)
+CLANG_FLAGS = -std=c++17 -g $(WARNINGS) $(OPTIMIZATION_LEVEL)
 WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-float-equal -Wno-global-constructors -Wno-exit-time-destructors 
 
 #3033-D: inline variables are a C++17 feature

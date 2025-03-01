@@ -54,7 +54,7 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
   // That is why we allocate a little extra memory
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
   GPUArray<T> device_out(count);
 
   generated_kernel_calls::fls_decompress_column(
@@ -88,7 +88,7 @@ void query_column_contains_zero<uint32_t>(
   // That is why we allocate a little extra memory
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
   GPUArray<T> device_out(1);
 
   generated_kernel_calls::fls_query_column<T>(
@@ -126,7 +126,7 @@ void query_column_contains_zero_unrolled<uint32_t>(
   // That is why we allocate a little extra memory
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
   GPUArray<T> device_out(1);
 
   generated_kernel_calls::fls_query_column_unrolled<T>(
@@ -164,7 +164,7 @@ void compute_column<uint32_t>(const runspec::KernelSpecification spec,
   // That is why we allocate a little extra memory
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<T> device_in(encoded_count + branchless_extra_access_buffer, in);
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
   GPUArray<T> device_out(1);
 
   generated_kernel_calls::fls_compute_column(

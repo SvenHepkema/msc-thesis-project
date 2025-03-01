@@ -29,25 +29,37 @@ template <typename T> void free_device_pointer(T *&device_ptr) {
 
 template <typename T> class GPUArray {
 private:
-  size_t count;
+  size_t allocation_size;
+  size_t memory_size;
   T *device_ptr = nullptr;
 
   void allocate() {
     CUDA_SAFE_CALL(
-        cudaMalloc(reinterpret_cast<void **>(&device_ptr), count * sizeof(T)));
+        cudaMalloc(reinterpret_cast<void **>(&device_ptr), allocation_size));
   }
 
 public:
-  GPUArray(const size_t a_count) {
-    count = a_count;
+  GPUArray(const size_t count) {
+    memory_size = count * sizeof(T);
+    allocation_size = memory_size;
     allocate();
   }
 
-  GPUArray(const size_t a_count, const T *host_p) {
-    count = a_count;
+  GPUArray(const size_t count, const T *host_p) {
+    memory_size = count * sizeof(T);
+    allocation_size = memory_size;
     allocate();
-    CUDA_SAFE_CALL(cudaMemcpy(device_ptr, host_p, count * sizeof(T),
-                              cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(
+        cudaMemcpy(device_ptr, host_p, memory_size, cudaMemcpyHostToDevice));
+  }
+
+  GPUArray(const size_t count, const size_t buffer, const T *host_p) {
+    memory_size = count * sizeof(T);
+    allocation_size = memory_size + buffer * sizeof(T);
+    allocate();
+
+    CUDA_SAFE_CALL(
+        cudaMemcpy(device_ptr, host_p, memory_size, cudaMemcpyHostToDevice));
   }
 
   // Copy constructor
@@ -70,13 +82,11 @@ public:
     return *this;
   }
 
-  ~GPUArray() {
-    free_device_pointer(device_ptr);
-  }
+  ~GPUArray() { free_device_pointer(device_ptr); }
 
   void copy_to_host(T *host_p) {
-    CUDA_SAFE_CALL(cudaMemcpy(host_p, device_ptr, count * sizeof(T),
-                              cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(
+        cudaMemcpy(host_p, device_ptr, memory_size, cudaMemcpyDeviceToHost));
   }
 
   T *get() { return device_ptr; }

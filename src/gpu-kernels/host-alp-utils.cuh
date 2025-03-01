@@ -19,7 +19,7 @@ AlpColumn<T> copy_alp_column_to_gpu(const alp::AlpCompressionData<T> *data) {
 
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<UINT_T> d_ffor_array(count + branchless_extra_access_buffer,
+  GPUArray<UINT_T> d_ffor_array(count, branchless_extra_access_buffer,
                                 data->ffor.array);
 
   GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
@@ -133,7 +133,7 @@ copy_alp_extended_column_to_gpu(const alp::AlpCompressionData<T> *data) {
 
   const size_t branchless_extra_access_buffer =
       sizeof(T) * utils::get_n_lanes<T>() * 4;
-  GPUArray<UINT_T> d_ffor_array(count + branchless_extra_access_buffer,
+  GPUArray<UINT_T> d_ffor_array(count, branchless_extra_access_buffer,
                                 data->ffor.array);
 
   GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);

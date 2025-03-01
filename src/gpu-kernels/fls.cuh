@@ -170,8 +170,7 @@ struct CacheLoader : LoaderBase<T> {
 
   __device__ __forceinline__ CacheLoader(const UINT_T *in,
                                          const int32_t vector_offset)
-      : in(in), vector_offset(vector_offset) {
-  };
+      : in(in), vector_offset(vector_offset){};
 
   __device__ __forceinline__ void load_next_into(UINT_T *out) override {
 #pragma unroll
@@ -303,7 +302,7 @@ struct RegisterBranchlessLoader : LoaderBase<T> {
   UINT_T buffers[UNPACK_N_VECTORS * BUFFER_SIZE];
   const UINT_T *in;
   int32_t vector_offset;
-  int32_t buffer_index = 0;
+  int32_t buffer_index = BUFFER_SIZE;
 
   __device__ __forceinline__
   RegisterBranchlessLoader(const UINT_T *in, const int32_t vector_offset)
@@ -315,16 +314,11 @@ struct RegisterBranchlessLoader : LoaderBase<T> {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       out[v] = buffers[v * BUFFER_SIZE];
-
-#pragma unroll
-      for (int b{1}; b < BUFFER_SIZE; ++b) {
-        buffers[v * BUFFER_SIZE + b - 1] = buffers[v * BUFFER_SIZE + b];
-      }
     }
   }
 
   __device__ __forceinline__ void next_line() override {
-    if (buffer_index == 0) {
+    if (buffer_index >= BUFFER_SIZE - 1) {
 #pragma unroll
       for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
 #pragma unroll
@@ -334,9 +328,16 @@ struct RegisterBranchlessLoader : LoaderBase<T> {
         }
       }
       in += BUFFER_SIZE * utils::get_n_lanes<T>();
-      buffer_index = BUFFER_SIZE - 1;
+      buffer_index = 0;
     } else {
-      buffer_index -= 1;
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+#pragma unroll
+        for (int b{1}; b < BUFFER_SIZE; ++b) {
+          buffers[v * BUFFER_SIZE + b - 1] = buffers[v * BUFFER_SIZE + b];
+        }
+      }
+      ++buffer_index;
     }
   }
 };

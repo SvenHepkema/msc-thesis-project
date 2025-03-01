@@ -171,7 +171,6 @@ struct CacheLoader : LoaderBase<T> {
   __device__ __forceinline__ CacheLoader(const UINT_T *in,
                                          const int32_t vector_offset)
       : in(in), vector_offset(vector_offset) {
-    next_line();
   };
 
   __device__ __forceinline__ void load_next_into(UINT_T *out) override {

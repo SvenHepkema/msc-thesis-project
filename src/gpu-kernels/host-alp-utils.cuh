@@ -2,11 +2,11 @@
 #include <cstdint>
 #include <tuple>
 
+#include "../alp/alp-bindings.hpp"
 #include "../common/consts.hpp"
 #include "../common/utils.hpp"
-#include "host-utils.cuh"
 #include "alp.cuh"
-#include "../alp/alp-bindings.hpp"
+#include "host-utils.cuh"
 #include "src/alp/config.hpp"
 
 namespace transfer {
@@ -17,7 +17,10 @@ AlpColumn<T> copy_alp_column_to_gpu(const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
 
-  GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>() * 4;
+  GPUArray<UINT_T> d_ffor_array(count + branchless_extra_access_buffer,
+                                data->ffor.array);
 
   GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
   GPUArray<uint8_t> d_bit_widths(n_vecs, data->ffor.bit_widths);
@@ -112,7 +115,8 @@ convert_exceptions_to_lane_divided_format(
       }
 
       out_offsets_counts[vec_index * N_LANES + lane] =
-          (exc_in_lane_count << 10) | (vec_exceptions_counter - exc_in_lane_count);
+          (exc_in_lane_count << 10) |
+          (vec_exceptions_counter - exc_in_lane_count);
     }
   }
 
@@ -126,7 +130,11 @@ copy_alp_extended_column_to_gpu(const alp::AlpCompressionData<T> *data) {
   const auto count = data->size;
   const auto n_vecs = utils::get_n_vecs_from_size(count);
   constexpr auto N_LANES = utils::get_n_lanes<T>();
-  GPUArray<UINT_T> d_ffor_array(count, data->ffor.array);
+
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>() * 4;
+  GPUArray<UINT_T> d_ffor_array(count + branchless_extra_access_buffer,
+                                data->ffor.array);
 
   GPUArray<UINT_T> d_ffor_bases(n_vecs, data->ffor.bases);
   GPUArray<uint8_t> d_bit_widths(n_vecs, data->ffor.bit_widths);

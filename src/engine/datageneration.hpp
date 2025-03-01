@@ -492,14 +492,6 @@ verification::DataGenerator<T, int32_t> get_binary_column() {
 }
 
 template <typename T>
-std::pair<T *, verification::DataGenerator<T, int32_t>>
-make_column_reusable(T *data) {
-  return std::make_pair(data,
-                        [data]([[maybe_unused]] int32_t vbw,
-                               [[maybe_unused]] size_t count) { return data; });
-}
-
-template <typename T>
 verification::DataGenerator<T, int32_t>
 get_alp_data(const std::string dataset_name) {
   using UINT_T = typename utils::same_width_uint<T>::type;

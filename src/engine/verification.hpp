@@ -217,10 +217,9 @@ get_compression_and_decompression_verifier(
     const CompressColumnFunction<T, CompressedDataType, CompressionParamsType>
         compress_column,
     const DecompressColumnFunction<CompressedDataType, T, CompressionParamsType>
-        decompress_column,
-    const bool delete_original_data = true) {
+        decompress_column) {
   return [datagenerator, compress_column,
-          decompress_column, delete_original_data](CompressionParamsType compression_parameters,
+          decompress_column](CompressionParamsType compression_parameters,
                              DataParamsType data_parameters, size_t input_size,
                              size_t output_size) -> ExecutionResult<T> {
     const T *original_data = datagenerator(data_parameters, input_size);
@@ -235,9 +234,7 @@ get_compression_and_decompression_verifier(
     auto result =
         compare_data<T>(original_data, decompressed_data, output_size);
 
-    if (delete_original_data) {
-      delete original_data;
-    }
+    delete original_data;
     delete compressed_data;
     delete[] decompressed_data;
     return result;

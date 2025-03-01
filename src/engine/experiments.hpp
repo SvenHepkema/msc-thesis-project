@@ -29,36 +29,23 @@ verify_fls(const runspec::RunSpecification spec) {
 template <typename T>
 verification::VerificationResult<T>
 fls_decompress_column(const runspec::RunSpecification spec) {
-  auto [data, generator] = data::lambda::make_column_reusable<T>(
-      data::lambda::get_bp_data<T>("random")(sizeof(T) * 8, spec.data.count));
-
-  auto result =
-      verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
-          spec.data.params, spec.data.params, spec.data.count, spec.data.count,
-          verification::get_compression_and_decompression_verifier<
-              T, T, int32_t, int32_t>(generator, BP_FLSCompressorFn<T>(),
-                                      BP_GPUDecompressorFn<T>(spec.kernel),
-                                      false));
-
-  delete data;
-  return result;
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, spec.data.count,
+      verification::get_compression_and_decompression_verifier<T, T, int32_t,
+                                                               int32_t>(
+          data::lambda::get_bp_data<T>(spec.data.name), BP_FLSCompressorFn<T>(),
+          BP_GPUDecompressorFn<T>(spec.kernel)));
 }
 
 template <typename T>
 verification::VerificationResult<T>
 fls_query_column(const runspec::RunSpecification spec) {
-  auto [data, generator] = data::lambda::make_column_reusable<T>(
-      data::lambda::get_binary_column<T>()(sizeof(T) * 8, spec.data.count));
-
-  auto result = verification::run_verifier_on_parameters<T, T, int32_t,
-                                                         int32_t>(
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          generator, queries::cpu::FLSQueryColumnFn<T>(),
-          queries::gpu::FLSQueryColumnFn<T>(spec.kernel), false));
-
-  delete data;
-  return result;
+          data::lambda::get_binary_column<T>(),
+          queries::cpu::FLSQueryColumnFn<T>(),
+          queries::gpu::FLSQueryColumnFn<T>(spec.kernel)));
 }
 
 template <typename T>
@@ -81,18 +68,11 @@ fls_query_column_unrolled(const runspec::RunSpecification spec) {
 template <typename T>
 verification::VerificationResult<T>
 fls_compute_column(const runspec::RunSpecification spec) {
-  auto [data, generator] = data::lambda::make_column_reusable<T>(
-      data::lambda::get_binary_column<T>()(sizeof(T) * 8, spec.data.count));
-
-  auto result = verification::run_verifier_on_parameters<T, T, int32_t,
-                                                         int32_t>(
+  return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          generator, queries::cpu::DummyFn<T>(),
+          data::lambda::get_binary_column<T>(), queries::cpu::DummyFn<T>(),
           queries::gpu::FLSComputeColumnFn<T>(spec.kernel)));
-
-  delete data;
-  return result;
 }
 
 template <typename T>

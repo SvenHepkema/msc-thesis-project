@@ -57,6 +57,7 @@ ALL_PATCHERS = NON_PARALLEL_PATCHERS + PARALLEL_PATCHERS
 
 ALL_EXPERIMENTS = [
     "fls_query",
+    "fls_query_unrolled",
     "fls_decompress",
     "fls_compute",
     "alp_decompress",
@@ -249,6 +250,10 @@ def return_fls_vbw_benches(
 
 def bench_all_fls_query_vbw() -> list[BenchmarkCommand]:
     return return_fls_vbw_benches("fls_query", ALL_UNPACKERS)
+
+
+def bench_all_fls_query_unrolled_vbw() -> list[BenchmarkCommand]:
+    return return_fls_vbw_benches("fls_query_unrolled", ALL_UNPACKERS)
 
 
 def bench_all_fls_decompress_vbw() -> list[BenchmarkCommand]:

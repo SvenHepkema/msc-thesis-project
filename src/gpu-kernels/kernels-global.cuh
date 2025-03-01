@@ -111,6 +111,31 @@ __global__ void query_column(T *__restrict out,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
+          typename UnpackerT>
+__global__ void query_column_unrolled(T *__restrict out,
+                                           const T *__restrict in,
+                                           const vbw_t value_bit_width) {
+  constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
+  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const lane_t lane = mapping.get_lane();
+  const vi_t vector_index = mapping.get_vector_index();
+
+  in += vector_index * utils::get_compressed_vector_size<T>(value_bit_width);
+
+  T registers[N_VALUES];
+  auto checker = MagicChecker<T, N_VALUES>(consts::as<T>::MAGIC_NUMBER);
+  UnpackerT unpacker(in, lane, value_bit_width, BPFunctor<T>());
+
+#pragma unroll
+  for (si_t i = 0; i < mapping.N_VALUES_IN_LANE; i += UNPACK_N_VALUES) {
+    unpacker.unpack_next_into(registers);
+    checker.check(registers);
+  }
+
+  checker.write_result(out);
+}
+
+template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT, int N_REPETITIONS=10>
 __global__ void compute_column(T *__restrict out, const T *__restrict in,
                                const vbw_t value_bit_width,

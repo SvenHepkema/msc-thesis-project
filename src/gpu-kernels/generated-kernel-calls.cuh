@@ -822,6 +822,408 @@ if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && spec.n_vecs == 4 && spec.n_
 }
 
 template <typename T>
+void fls_query_column_unrolled(const runspec::KernelSpecification spec,
+    const unsigned n_blocks, const unsigned n_threads,
+    T *out,
+    const T *in,
+    const int32_t value_bit_width
+    ) {
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateless<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_CACHE == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , CacheLoader<T, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , LocalMemoryLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , LocalMemoryLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , LocalMemoryLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStateful<T, 1, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS_BRANCHLESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStatelessBranchless<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, BitUnpackerStatefulBranchless<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerNonInterleaved<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateless<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_CACHE == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , CacheLoader<T, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , LocalMemoryLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , LocalMemoryLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , LocalMemoryLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStateful<T, 4, 1, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS_BRANCHLESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStatelessBranchless<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, BitUnpackerStatefulBranchless<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerNonInterleaved<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateless<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_CACHE == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , CacheLoader<T, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , LocalMemoryLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , LocalMemoryLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , LocalMemoryLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_1 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_2 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_4 == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStateful<T, 1, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 1, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS_BRANCHLESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStatelessBranchless<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, BitUnpackerStatefulBranchless<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerNonInterleaved<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateless<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_CACHE == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , CacheLoader<T, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , LocalMemoryLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , LocalMemoryLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_LOCAL_MEMORY_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , LocalMemoryLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_1 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 1> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_2 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 2> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_REGISTER_BRANCHLESS_4 == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStateful<T, 4, 4, BPFunctor<T> , RegisterBranchlessLoader<T, 4, 4> >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATELESS_BRANCHLESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStatelessBranchless<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::STATEFUL_BRANCHLESS == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, BitUnpackerStatefulBranchless<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+}
+
+template <typename T>
 void fls_compute_column(const runspec::KernelSpecification spec,
     const unsigned n_blocks, const unsigned n_threads,
     T *out,

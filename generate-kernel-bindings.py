@@ -96,6 +96,25 @@ if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.
         }
 """
 
+FLS_QUERY_COLUMN_UNROLLED_FUNCTION_SIGNATURE = """
+template <typename T>
+void fls_query_column_unrolled(const runspec::KernelSpecification spec,
+    const unsigned n_blocks, const unsigned n_threads,
+    T *out,
+    const T *in,
+    const int32_t value_bit_width
+    ) {
+"""
+
+FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT = """
+if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+"""
+
 FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE = """
 template <typename T>
 void fls_compute_column(const runspec::KernelSpecification spec,
@@ -358,6 +377,11 @@ def main(args):
     code += (
         FLS_QUERY_COLUMN_FUNCTION_SIGNATURE
         + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + FUNCTION_FOOTER
+    )
+    code += (
+        FLS_QUERY_COLUMN_UNROLLED_FUNCTION_SIGNATURE
+        + insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), FLS_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (

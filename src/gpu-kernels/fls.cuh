@@ -230,7 +230,7 @@ struct RegisterLoader : LoaderBase<T> {
   UINT_T buffers[UNPACK_N_VECTORS * BUFFER_SIZE];
   const UINT_T *in;
   int32_t vector_offset;
-  int32_t buffer_index = 0;
+  int32_t buffer_index = BUFFER_SIZE;
 
   __device__ __forceinline__ RegisterLoader(const UINT_T *in,
                                             const int32_t vector_offset)
@@ -280,7 +280,7 @@ struct RegisterLoader : LoaderBase<T> {
   }
 
   __device__ __forceinline__ void next_line() override {
-    if (buffer_index == 0) {
+    if (buffer_index >= BUFFER_SIZE - 1) {
 #pragma unroll
       for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
 #pragma unroll
@@ -290,9 +290,9 @@ struct RegisterLoader : LoaderBase<T> {
         }
       }
       in += BUFFER_SIZE * utils::get_n_lanes<T>();
-      buffer_index = BUFFER_SIZE - 1;
+      buffer_index = 0;
     } else {
-      buffer_index -= 1;
+      ++buffer_index;
     }
   }
 };

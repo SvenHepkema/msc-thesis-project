@@ -51,18 +51,12 @@ fls_query_column(const runspec::RunSpecification spec) {
 template <typename T>
 verification::VerificationResult<T>
 fls_query_column_unrolled(const runspec::RunSpecification spec) {
-  auto [data, generator] = data::lambda::make_column_reusable<T>(
-      data::lambda::get_binary_column<T>()(sizeof(T) * 8, spec.data.count));
-
-  auto result = verification::run_verifier_on_parameters<T, T, int32_t,
+  return verification::run_verifier_on_parameters<T, T, int32_t,
                                                          int32_t>(
       spec.data.params, spec.data.params, spec.data.count, 1,
       verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
-          generator, queries::cpu::FLSQueryColumnFn<T>(),
+          data::lambda::get_binary_column<T>(), queries::cpu::FLSQueryColumnFn<T>(),
           queries::gpu::FLSQueryColumnUnrolledFn<T>(spec.kernel), false));
-
-  delete data;
-  return result;
 }
 
 template <typename T>

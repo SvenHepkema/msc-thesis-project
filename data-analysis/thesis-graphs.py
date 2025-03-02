@@ -164,6 +164,28 @@ class BenchmarkCommand:
 
 GRAPHER_PATH = "./data-analysis/graph-generator.py"
 
+FLS_1VEC__BASELINE = 2555380
+FLS_4VEC_COMPUTE_BASELINE = 2297220
+
+BASELINES = {
+    "fls_query": {
+        1: 2544540,
+        4: 2589440,  
+    },
+    "fls_query_unrolled": {
+        1: 2545940,
+        4: 2568960,  
+    },
+    "fls_decompress": {
+        1: 5497820,
+        4: 5611220,  
+    },
+    "fls_compute": {
+        1: 2548740,
+        4: 2555960,
+    },
+}
+
 
 def directory_exists(path: str) -> bool:
     return Path(path).is_dir()
@@ -220,16 +242,19 @@ class GraphDefintion:
     sources: list[DataSource]
     out: str
     title: str | None
+    n_vecs: int | None
 
     def __init__(
         self,
         sources: list[DataSource],
         out: str,
         title: str | None = None,
+        n_vecs: int | None = None,
     ) -> None:
         self.sources = sources
         self.out = out
         self.title = title
+        self.n_vecs = n_vecs
 
     @property
     def file_names(self) -> list[str]:
@@ -244,7 +269,9 @@ class GraphDefintion:
         return [source.color for source in self.sources]
 
 
-def inner_plot_main_unpackers(input_dir: str, output_dir: str, experiment: str, yamv: int):
+def inner_plot_main_unpackers(
+    input_dir: str, output_dir: str, experiment: str, yamv: int
+):
     graphs = [
         GraphDefintion(
             [
@@ -277,11 +304,13 @@ def inner_plot_main_unpackers(input_dir: str, output_dir: str, experiment: str, 
                 )
             ],
             f"unpackers-{experiment}-{n_vecs}v",
+            n_vecs=n_vecs,
         )
         for n_vecs in [1, 4]
     ]
 
     for graph in graphs:
+        assert graph.n_vecs != None
         execute_command(
             " ".join(
                 [
@@ -290,7 +319,7 @@ def inner_plot_main_unpackers(input_dir: str, output_dir: str, experiment: str, 
                     f"scatter",
                     f"execution_time",
                     f'-l {":".join(graph.labels)}',
-                    f"-hl 2504880",
+                    f"-hl {BASELINES[experiment][graph.n_vecs]}",
                     f'-hll "Normal execution"',
                     f"-lp upper-left",
                     f"-yamv {yamv}",

@@ -34,7 +34,7 @@ struct Dummy : BitUnpackerBase<T> {
     for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
 #pragma unroll
       for (int j = 0; j < UNPACK_N_VALUES; ++j) {
-        out[v * consts::VALUES_PER_VECTOR + j] =
+        out[v * UNPACK_N_VALUES + j] =
             in[v * consts::VALUES_PER_VECTOR + j * N_LANES];
       }
     }

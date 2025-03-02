@@ -11,7 +11,149 @@ import inspect
 import types
 import subprocess
 from pathlib import Path
-from typing import Iterable
+
+# ==========================
+# ==========================
+# COPIED FROM Benchmarker.py
+# ==========================
+
+INPUT_STANDARD_N_VECS = 1024 * 100
+
+EXECUTABLE_PATH = "./bin/executable"
+COLLECT_TRACES_PATH = "./collect-traces.py"
+
+STATEFUL_UNPACKERS = ["stateful-cache"] + [
+    f"stateful-{buffer_type}-{buffer_size}"
+    for buffer_type in ["local", "register", "register-branchless"]
+    for buffer_size in [1, 2, 4]
+]
+MAIN_STATEFUL_UNPACKER = "stateful-register-branchless-2"
+assert MAIN_STATEFUL_UNPACKER in STATEFUL_UNPACKERS
+
+OTHER_UNPACKERS = [
+    "stateless",
+    "stateless_branchless",
+    "stateful_branchless",
+]
+
+ALL_UNPACKERS = STATEFUL_UNPACKERS + OTHER_UNPACKERS
+
+MAIN_UNPACKERS = [MAIN_STATEFUL_UNPACKER] + OTHER_UNPACKERS
+
+
+def get_main_alp_unpacker_for_n_vecs(n_vecs: int) -> str:
+    return "stateful_branchless" if n_vecs == 1 else MAIN_STATEFUL_UNPACKER
+
+
+NO_PATCHER = ["none"]
+NON_PARALLEL_PATCHERS = ["stateless", "stateful"]
+PARALLEL_PATCHERS = [
+    "naive",
+    "naive_branchless",
+    "prefetch_position",
+    "prefetch_all",
+    "prefetch_all_branchless",
+]
+
+ALL_PATCHERS_OPTIONS = NO_PATCHER + NON_PARALLEL_PATCHERS + PARALLEL_PATCHERS
+ALL_PATCHERS = NON_PARALLEL_PATCHERS + PARALLEL_PATCHERS
+
+ALL_EXPERIMENTS = [
+    "fls_query",
+    "fls_query_unrolled",
+    "fls_decompress",
+    "fls_compute",
+    "alp_decompress",
+    "alp_query",
+]
+
+ALL_DATATYPE_WIDTHS = [8, 16, 32, 64]
+
+ALL_N_VECS = [1, 4]
+ALL_N_VALS = [1, 4]
+
+ALL_DATA_GENERATION_TYPES = ["none", "ec", "vbw"]
+
+ALL_METRICS = [
+    "global_load_requests",
+    "global_hit_rate",
+    "l2_tex_hit_rate",
+    "inst_issued",
+    "stall_memory_dependency",
+    "stall_memory_throttle",
+    "dram_read_bytes",
+    "dram_write_bytes",
+    "ipc",
+]
+
+
+class BenchmarkCommand:
+    experiment: str
+    unpacker: str
+    patcher: str
+    n_vecs: int
+    n_vals: int
+    input_n_vecs: int
+    data_generation_definition: str
+    data_name: str
+    datatype_width: int
+
+    def __init__(
+        self,
+        experiment: str,
+        unpacker: str,
+        patcher: str,
+        n_vecs: int,
+        data_generation_definition: str,
+        input_n_vecs: int,
+        data_name: str = "random",
+        datatype_width: int = 32,
+        n_vals: int = 1,
+    ) -> None:
+        assert experiment in ALL_EXPERIMENTS
+        self.experiment = experiment
+
+        assert unpacker in ALL_UNPACKERS
+        self.unpacker = unpacker
+
+        assert patcher in ALL_PATCHERS_OPTIONS
+        self.patcher = patcher
+
+        assert n_vecs in ALL_N_VECS
+        self.n_vecs = n_vecs
+
+        assert n_vals in ALL_N_VALS
+        self.n_vals = n_vals
+
+        assert input_n_vecs > 0
+        self.input_n_vecs = input_n_vecs
+
+        assert any([x in data_generation_definition for x in ALL_DATA_GENERATION_TYPES])
+        self.data_generation_definition = data_generation_definition
+
+        # 'index' 'random' or filename
+        self.data_name = data_name
+
+        assert datatype_width in ALL_DATATYPE_WIDTHS
+        self.datatype_width = datatype_width
+
+    def get_as_shell_str(self) -> str:
+        return " ".join(
+            [
+                EXECUTABLE_PATH,
+                f"{self.experiment} {self.unpacker} {self.patcher}",
+                f"{self.n_vecs} {self.n_vals} {self.datatype_width}",
+                f"{self.data_name} {self.data_generation_definition}",
+                f"{self.input_n_vecs} 0",
+            ]
+        )
+
+    def get_file_name(self) -> str:
+        return self.get_as_shell_str()[len(EXECUTABLE_PATH) + 1 :].replace(" ", "_")
+
+
+# ==========================
+# ==========================
 
 GRAPHER_PATH = "./data-analysis/graph-generator.py"
 
@@ -51,90 +193,81 @@ def execute_command(command: str) -> str:
     return result.stdout
 
 
-class GraphDefinition:
-    files: list[str]
-    labels: list[str]
-    out: str
-    title: str | None
-    colors: Iterable[int]
+class DataSource:
+    file: BenchmarkCommand
+    label: str
+    color: int
 
     def __init__(
         self,
-        files: list[str],
-        labels: list[str],
+        file: BenchmarkCommand,
+        label: str,
+        color: int,
+    ) -> None:
+        self.file = file
+        self.label = label
+        self.color = color
+
+
+class GraphDefintion:
+    sources: list[DataSource]
+    out: str
+    title: str | None
+
+    def __init__(
+        self,
+        sources: list[DataSource],
         out: str,
         title: str | None = None,
-        colors: Iterable[int] | None = None,
     ) -> None:
-        self.files = files
-        self.labels = labels
+        self.sources = sources
         self.out = out
         self.title = title
-        self.colors = colors if colors else range(len(self.files))
+
+    @property
+    def file_names(self) -> list[str]:
+        return [source.file.get_file_name() for source in self.sources]
+
+    @property
+    def labels(self) -> list[str]:
+        return [source.label for source in self.sources]
+
+    @property
+    def colors(self) -> list[int]:
+        return [source.color for source in self.sources]
 
 
-def plot_stateful_unpackers(input_dir: str, output_dir: str):
+def inner_plot_main_unpackers(input_dir: str, output_dir: str, experiment: str, yamv: int):
     graphs = [
-        GraphDefinition(
+        GraphDefintion(
             [
-                f"fls_query-stateful-cache-{n_vecs}-1",
-                f"fls_query-stateful-local-1-{n_vecs}-1",
-                f"fls_query-stateful-register-1-{n_vecs}-1",
-                f"fls_query-stateful-register-branchless-1-{n_vecs}-1",
-            ],
-            [
-                f"cache-0b-{n_vecs}v",
-                f"local-1b-{n_vecs}v",
-                f"register-1b-{n_vecs}v",
-                f"register-branchless-1b-{n_vecs}v",
-            ],
-            f"stateful-v{n_vecs}-b1",
-        )
-        for n_vecs in [1, 4]
-    ] + [
-        GraphDefinition(
-            [
-                f"fls_query-stateful-local-{buffer_size}-{n_vecs}-1",
-                f"fls_query-stateful-register-{buffer_size}-{n_vecs}-1",
-                f"fls_query-stateful-register-branchless-{buffer_size}-{n_vecs}-1",
-            ],
-            [
-                f"local-{buffer_size}b-{n_vecs}v",
-                f"register-{buffer_size}b-{n_vecs}v",
-                f"register-branchless-{buffer_size}b-{n_vecs}v",
-            ],
-            f"stateful-v{n_vecs}-b{buffer_size}",
-            colors=list(range(1, 4)),
-        )
-        for buffer_size in [2, 4]
-        for n_vecs in [1, 4]
-    ]
-
-    for graph in graphs:
-        execute_command(
-            f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
-            f'scatter execution_time -l {":".join(graph.labels)} '
-            f'-hl 250488 -hll "Normal execution" '
-            f"-lp upper-left -yamv 700 "
-            f'-c {":".join(map(str, graph.colors))} '
-            f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
-        )
-
-
-def inner_plot_all_unpackers(input_dir: str, output_dir: str, experiment: str):
-    graphs = [
-        GraphDefinition(
-            [
-                f"{experiment}-stateless-{n_vecs}-1",
-                f"{experiment}-stateful-register-branchless-2-{n_vecs}-1",
-                f"{experiment}-stateless_branchless-{n_vecs}-1",
-                f"{experiment}-stateful_branchless-{n_vecs}-1",
-            ],
-            [
-                f"stateless-{n_vecs}v",
-                f"stateful-{n_vecs}v",
-                f"stateless-branchless-{n_vecs}v",
-                f"stateful-branchless-{n_vecs}v",
+                DataSource(
+                    BenchmarkCommand(
+                        experiment=experiment,
+                        unpacker=unpacker,
+                        patcher=NO_PATCHER[0],
+                        n_vecs=n_vecs,
+                        data_generation_definition="vbw-0-32",
+                        input_n_vecs=INPUT_STANDARD_N_VECS,
+                    ),
+                    label,
+                    color,
+                )
+                for unpacker, label, color in zip(
+                    [
+                        "stateless",
+                        "stateful-register-branchless-2",
+                        "stateless_branchless",
+                        "stateful_branchless",
+                    ],
+                    [
+                        f"stateless-{n_vecs}v",
+                        f"stateful-{n_vecs}v",
+                        f"stateless-branchless-{n_vecs}v",
+                        f"stateful-branchless-{n_vecs}v",
+                    ],
+                    range(0, 4),
+                )
             ],
             f"unpackers-{experiment}-{n_vecs}v",
         )
@@ -143,81 +276,154 @@ def inner_plot_all_unpackers(input_dir: str, output_dir: str, experiment: str):
 
     for graph in graphs:
         execute_command(
-            f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
-            f'scatter execution_time -l {":".join(graph.labels)} '
-            f'-hl 250488 -hll "Normal execution" '
-            f"-lp upper-left -yamv 300 "
-            f'-c {":".join(map(str, graph.colors))} '
-            f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
+            " ".join(
+                [
+                    f"{GRAPHER_PATH}",
+                    f'{":".join([os.path.join(input_dir, file) for file in graph.file_names])}',
+                    f"scatter",
+                    f"execution_time",
+                    f'-l {":".join(graph.labels)}',
+                    f"-hl 2504880",
+                    f'-hll "Normal execution"',
+                    f"-lp upper-left",
+                    f"-yamv {yamv}",
+                    f'-c {":".join(map(str, graph.colors))}',
+                    f'-o {os.path.join(output_dir,f"{graph.out}.eps")}',
+                ]
+            )
         )
 
-def plot_all_unpackers_query(input_dir: str, output_dir: str):
-    inner_plot_all_unpackers(input_dir, output_dir, "fls_query")
+
+def plot_main_unpackers_query(input_dir: str, output_dir: str):
+    inner_plot_main_unpackers(input_dir, output_dir, "fls_query", 3000)
 
 
-def plot_all_unpackers_decompress(input_dir: str, output_dir: str):
-    inner_plot_all_unpackers(input_dir, output_dir, "fls_decompress")
+def plot_main_unpackers_query_unrolled(input_dir: str, output_dir: str):
+    inner_plot_main_unpackers(input_dir, output_dir, "fls_query_unrolled", 3000)
 
 
-def plot_all_unpackers_compute(input_dir: str, output_dir: str):
-    inner_plot_all_unpackers(input_dir, output_dir, "fls_compute")
+def plot_main_unpackers_decompress(input_dir: str, output_dir: str):
+    inner_plot_main_unpackers(input_dir, output_dir, "fls_decompress", 6000)
 
 
-def plot_all_patchers(input_dir: str, output_dir: str):
-    def get_filename(unpacker: str, patcher: str, n_vecs: int) -> str:
-        return f"alp_query-{unpacker}-{patcher}-{n_vecs}-1"
+def plot_main_unpackers_compute(input_dir: str, output_dir: str):
+    inner_plot_main_unpackers(input_dir, output_dir, "fls_compute", 6000)
 
-    def get_graphs_for_patchers(
-        patchers: list[str], out: str, color_offset: int
-    ) -> list[GraphDefinition]:
-        return [
-            GraphDefinition(
-                [
-                    get_filename(
-                        (
-                            "stateful_branchless"
-                            if n_vecs == 1
-                            else "stateful-register-2"
+
+def inner_plot_stateful_unpackers(input_dir: str, output_dir: str, experiment: str):
+    graphs = [
+        GraphDefintion(
+            [
+                DataSource(
+                    BenchmarkCommand(
+                        experiment=experiment,
+                        unpacker=(
+                            f"stateful-{buffer_type}-{buffer_size}"
+                            if buffer_type != "cache"
+                            else "stateful-cache"
                         ),
-                        patcher,
-                        n_vecs,
+                        patcher=NO_PATCHER[0],
+                        n_vecs=n_vecs,
+                        data_generation_definition="vbw-0-32",
+                        input_n_vecs=INPUT_STANDARD_N_VECS,
+                    ),
+                    (
+                        f"{buffer_type}-{buffer_size}b-{n_vecs}v"
+                        if buffer_type != "cache"
+                        else f"cache-{n_vecs}v"
+                    ),
+                    color,
+                )
+                for buffer_type, color in zip(
+                    [
+                        "cache",
+                        "local",
+                        "register",
+                        "register-branchless",
+                    ],
+                    range(0, 4),
+                )
+                if buffer_type != "cache" or buffer_size == 1
+            ],
+            f"unpackers-{experiment}-{n_vecs}v-{buffer_size}b",
+        )
+        for buffer_size in [1, 2, 4]
+        for n_vecs in [1, 4]
+    ]
+
+    for graph in graphs:
+        execute_command(
+            " ".join(
+                [
+                    f"{GRAPHER_PATH}",
+                    f'{":".join([os.path.join(input_dir, file) for file in graph.file_names])}',
+                    f"scatter",
+                    f"execution_time",
+                    f'-l {":".join(graph.labels)}',
+                    f"-hl 2504880",
+                    f'-hll "Normal execution"',
+                    f"-lp upper-left",
+                    f"-yamv 3000",
+                    f'-c {":".join(map(str, graph.colors))}',
+                    f'-o {os.path.join(output_dir,f"{graph.out}.eps")}',
+                ]
+            )
+        )
+
+
+def plot_stateful_unpackers_query(input_dir: str, output_dir: str):
+    inner_plot_stateful_unpackers(input_dir, output_dir, "fls_query")
+
+
+def plot_patchers_query(input_dir: str, output_dir: str):
+    def get_graphs_for_patchers(
+        patchers: list[str], out: str, colors_offset: int
+    ) -> list[GraphDefintion]:
+        return [
+            GraphDefintion(
+                [
+                    DataSource(
+                        BenchmarkCommand(
+                            experiment="alp_query",
+                            unpacker=(
+                                "stateful_branchless"
+                                if n_vecs == 1
+                                else "stateful-register-branchless-2"
+                            ),
+                            patcher=patcher,
+                            n_vecs=n_vecs,
+                            data_generation_definition="ec-0-50",
+                            input_n_vecs=INPUT_STANDARD_N_VECS,
+                        ),
+                        f"{patcher}-{n_vecs}v",
+                        color,
                     )
-                    for patcher in patchers
+                    for patcher, color in zip(
+                        patchers, range(colors_offset, colors_offset + len(patchers))
+                    )
                 ],
-                patchers,
-                out=out + f"-v{n_vecs}",
-                colors=range(color_offset, color_offset + len(patchers)),
+                out=f"{out}-v{n_vecs}",
             )
             for n_vecs in [1, 4]
         ]
 
     nonparallel_patchers = (
-        [
-            "stateless",
-            "stateful",
-        ],
+        NON_PARALLEL_PATCHERS,
         "nonparallel-exception-patchers",
-        2500,
+        25000,
         0,
     )
     parallel_patchers = (
-        [
-            "naive",
-            "naive_branchless",
-        ],
+        PARALLEL_PATCHERS[:2],
         "parallel-exception-patchers",
-        400,
-        0,
+        4000,
+        len(nonparallel_patchers[0]),
     )
     prefetch_parallel_patchers = (
-        [
-            "prefetch_position",
-            "prefetch_all",
-            "prefetch_all_branchless",
-        ],
+        PARALLEL_PATCHERS[2:],
         "prefetch-parallel-exception-patchers",
-        400,
-        len(parallel_patchers[0]),
+        4000,
+        len(nonparallel_patchers[0]) + len(parallel_patchers[0]),
     )
 
     for patcher_set, out, yamv, color_offset in [
@@ -227,12 +433,21 @@ def plot_all_patchers(input_dir: str, output_dir: str):
     ]:
         for graph in get_graphs_for_patchers(patcher_set, out, color_offset):
             execute_command(
-                f'{GRAPHER_PATH} {":".join([os.path.join(input_dir, file) for file in graph.files])} '
-                f'scatter execution_time -l {":".join(graph.labels)} '
-                f'-hl 250488 -hll "Normal execution" '
-                f"-lp lower-right -yamv {yamv} "
-                f'-c {":".join(map(str, graph.colors))} '
-                f'-o {os.path.join(output_dir,f"{graph.out}.eps")}'
+                " ".join(
+                    [
+                        f"{GRAPHER_PATH}",
+                        f'{":".join([os.path.join(input_dir, file) for file in graph.file_names])}',
+                        f"scatter",
+                        f"execution_time",
+                        f'-l {":".join(graph.labels)}',
+                        f"-hl 2504880",
+                        f'-hll "Normal execution"',
+                        f"-lp lower-right",
+                        f"-yamv {yamv}",
+                        f'-c {":".join(map(str, graph.colors))}',
+                        f'-o {os.path.join(output_dir,f"{graph.out}.eps")}',
+                    ]
+                )
             )
 
 
@@ -252,7 +467,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "plotting_function",
         type=str,
-        choices=list(plotting_functions.keys()),
+        choices=list(plotting_functions.keys()) + ["all"],
         help="function to execute",
     )
     parser.add_argument(
@@ -289,5 +504,11 @@ if __name__ == "__main__":
     logging.info(
         f"Started {os.path.basename(sys.argv[0])} with the following args: {args}"
     )
-    args.plotting_function = plotting_functions[args.plotting_function]
+
+    if args.plotting_function == "all":
+        args.plotting_function = lambda in_dir, out_dir: list(
+            func(in_dir, out_dir) for func in plotting_functions.values()
+        )
+    else:
+        args.plotting_function = plotting_functions[args.plotting_function]
     main(args)

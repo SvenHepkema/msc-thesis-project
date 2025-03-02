@@ -16,23 +16,27 @@ namespace fls {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor>
-struct Baseline : BitUnpackerBase<T> {
+struct Dummy : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const UINT_T *in;
 
-  __device__ __forceinline__
-  Baseline(const UINT_T *__restrict a_in, const lane_t lane,
-           [[maybe_unused]] const vbw_t value_bit_width,
-           [[maybe_unused]] OutputProcessor processor)
+  __device__ __forceinline__ Dummy(const UINT_T *__restrict a_in,
+                                   const lane_t lane,
+                                   [[maybe_unused]] const vbw_t value_bit_width,
+                                   [[maybe_unused]] OutputProcessor processor)
       : in(a_in + lane){};
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
     constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
 
 #pragma unroll
-    for (int j = 0; j < UNPACK_N_VALUES; ++j) {
-      out[j] = in[j * N_LANES];
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+#pragma unroll
+      for (int j = 0; j < UNPACK_N_VALUES; ++j) {
+        out[v * consts::VALUES_PER_VECTOR + j] =
+            in[v * consts::VALUES_PER_VECTOR + j * N_LANES];
+      }
     }
 
     in += UNPACK_N_VALUES * N_LANES;
@@ -47,10 +51,9 @@ struct OldFLSAdjusted : BitUnpackerBase<T> {
   const UINT_T *in;
   const vbw_t value_bit_width;
 
-  __device__ __forceinline__
-  OldFLSAdjusted(const UINT_T *__restrict a_in, const lane_t lane,
-                 [[maybe_unused]] const vbw_t a_value_bit_width,
-                 [[maybe_unused]] OutputProcessor processor)
+  __device__ __forceinline__ OldFLSAdjusted(
+      const UINT_T *__restrict a_in, const lane_t lane,
+      const vbw_t a_value_bit_width, [[maybe_unused]] OutputProcessor processor)
       : in(a_in + lane), value_bit_width(a_value_bit_width) {
     static_assert(UNPACK_N_VECTORS == 1, "Old FLS can only unpack 1 at a time");
     static_assert(UNPACK_N_VALUES == utils::get_values_per_lane<T>(),
@@ -88,9 +91,8 @@ __global__ void decompress_column(T *__restrict out, const T *__restrict in,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
-__global__ void query_column(T *__restrict out,
-                                           const T *__restrict in,
-                                           const vbw_t value_bit_width) {
+__global__ void query_column(T *__restrict out, const T *__restrict in,
+                             const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -112,9 +114,8 @@ __global__ void query_column(T *__restrict out,
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT>
-__global__ void query_column_unrolled(T *__restrict out,
-                                           const T *__restrict in,
-                                           const vbw_t value_bit_width) {
+__global__ void query_column_unrolled(T *__restrict out, const T *__restrict in,
+                                      const vbw_t value_bit_width) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -136,7 +137,7 @@ __global__ void query_column_unrolled(T *__restrict out,
 }
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
-          typename UnpackerT, int N_REPETITIONS=10>
+          typename UnpackerT, int N_REPETITIONS = 10>
 __global__ void compute_column(T *__restrict out, const T *__restrict in,
                                const vbw_t value_bit_width,
                                const T runtime_zero) {
@@ -210,8 +211,7 @@ public:
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename UnpackerT, typename ColumnT>
-__global__ void query_column(T *out, ColumnT column,
-                                            const T magic_value) {
+__global__ void query_column(T *out, ColumnT column, const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();

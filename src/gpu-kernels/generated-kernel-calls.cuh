@@ -25,6 +25,55 @@ void fls_decompress_column(const runspec::KernelSpecification spec,
     const T *in,
     const int32_t value_bit_width) {
 
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 1, kernels::device::fls::Dummy<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::decompress_column<                                   
+        T, 4, 1, kernels::device::fls::Dummy<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 4, kernels::device::fls::Dummy<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::decompress_column<                                   
+        T, 4, 4, kernels::device::fls::Dummy<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 32, kernels::device::fls::Dummy<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 32) {
+    kernels::device::fls::decompress_column<                                   
+        T, 4, 32, kernels::device::fls::Dummy<T, 4, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::OLD_FLS_ADJUSTED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::decompress_column<                                   
+        T, 1, 32, kernels::device::fls::OldFLSAdjusted<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
 if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::decompress_column<                                   
         T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>  >>           
@@ -426,6 +475,55 @@ void fls_query_column(const runspec::KernelSpecification spec,
     const T *in,
     const int32_t value_bit_width
     ) {
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 1, kernels::device::fls::Dummy<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column<                                   
+        T, 4, 1, kernels::device::fls::Dummy<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 4, kernels::device::fls::Dummy<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column<                                   
+        T, 4, 4, kernels::device::fls::Dummy<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 32, kernels::device::fls::Dummy<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 32) {
+    kernels::device::fls::query_column<                                   
+        T, 4, 32, kernels::device::fls::Dummy<T, 4, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::OLD_FLS_ADJUSTED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::query_column<                                   
+        T, 1, 32, kernels::device::fls::OldFLSAdjusted<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
 
 if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::query_column<                                   
@@ -829,6 +927,55 @@ void fls_query_column_unrolled(const runspec::KernelSpecification spec,
     const int32_t value_bit_width
     ) {
 
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 1, kernels::device::fls::Dummy<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 1, kernels::device::fls::Dummy<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 4, kernels::device::fls::Dummy<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 4, kernels::device::fls::Dummy<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 32, kernels::device::fls::Dummy<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 32) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 4, 32, kernels::device::fls::Dummy<T, 4, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
+if (runspec::OLD_FLS_ADJUSTED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::query_column_unrolled<                                   
+        T, 1, 32, kernels::device::fls::OldFLSAdjusted<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width);            
+        }
+
 if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::query_column_unrolled<                                   
         T, 1, 1, BitUnpackerNonInterleaved<T, 1, 1, BPFunctor<T>  >>           
@@ -1229,6 +1376,55 @@ void fls_compute_column(const runspec::KernelSpecification spec,
     T *out,
     const T *in,
     const int32_t value_bit_width) {
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 1, kernels::device::fls::Dummy<T, 1, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 1) {
+    kernels::device::fls::compute_column<                                   
+        T, 4, 1, kernels::device::fls::Dummy<T, 4, 1, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 4) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 4, kernels::device::fls::Dummy<T, 1, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 4) {
+    kernels::device::fls::compute_column<                                   
+        T, 4, 4, kernels::device::fls::Dummy<T, 4, 4, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 32, kernels::device::fls::Dummy<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::DUMMY == spec.unpacker && spec.n_vecs == 4 && spec.n_vals == 32) {
+    kernels::device::fls::compute_column<                                   
+        T, 4, 32, kernels::device::fls::Dummy<T, 4, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
+
+if (runspec::OLD_FLS_ADJUSTED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 32) {
+    kernels::device::fls::compute_column<                                   
+        T, 1, 32, kernels::device::fls::OldFLSAdjusted<T, 1, 32, BPFunctor<T>  >>           
+        <<<n_blocks, n_threads>>>(                 
+            out, in, value_bit_width, 0);            
+        }
 
 if (runspec::NON_INTERLEAVED == spec.unpacker && spec.n_vecs == 1 && spec.n_vals == 1) {
     kernels::device::fls::compute_column<                                   

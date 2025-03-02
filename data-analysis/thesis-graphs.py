@@ -36,7 +36,14 @@ OTHER_UNPACKERS = [
     "stateful_branchless",
 ]
 
+NON_STANDARD_UNPACKERS = [
+    "dummy",
+    "old_fls_adjusted",
+]
+
 ALL_UNPACKERS = STATEFUL_UNPACKERS + OTHER_UNPACKERS
+
+VALID_UNPACKERS = ALL_UNPACKERS + NON_STANDARD_UNPACKERS
 
 MAIN_UNPACKERS = [MAIN_STATEFUL_UNPACKER] + OTHER_UNPACKERS
 
@@ -70,7 +77,7 @@ ALL_EXPERIMENTS = [
 ALL_DATATYPE_WIDTHS = [8, 16, 32, 64]
 
 ALL_N_VECS = [1, 4]
-ALL_N_VALS = [1, 4]
+ALL_N_VALS = [1, 4, 32]
 
 ALL_DATA_GENERATION_TYPES = ["none", "ec", "vbw"]
 
@@ -113,7 +120,7 @@ class BenchmarkCommand:
         assert experiment in ALL_EXPERIMENTS
         self.experiment = experiment
 
-        assert unpacker in ALL_UNPACKERS
+        assert unpacker in VALID_UNPACKERS
         self.unpacker = unpacker
 
         assert patcher in ALL_PATCHERS_OPTIONS

@@ -397,7 +397,7 @@ class ExecutableProperties:
         if self.datagen_type != None:
             data_param_split = data_param.split("-")
             if len(data_param_split) == 2:
-                self.datagen_params = list(range(int(data_param_split[1]) + 1))
+                self.datagen_params = [int(data_param_split[1])]
             if len(data_param_split) == 3:
                 self.datagen_params = list(
                     range(int(data_param_split[1]), int(data_param_split[2]) + 1)

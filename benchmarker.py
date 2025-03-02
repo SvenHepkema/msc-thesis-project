@@ -33,7 +33,14 @@ OTHER_UNPACKERS = [
     "stateful_branchless",
 ]
 
+NON_STANDARD_UNPACKERS = [
+    "dummy",
+    "old_fls_adjusted",
+]
+
 ALL_UNPACKERS = STATEFUL_UNPACKERS + OTHER_UNPACKERS
+
+VALID_UNPACKERS = ALL_UNPACKERS + NON_STANDARD_UNPACKERS
 
 MAIN_UNPACKERS = [MAIN_STATEFUL_UNPACKER] + OTHER_UNPACKERS
 
@@ -67,7 +74,7 @@ ALL_EXPERIMENTS = [
 ALL_DATATYPE_WIDTHS = [8, 16, 32, 64]
 
 ALL_N_VECS = [1, 4]
-ALL_N_VALS = [1, 4]
+ALL_N_VALS = [1, 4, 32]
 
 ALL_DATA_GENERATION_TYPES = ["none", "ec", "vbw"]
 
@@ -95,7 +102,7 @@ class Stopwatch:
 
     def stop(self) -> float:
         assert self._start_time is not None
-        return (time.perf_counter() - self._start_time) 
+        return time.perf_counter() - self._start_time
 
 
 def has_root_privileges() -> bool:
@@ -166,7 +173,7 @@ class BenchmarkCommand:
         assert experiment in ALL_EXPERIMENTS
         self.experiment = experiment
 
-        assert unpacker in ALL_UNPACKERS
+        assert unpacker in VALID_UNPACKERS
         self.unpacker = unpacker
 
         assert patcher in ALL_PATCHERS_OPTIONS
@@ -245,6 +252,48 @@ def return_fls_vbw_benches(
         )
         for unpacker in unpackers
         for n_vecs in [1, 4]
+    ]
+
+
+def bench_non_standard_unpackers() -> list[BenchmarkCommand]:
+    return [
+        BenchmarkCommand(
+            experiment=experiment,
+            unpacker=unpacker,
+            patcher="none",
+            n_vecs=n_vecs,
+            n_vals=n_vals,
+            data_generation_definition=data_generation_definition,
+            input_n_vecs=args.n_input_vecs,
+        )
+        for experiment in [
+            "fls_decompress",
+            "fls_query",
+            "fls_query_unrolled",
+            "fls_compute",
+        ]
+        for unpacker, data_generation_definition, n_vecs, n_vals in zip(
+            [
+                NON_STANDARD_UNPACKERS[0],
+                NON_STANDARD_UNPACKERS[0],
+                NON_STANDARD_UNPACKERS[1],
+            ],
+            [
+                "vbw-32",
+                "vbw-32",
+                "vbw-0-32",
+            ],
+            [
+                1,
+                4,
+                1,
+            ],
+            [
+                1,
+                1,
+                32,
+            ],
+        )
     ]
 
 

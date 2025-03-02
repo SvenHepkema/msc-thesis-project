@@ -12,6 +12,8 @@ namespace runspec {
 
 enum UnpackerOption {
   CPU,
+  DUMMY,
+	OLD_FLS_ADJUSTED,
   NON_INTERLEAVED,
   STATELESS,
   STATEFUL_CACHE,
@@ -49,6 +51,8 @@ struct KernelSpecification {
 static inline const std::unordered_map<std::string, UnpackerOption>
     unpacker_options{
         {"cpu", CPU},
+        {"dummy", DUMMY},
+        {"old_fls_adjusted", OLD_FLS_ADJUSTED},
         {"noninterleaved", NON_INTERLEAVED},
         {"stateless", STATELESS},
         {"stateful-cache", STATEFUL_CACHE},

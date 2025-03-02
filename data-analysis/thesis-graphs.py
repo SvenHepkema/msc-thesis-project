@@ -164,9 +164,6 @@ class BenchmarkCommand:
 
 GRAPHER_PATH = "./data-analysis/graph-generator.py"
 
-FLS_1VEC__BASELINE = 2555380
-FLS_4VEC_COMPUTE_BASELINE = 2297220
-
 BASELINES = {
     "fls_query": {
         1: 2544540,
@@ -385,12 +382,14 @@ def inner_plot_stateful_unpackers(input_dir: str, output_dir: str, experiment: s
                 if buffer_type != "cache" or buffer_size == 1
             ],
             f"unpackers-{experiment}-{n_vecs}v-{buffer_size}b",
+            n_vecs=n_vecs,
         )
         for buffer_size in [1, 2, 4]
         for n_vecs in [1, 4]
     ]
 
     for graph in graphs:
+        assert graph.n_vecs != None
         execute_command(
             " ".join(
                 [
@@ -399,7 +398,7 @@ def inner_plot_stateful_unpackers(input_dir: str, output_dir: str, experiment: s
                     f"scatter",
                     f"execution_time",
                     f'-l {":".join(graph.labels)}',
-                    f"-hl 2504880",
+                    f"-hl {BASELINES['fls_query'][graph.n_vecs]}",
                     f'-hll "Normal execution"',
                     f"-lp upper-left",
                     f"-yamv 3000",
@@ -442,6 +441,7 @@ def plot_patchers_query(input_dir: str, output_dir: str):
                     )
                 ],
                 out=f"{out}-v{n_vecs}",
+                n_vecs=n_vecs,
             )
             for n_vecs in [1, 4]
         ]
@@ -471,6 +471,7 @@ def plot_patchers_query(input_dir: str, output_dir: str):
         prefetch_parallel_patchers,
     ]:
         for graph in get_graphs_for_patchers(patcher_set, out, color_offset):
+            assert graph.n_vecs != None
             execute_command(
                 " ".join(
                     [
@@ -479,7 +480,7 @@ def plot_patchers_query(input_dir: str, output_dir: str):
                         f"scatter",
                         f"execution_time",
                         f'-l {":".join(graph.labels)}',
-                        f"-hl 2504880",
+                        f"-hl {BASELINES['fls_query'][graph.n_vecs]}",
                         f'-hll "Normal execution"',
                         f"-lp lower-right",
                         f"-yamv {yamv}",

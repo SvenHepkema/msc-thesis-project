@@ -68,6 +68,7 @@ ALL_PATCHERS = NON_PARALLEL_PATCHERS + PARALLEL_PATCHERS
 ALL_EXPERIMENTS = [
     "fls_query",
     "fls_query_unrolled",
+    "fls_query_multicolumn",
     "fls_decompress",
     "fls_compute",
     "alp_decompress",
@@ -168,6 +169,10 @@ BASELINES = {
     "fls_query": {
         1: 2544540,
         4: 2589440,  
+    },
+    "fls_query_multicolumn": {
+        1: 10284400,
+        4: 10243800,  
     },
     "fls_query_unrolled": {
         1: 2545940,
@@ -332,6 +337,10 @@ def inner_plot_main_unpackers(
 
 def plot_main_unpackers_query(input_dir: str, output_dir: str):
     inner_plot_main_unpackers(input_dir, output_dir, "fls_query", 3000)
+
+
+def plot_main_unpackers_query_multicolumn(input_dir: str, output_dir: str):
+    inner_plot_main_unpackers(input_dir, output_dir, "fls_query_multicolumn", 13000)
 
 
 def plot_main_unpackers_query_unrolled(input_dir: str, output_dir: str):

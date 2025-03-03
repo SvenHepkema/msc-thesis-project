@@ -24,6 +24,12 @@ void query_column_contains_zero(const runspec::KernelSpecification spec,
                                 const int32_t value_bit_width);
 
 template <typename T>
+void query_multicolumn_contains_zero(const runspec::KernelSpecification spec,
+                                const T *__restrict in, T *__restrict out,
+                                const size_t count,
+                                const int32_t value_bit_width);
+
+template <typename T>
 void query_column_contains_zero_unrolled(const runspec::KernelSpecification spec,
                                 const T *__restrict in, T *__restrict out,
                                 const size_t count,
@@ -77,6 +83,22 @@ extern template void kernels::fls::query_column_contains_zero<uint32_t>(
     uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 extern template void kernels::fls::query_column_contains_zero<uint64_t>(
+    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
+    uint64_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+
+extern template void kernels::fls::query_multicolumn_contains_zero<uint8_t>(
+    const runspec::KernelSpecification spec, const uint8_t *__restrict in,
+    uint8_t *__restrict out, const size_t count, const int32_t value_bit_width);
+extern template void kernels::fls::query_multicolumn_contains_zero<uint16_t>(
+    const runspec::KernelSpecification spec, const uint16_t *__restrict in,
+    uint16_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void kernels::fls::query_multicolumn_contains_zero<uint32_t>(
+    const runspec::KernelSpecification spec, const uint32_t *__restrict in,
+    uint32_t *__restrict out, const size_t count,
+    const int32_t value_bit_width);
+extern template void kernels::fls::query_multicolumn_contains_zero<uint64_t>(
     const runspec::KernelSpecification spec, const uint64_t *__restrict in,
     uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);

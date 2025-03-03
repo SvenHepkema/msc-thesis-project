@@ -64,6 +64,7 @@ ALL_PATCHERS = NON_PARALLEL_PATCHERS + PARALLEL_PATCHERS
 
 ALL_EXPERIMENTS = [
     "fls_query",
+    "fls_query_multicolumn",
     "fls_query_unrolled",
     "fls_decompress",
     "fls_compute",
@@ -267,10 +268,11 @@ def bench_non_standard_unpackers() -> list[BenchmarkCommand]:
             input_n_vecs=args.n_input_vecs,
         )
         for experiment in [
-            "fls_decompress",
-            "fls_query",
-            "fls_query_unrolled",
-            "fls_compute",
+            "fls_query_multicolumn",
+            #"fls_decompress",
+            #"fls_query",
+            #"fls_query_unrolled",
+            #"fls_compute",
         ]
         for unpacker, data_generation_definition, n_vecs, n_vals in zip(
             [
@@ -299,6 +301,10 @@ def bench_non_standard_unpackers() -> list[BenchmarkCommand]:
 
 def bench_all_fls_query_vbw() -> list[BenchmarkCommand]:
     return return_fls_vbw_benches("fls_query", ALL_UNPACKERS)
+
+
+def bench_all_fls_query_multicolumn_vbw() -> list[BenchmarkCommand]:
+    return return_fls_vbw_benches("fls_query_multicolumn", MAIN_UNPACKERS)
 
 
 def bench_all_fls_query_unrolled_vbw() -> list[BenchmarkCommand]:

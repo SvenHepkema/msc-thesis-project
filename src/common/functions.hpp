@@ -32,6 +32,7 @@ template <class T> struct Fastlanes {
       OPTION("fls_decompress", experiments::fls_decompress_column),
       OPTION("fls_query", experiments::fls_query_column),
       OPTION("fls_query_unrolled", experiments::fls_query_column_unrolled),
+      OPTION("fls_query_multicolumn", experiments::fls_query_multicolumn),
       OPTION("fls_compute", experiments::fls_compute_column),
   };
 };

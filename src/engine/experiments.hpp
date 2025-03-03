@@ -61,6 +61,19 @@ fls_query_column_unrolled(const runspec::RunSpecification spec) {
 
 template <typename T>
 verification::VerificationResult<T>
+fls_query_multicolumn(const runspec::RunSpecification spec) {
+  verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
+      spec.data.params, spec.data.params, spec.data.count, 1,
+      verification::get_equal_decompression_verifier<T, T, int32_t, int32_t>(
+          data::lambda::get_binary_column<T>(),
+          queries::cpu::FLSQueryColumnFn<T>(),
+          queries::gpu::FLSQueryMultiColumnFn<T>(spec.kernel)));
+	return std::vector<verification::ExecutionResult<T>>();
+}
+
+
+template <typename T>
+verification::VerificationResult<T>
 fls_compute_column(const runspec::RunSpecification spec) {
   return verification::run_verifier_on_parameters<T, T, int32_t, int32_t>(
       spec.data.params, spec.data.params, spec.data.count, 1,

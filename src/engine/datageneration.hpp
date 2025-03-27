@@ -138,18 +138,19 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   return column;
 }
 
-template <typename T>
-std::unique_ptr<T> read_file_as(runspec::DataSpecification spec) {
-  auto column = allocate_column<T>(spec.count);
 
-  std::ifstream inputFile(spec.name, std::ios::binary | std::ios::ate);
+template <typename T>
+std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
+  // Open file
+  std::ifstream inputFile(path, std::ios::binary | std::ios::ate);
   if (!inputFile) {
     throw std::invalid_argument("Could not open the specified file.");
   }
-
+  // Get file size
   const std::streamsize file_size = inputFile.tellg();
   inputFile.seekg(0, std::ios::beg);
 
+  // Check file size to contain right type of data
   bool file_size_is_multiple_of_T_size =
       static_cast<size_t>(file_size) % static_cast<size_t>(sizeof(T)) != 0;
   if (file_size_is_multiple_of_T_size) {
@@ -157,27 +158,38 @@ std::unique_ptr<T> read_file_as(runspec::DataSpecification spec) {
         "File size is incorrect, it is not a multiple of the type's size.");
   }
 
-  const std::streamsize read_size = std::min(
-      file_size, static_cast<std::streamsize>((spec.count * sizeof(T))));
-  if (!inputFile.read(reinterpret_cast<char *>(column.get()), read_size)) {
+  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
+  size_t count = input_count == 0 ? values_in_file : input_count;
+  count = count - (count % consts::VALUES_PER_VECTOR);
+  auto column = new T[count];
+
+  // Read either the file size, or the total number of values needed,
+  // whichever is smaller
+  const std::streamsize read_size =
+      std::min(file_size, static_cast<std::streamsize>((count * sizeof(T))));
+  if (!inputFile.read(reinterpret_cast<char *>(column), read_size)) {
     throw std::invalid_argument("Failed to read file into column");
   }
 
   inputFile.close();
 
-  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
-  if (values_in_file < spec.count) {
+  // Copy paste the values in file until the column is filled
+  if (values_in_file < count) {
     size_t n_filled_values = values_in_file;
-    size_t n_empty_values_column = spec.count - n_filled_values;
+    size_t n_empty_values_column = count - n_filled_values;
     while (n_empty_values_column > 0) {
-      std::memcpy(column.get() + n_filled_values, column.get(),
+      std::memcpy(column + n_filled_values, column,
                   std::min(n_empty_values_column, values_in_file));
       n_filled_values += values_in_file;
+
+      if (n_empty_values_column < values_in_file) {
+        break;
+      }
       n_empty_values_column -= values_in_file;
     }
   }
 
-  return column;
+  return std::make_pair(column, count);
 }
 
 template <typename T, typename U>
@@ -538,7 +550,7 @@ get_alp_datastructure(const runspec::DataSpecification spec) {
     throw std::invalid_argument("This data generator does not support "
                                 "generating an array of sequential numbers");
   } else if (spec.use_file()) {
-    T *data = generation::read_file_as<T>(spec).release();
+    auto [data, n_vecs] = generation::read_file_as<T>(spec.n_vecs, spec.name);
     alp::AlpCompressionData<T> *compressed_data =
         new alp::AlpCompressionData<T>(spec.count);
     alp::int_encode(data, spec.count, compressed_data);

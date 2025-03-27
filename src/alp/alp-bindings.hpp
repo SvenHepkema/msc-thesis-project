@@ -22,8 +22,35 @@ namespace alp {
 class EncodingException : public std::exception {
 public:
   using std::exception::what;
-  char *what() { return "Could not encode data with desired encoding."; }
+  const char *what() { return "Could not encode data with desired encoding."; }
 };
+
+template <typename T> size_t get_bytes_overhead_size_per_alp_vector() {
+  return sizeof(uint8_t) + // bit_width
+         sizeof(uint8_t) + // factor-idx
+         sizeof(uint8_t) + // exponent-idx
+         (sizeof(T) * 1);  // ffor base
+  // + 32; // Overhead of offset to find the bitpacked array
+};
+
+template <typename T> size_t get_bytes_overhead_size_per_galp_vector() {
+  return get_bytes_overhead_size_per_alp_vector<T>() +
+         sizeof(uint16_t) * utils::get_n_lanes<T>(); // pos + offset per lane
+                                                     // data parallel_format;
+  // + 32; // Overhead of offset to find the pos + offset array
+};
+
+template <typename T>
+size_t get_bytes_vector_compressed_size_without_overhead(
+    const uint8_t bit_width, const uint16_t exceptions_count) {
+  constexpr size_t line_size = utils::get_n_lanes<T>() * sizeof(T);
+  constexpr size_t exception_value_size = sizeof(T);
+  constexpr size_t exception_position_size = sizeof(uint16_t);
+
+  return bit_width * line_size +
+         exceptions_count * (exception_value_size + exception_position_size);
+}
+
 
 template <typename T> struct AlpFFORVecHeader {
   T *array;
@@ -36,8 +63,7 @@ template <typename T> struct AlpFFORArray {
 
   T *array;
   T *bases;
-  uint8_t *bit_widths; // WARNING TODO I don't think the bit width changes for
-                       // ALPRD, so only need singular
+  uint8_t *bit_widths;
 
   AlpFFORArray<T>(const size_t count) {
     const size_t n_vecs = utils::get_n_vecs_from_size(count);
@@ -101,7 +127,10 @@ template <typename T> struct AlpCompressionData {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   size_t rowgroup_offset = 0;
-  size_t size;
+  size_t size; // n_compressed_values
+
+  size_t compressed_alp_bytes_size;
+  size_t compressed_galp_bytes_size;
 
   AlpFFORArray<UINT_T> ffor;
   uint8_t *exponents;
@@ -120,37 +149,25 @@ template <typename T> struct AlpCompressionData {
     delete[] exponents;
     delete[] factors;
   }
+
+  double get_alp_compression_ratio() const {
+    return static_cast<double>(size * sizeof(T)) /
+           static_cast<double>(compressed_alp_bytes_size);
+  }
+
+  double get_galp_compression_ratio() const {
+    return static_cast<double>(size * sizeof(T)) /
+           static_cast<double>(compressed_galp_bytes_size);
+  }
 };
 
 template <typename T>
 using ALPMagicCompressionData = std::pair<alp::AlpCompressionData<T> *, T>;
 
-template <typename T> struct AlpRdCompressionData {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  size_t rowgroup_offset = 0;
-  size_t size;
-
-  AlpFFORArray<uint16_t> left_ffor;
-  AlpFFORArray<UINT_T> right_ffor;
-
-  uint16_t *left_parts_dicts;
-
-  AlpExceptions<uint16_t> exceptions;
-
-  AlpRdCompressionData<T>(const size_t size_a)
-      : size(size_a), left_ffor(size_a), right_ffor(size_a),
-        exceptions(AlpExceptions<uint16_t>(size_a)) {
-    const size_t n_vecs = utils::get_n_vecs_from_size(size_a);
-    left_parts_dicts = new uint16_t[n_vecs * config::MAX_RD_DICTIONARY_SIZE];
-  }
-
-  ~AlpRdCompressionData<T>() { delete[] left_parts_dicts; }
-};
-
-// Test if data can be decoded in correct type
+// Test if data can be decoded in specified type
 template <typename T>
-bool is_encoding_possible(const T *input_array, const size_t count, Scheme scheme);
+bool is_encoding_possible(const T *input_array, const size_t count,
+                          Scheme scheme);
 
 // Default ALP encoding
 template <typename T>
@@ -160,23 +177,6 @@ void int_encode(const T *input_array, const size_t count,
 // Default ALP decoding
 template <typename T>
 void int_decode(T *output_array, const AlpCompressionData<T> *data);
-
-// Rd ALP encoding
-template <typename T>
-void rd_encode(const T *input_array, const size_t count,
-               AlpRdCompressionData<T> *data);
-
-// Rd ALP decoding
-template <typename T>
-void rd_decode(T *output_array, const AlpRdCompressionData<T> *data);
-
-/*
-// True ALP adaptive encoding
-void encode();
-
-// True ALP adaptive decoding
-void decode();
-*/
 
 } // namespace alp
 

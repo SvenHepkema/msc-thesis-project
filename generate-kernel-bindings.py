@@ -437,16 +437,16 @@ def main(args):
     code = FILE_HEADER
     code += (
         FLS_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        #+ insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
+        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (
         FLS_QUERY_COLUMN_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (
@@ -458,26 +458,26 @@ def main(args):
     )
     code += (
         FLS_QUERY_COLUMN_UNROLLED_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
+        + insert_parameters(Code(FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT), FLS_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (
         FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        #+ insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
+        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
+        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (
         ALP_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(ALP_DECOMPRESS_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
+        + insert_parameters(Code(ALP_DECOMPRESS_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += (
         ALP_QUERY_COLUMN_FUNCTION_SIGNATURE
-        #+ insert_parameters(Code(ALP_QUERY_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
+        + insert_parameters(Code(ALP_QUERY_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
         + FUNCTION_FOOTER
     )
     code += FILE_FOOTER

@@ -14,7 +14,7 @@ CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  
 
 
 HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu-kernels/*.hpp) $(wildcard src/common/*.hpp)
-GPU_CUH := $(wildcard src/gpu-kernels/*.cuh)  $(HEADER_FILES)
+GPU_CUH := $(wildcard src/gpu-kernels/*.cuh)  $(wildcard src/common/*.hpp)
 
 GPU_OBJ := $(patsubst src/gpu-kernels/%.cu, obj/gpu-kernels-%.o, $(wildcard src/gpu-kernels/*.cu))
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))

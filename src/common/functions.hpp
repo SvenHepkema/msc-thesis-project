@@ -3,8 +3,8 @@
 #include <functional>
 #include <string>
 
-#include "../engine/verification.hpp"
 #include "../engine/experiments.hpp"
+#include "../engine/verification.hpp"
 
 #include "../gpu-kernels/kernels-bindings.hpp"
 
@@ -28,18 +28,14 @@ using Verifier = std::function<verification::VerificationResult<T>(
 
 template <class T> struct Fastlanes {
   static inline const std::unordered_map<std::string, Verifier<T>> functions = {
-      OPTION("verify_fls", experiments::verify_fls),
       OPTION("fls_decompress", experiments::fls_decompress_column),
       OPTION("fls_query", experiments::fls_query_column),
-      OPTION("fls_query_unrolled", experiments::fls_query_column_unrolled),
-      OPTION("fls_query_multicolumn", experiments::fls_query_multicolumn),
       OPTION("fls_compute", experiments::fls_compute_column),
   };
 };
 
 template <class T> struct Alp {
   static inline std::unordered_map<std::string, Verifier<T>> functions = {
-      OPTION("verify_alp", experiments::verify_alp),
       OPTION("alp_decompress", experiments::alp_decompress_column),
       OPTION("alp_query", experiments::alp_query_column),
   };

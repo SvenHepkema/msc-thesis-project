@@ -111,32 +111,6 @@ template <typename T> struct FLSQueryColumnFn {
   }
 };
 
-template <typename T> struct FLSQueryMultiColumnFn {
-  const runspec::KernelSpecification spec;
-
-  FLSQueryMultiColumnFn(const runspec::KernelSpecification a_spec)
-      : spec(a_spec) {}
-
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    kernels::fls::query_multicolumn_contains_zero(spec, a_in, a_out, a_count,
-                                             a_value_bit_width);
-  }
-};
-
-template <typename T> struct FLSQueryColumnUnrolledFn {
-  const runspec::KernelSpecification spec;
-
-  FLSQueryColumnUnrolledFn(const runspec::KernelSpecification a_spec)
-      : spec(a_spec) {}
-
-  void operator()(const T *a_in, T *a_out, const int32_t a_value_bit_width,
-                  const size_t a_count) {
-    kernels::fls::query_column_contains_zero_unrolled(spec, a_in, a_out, a_count,
-                                             a_value_bit_width);
-  }
-};
-
 template <typename T> struct FLSComputeColumnFn {
   const runspec::KernelSpecification spec;
 

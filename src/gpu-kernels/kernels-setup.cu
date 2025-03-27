@@ -65,6 +65,34 @@ void verify_decompress_column<uint32_t>(const runspec::KernelSpecification spec,
   device_out.copy_to_host(out);
 }
 
+template <>
+void verify_decompress_column<uint64_t>(const runspec::KernelSpecification spec,
+                                        const uint64_t *__restrict in,
+                                        uint64_t *__restrict out,
+                                        const size_t count,
+                                        const int32_t value_bit_width) {
+  using T = uint64_t;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
+  const auto encoded_count =
+      value_bit_width == 0
+          ? 1
+          : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
+
+  // The branchless version always does 1 access too many for each lane
+  // That is why we allocate a little extra memory
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>() * 4;
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
+  GPUArray<T> device_out(count);
+
+  generated_kernel_calls::fls_decompress_column(
+      spec, mapping.n_blocks, mapping.N_THREADS_PER_BLOCK, device_out.get(),
+      device_in.get(), value_bit_width);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(out);
+}
+
 template <typename T>
 void query_column_contains_zero(const runspec::KernelSpecification spec,
                                 const T *__restrict in, T *__restrict out,
@@ -77,6 +105,39 @@ void query_column_contains_zero<uint32_t>(
     uint32_t *__restrict out, const size_t count,
     const int32_t value_bit_width) {
   using T = uint32_t;
+  const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
+
+  const auto encoded_count =
+      value_bit_width == 0
+          ? 1
+          : (count * static_cast<size_t>(value_bit_width)) / (8 * sizeof(T));
+
+  // The branchless version always does 1 access too many for each lane
+  // That is why we allocate a little extra memory
+  const size_t branchless_extra_access_buffer =
+      sizeof(T) * utils::get_n_lanes<T>() * 4;
+  GPUArray<T> device_in(encoded_count, branchless_extra_access_buffer, in);
+  GPUArray<T> device_out(1);
+
+  generated_kernel_calls::fls_query_column<T>(
+      spec, mapping.n_blocks, mapping.N_THREADS_PER_BLOCK, device_out.get(),
+      device_in.get(), value_bit_width);
+
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(out);
+
+  if (*out != 1) {
+    *out = 0;
+  }
+}
+
+template <>
+void query_column_contains_zero<uint64_t>(
+    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
+    uint64_t *__restrict out, const size_t count,
+    const int32_t value_bit_width) {
+  using T = uint64_t;
   const ThreadblockMapping<T> mapping(spec, utils::get_n_vecs_from_size(count));
 
   const auto encoded_count =
@@ -277,10 +338,6 @@ template void kernels::fls::verify_decompress_column<uint16_t>(
     const runspec::KernelSpecification spec, const uint16_t *__restrict in,
     uint16_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
-template void kernels::fls::verify_decompress_column<uint64_t>(
-    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
-    uint64_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
 
 template void kernels::fls::query_column_contains_zero<uint8_t>(
     const runspec::KernelSpecification spec, const uint8_t *__restrict in,
@@ -288,10 +345,6 @@ template void kernels::fls::query_column_contains_zero<uint8_t>(
 template void kernels::fls::query_column_contains_zero<uint16_t>(
     const runspec::KernelSpecification spec, const uint16_t *__restrict in,
     uint16_t *__restrict out, const size_t count,
-    const int32_t value_bit_width);
-template void kernels::fls::query_column_contains_zero<uint64_t>(
-    const runspec::KernelSpecification spec, const uint64_t *__restrict in,
-    uint64_t *__restrict out, const size_t count,
     const int32_t value_bit_width);
 
 template void kernels::fls::query_multicolumn_contains_zero<uint8_t>(

@@ -138,19 +138,18 @@ std::unique_ptr<T> generate_random_column(const size_t count, const T min,
   return column;
 }
 
-
 template <typename T>
-std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
-  // Open file
-  std::ifstream inputFile(path, std::ios::binary | std::ios::ate);
+std::unique_ptr<T> read_file_as(runspec::DataSpecification spec) {
+  auto column = allocate_column<T>(spec.count);
+
+  std::ifstream inputFile(spec.name, std::ios::binary | std::ios::ate);
   if (!inputFile) {
     throw std::invalid_argument("Could not open the specified file.");
   }
-  // Get file size
+
   const std::streamsize file_size = inputFile.tellg();
   inputFile.seekg(0, std::ios::beg);
 
-  // Check file size to contain right type of data
   bool file_size_is_multiple_of_T_size =
       static_cast<size_t>(file_size) % static_cast<size_t>(sizeof(T)) != 0;
   if (file_size_is_multiple_of_T_size) {
@@ -158,38 +157,27 @@ std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
         "File size is incorrect, it is not a multiple of the type's size.");
   }
 
-  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
-  size_t count = input_count == 0 ? values_in_file : input_count;
-  count = count - (count % consts::VALUES_PER_VECTOR);
-  auto column = new T[count];
-
-  // Read either the file size, or the total number of values needed,
-  // whichever is smaller
-  const std::streamsize read_size =
-      std::min(file_size, static_cast<std::streamsize>((count * sizeof(T))));
-  if (!inputFile.read(reinterpret_cast<char *>(column), read_size)) {
+  const std::streamsize read_size = std::min(
+      file_size, static_cast<std::streamsize>((spec.count * sizeof(T))));
+  if (!inputFile.read(reinterpret_cast<char *>(column.get()), read_size)) {
     throw std::invalid_argument("Failed to read file into column");
   }
 
   inputFile.close();
 
-  // Copy paste the values in file until the column is filled
-  if (values_in_file < count) {
+  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
+  if (values_in_file < spec.count) {
     size_t n_filled_values = values_in_file;
-    size_t n_empty_values_column = count - n_filled_values;
+    size_t n_empty_values_column = spec.count - n_filled_values;
     while (n_empty_values_column > 0) {
-      std::memcpy(column + n_filled_values, column,
+      std::memcpy(column.get() + n_filled_values, column.get(),
                   std::min(n_empty_values_column, values_in_file));
       n_filled_values += values_in_file;
-
-      if (n_empty_values_column < values_in_file) {
-        break;
-      }
       n_empty_values_column -= values_in_file;
     }
   }
 
-  return std::make_pair(column, count);
+  return column;
 }
 
 template <typename T, typename U>
@@ -214,7 +202,7 @@ std::unique_ptr<T> generate_ffor_column_with_fixed_decimals(
                 "T should be a floating point type.");
   using INT_T = typename utils::same_width_int<T>::type;
 
-  INT_T max_value = utils::set_first_n_bits<INT_T>(value_bit_width);
+  INT_T max_value = utils::h_set_first_n_bits<INT_T>(value_bit_width);
   auto int_column = generate_random_column<INT_T>(count, 0, max_value);
   auto column = cast_column<INT_T, T>(std::move(int_column), count);
 
@@ -428,13 +416,13 @@ get_bp_data(const std::string dataset_name) {
   if (dataset_name == "index") {
     return [](int32_t value_bit_width, size_t count) -> T * {
       return generation::generate_index_column<T>(
-                 count, utils::set_first_n_bits<T>(value_bit_width))
+                 count, utils::h_set_first_n_bits<T>(value_bit_width))
           .release();
     };
   } else if (dataset_name == "random") {
     return [](int32_t value_bit_width, size_t count) -> T * {
       return generation::generate_random_column<T>(
-                 count, T{0}, utils::set_first_n_bits<T>(value_bit_width))
+                 count, T{0}, utils::h_set_first_n_bits<T>(value_bit_width))
           .release();
     };
   } else {
@@ -447,7 +435,7 @@ template <typename T>
 verification::DataGenerator<T, int32_t>
 get_ffor_data(const std::string dataset_name, T base) {
   auto get_max_value = [](const int32_t value_bit_width, T l_base) -> T {
-    return utils::set_first_n_bits<T>(value_bit_width) +
+    return utils::h_set_first_n_bits<T>(value_bit_width) +
            (value_bit_width == sizeof(T) * 8 ? T{0} : l_base);
   };
 
@@ -516,7 +504,7 @@ get_alp_data(const std::string dataset_name) {
       do {
         data = generation::cast_column<UINT_T, T>(
                    generation::generate_index_column<UINT_T>(
-                       count, utils::set_first_n_bits<UINT_T>(value_bit_width)),
+                       count, utils::h_set_first_n_bits<UINT_T>(value_bit_width)),
                    count)
                    .release();
       } while (!alp::is_encoding_possible(data, count, alp::Scheme::ALP));
@@ -550,7 +538,7 @@ get_alp_datastructure(const runspec::DataSpecification spec) {
     throw std::invalid_argument("This data generator does not support "
                                 "generating an array of sequential numbers");
   } else if (spec.use_file()) {
-    auto [data, n_vecs] = generation::read_file_as<T>(spec.n_vecs, spec.name);
+    T *data = generation::read_file_as<T>(spec).release();
     alp::AlpCompressionData<T> *compressed_data =
         new alp::AlpCompressionData<T>(spec.count);
     alp::int_encode(data, spec.count, compressed_data);

@@ -13,7 +13,8 @@ COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
 
 
-GPU_CUH := $(wildcard src/gpu-kernels/*.cuh)
+HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu-kernels/*.hpp) $(wildcard src/common/*.hpp)
+GPU_CUH := $(wildcard src/gpu-kernels/*.cuh)  $(HEADER_FILES)
 
 GPU_OBJ := $(patsubst src/gpu-kernels/%.cu, obj/gpu-kernels-%.o, $(wildcard src/gpu-kernels/*.cu))
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
@@ -30,7 +31,6 @@ obj/gpu-kernels-%.o: src/gpu-kernels/%.cu  $(GPU_CUH)
 	nvcc $(CUDA_FLAGS) -c -o $@ $(word 1, $^)
 
 # Executables
-HEADER_FILES=$(wildcard src/**.h) $(wildcard src/cpu/*.cuh) $(wildcard src/gpu-kernels/*.hpp)
 SOURCE_FILES=src/main.cpp $(FLS_OBJ) $(ALP_OBJ) $(GPU_OBJ)
 
 executable: $(SOURCE_FILES) $(HEADER_FILES)

@@ -9,12 +9,6 @@
 #ifndef FLS_CUH
 #define FLS_CUH
 
-template <typename T>
-__device__ __forceinline__ constexpr T c_set_first_n_bits(const T count) {
-  static_assert(std::is_unsigned<T>::value, "Should be unsigned");
-  return (1U << count) - 1;
-}
-
 template <typename T> struct FunctorBase {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -478,7 +472,7 @@ __device__ void unpack_vector_stateless_branchless(
   int32_t n_input_line = preceding_bits_first / LANE_BIT_WIDTH;
   int32_t offset_first = preceding_bits_first % LANE_BIT_WIDTH;
   int32_t offset_second = BIT_COUNT - offset_first;
-  UINT_T value_mask = c_set_first_n_bits(value_bit_width);
+  UINT_T value_mask = utils::set_first_n_bits<T>(value_bit_width);
 
   UINT_T values[UNPACK_N_VECTORS] = {0};
 
@@ -590,7 +584,7 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
       const UINT_T *__restrict a_in, const lane_t lane,
       const vbw_t value_bit_width, OutputProcessor processor)
       : in(a_in + lane), value_bit_width(value_bit_width),
-        value_mask(c_set_first_n_bits(value_bit_width)),
+        value_mask(utils::set_first_n_bits<T>(value_bit_width)),
         vector_offset(OFFSET != 0 ? OFFSET
                                   : utils::get_compressed_vector_size<UINT_T>(
                                         value_bit_width)),
@@ -617,55 +611,6 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
 
       in += (offset_second <= value_bit_width) * N_LANES;
       offset_first = (offset_first + value_bit_width) % LANE_BIT_WIDTH;
-    }
-  }
-};
-
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor, int32_t OFFSET = 0>
-struct BitUnpackerNonInterleaved : BitUnpackerBase<T> {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-  OutputProcessor processor;
-
-  const UINT_T *in;
-  const int32_t vector_offset;
-  const vbw_t value_bit_width;
-
-  UINT_T first_mask;
-  UINT_T second_mask;
-  UINT_T spans_multiple_values;
-
-  __device__ __forceinline__ BitUnpackerNonInterleaved(
-      const UINT_T *__restrict a_in, const lane_t lane,
-      const vbw_t value_bit_width, OutputProcessor processor)
-      : in(a_in + lane), value_bit_width(value_bit_width),
-        vector_offset(OFFSET != 0 ? OFFSET
-                                  : utils::get_compressed_vector_size<UINT_T>(
-                                        value_bit_width)),
-        processor(processor) {
-    constexpr int32_t LANE_BIT_WIDTH = utils::get_lane_bitwidth<UINT_T>();
-    constexpr int32_t BIT_COUNT = utils::sizeof_in_bits<T>();
-
-    const UINT_T value_mask = c_set_first_n_bits(value_bit_width);
-
-    UINT_T first_offset = (value_bit_width * lane) % LANE_BIT_WIDTH;
-    first_mask = value_mask << first_offset;
-    second_mask = value_mask >> (BIT_COUNT - first_offset);
-    spans_multiple_values = second_mask != 0;
-  }
-
-  __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-#pragma unroll
-    for (int32_t i{0}; i < UNPACK_N_VALUES; i++) {
-#pragma unroll
-      for (int32_t v{0}; v < UNPACK_N_VECTORS; v++) {
-        const auto v_in = in + v * vector_offset;
-        out[UNPACK_N_VALUES * v + i] =
-            processor((v_in[0] & first_mask) |
-                          (v_in[spans_multiple_values] & second_mask),
-                      v);
-      }
-      in += value_bit_width;
     }
   }
 };

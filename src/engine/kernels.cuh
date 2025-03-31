@@ -1,7 +1,8 @@
-#include "../flsgpu/flsgpu-api.cuh"
+#include <cstddef>
+
 #include "device-utils.cuh"
 #include "old-fls.cuh"
-#include <cstddef>
+#include "../flsgpu/flsgpu-api.cuh"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
@@ -167,11 +168,10 @@ template <typename T> struct ThreadblockMapping {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
-__host__ void decompress_column(const ColumnT column,
-                                uint32_t *__restrict out) {
-  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+__host__ T* decompress_column(const ColumnT column) {
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
   auto device_column = column.copy_to_device();
-  GPUArray<T> device_out(column.n_values());
+  GPUArray<T> device_out(column.get_n_values());
 
   device::decompress_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
                             ColumnT>
@@ -179,14 +179,16 @@ __host__ void decompress_column(const ColumnT column,
                                                           device_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
+	T* out = new T[column.get_n_values()];
   device_out.copy_to_host(out);
   flsgpu::host::free_column(device_column);
+	return out;
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __host__ bool query_column(const ColumnT column) {
-  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
   auto device_column = column.copy_to_device();
   GPUArray<T> device_out(1);
   bool result;
@@ -205,7 +207,7 @@ __host__ bool query_column(const ColumnT column) {
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT, unsigned N_REPETITIONS>
 __host__ bool compute_column(const ColumnT column, const T magic_value) {
-  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
   auto device_column = column.copy_to_device();
   GPUArray<T> device_out(1);
   bool result;

@@ -1,22 +1,13 @@
 #include <algorithm>
-#include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <functional>
-#include <ios>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <random>
-#include <stdexcept>
-#include <time.h>
-#include <type_traits>
-#include <utility>
-#include <vector>
 
 #include "../alp/alp-bindings.cuh"
 #include "../alp/constants.hpp"

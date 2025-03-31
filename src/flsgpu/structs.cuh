@@ -108,7 +108,9 @@ template <typename T> struct BPColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
   size_t n_values;
   size_t n_packed_values;
-  size_t n_vecs() const { return utils::get_n_vecs_from_size(n_values); }
+
+  size_t get_n_values() const { return n_values; }
+  size_t get_n_vecs() const { return utils::get_n_vecs_from_size(n_values); }
 
   UINT_T *packed_array;
   vbw_t *bit_widths;
@@ -118,10 +120,10 @@ template <typename T> struct BPColumn {
     const size_t branchless_extra_access_buffer =
         sizeof(T) * utils::get_n_lanes<T>() * 4;
     return device::BPColumn<T>{
-        n_values + branchless_extra_access_buffer, n_vecs(),
+        n_values + branchless_extra_access_buffer, get_n_vecs(),
         GPUArray<UINT_T>(n_packed_values, packed_array).release(),
-        GPUArray<vbw_t>(n_vecs(), bit_widths).release(),
-        GPUArray<size_t>(n_vecs(), vector_offsets).release()};
+        GPUArray<vbw_t>(get_n_vecs(), bit_widths).release(),
+        GPUArray<size_t>(get_n_vecs(), vector_offsets).release()};
   }
 };
 
@@ -130,6 +132,9 @@ template <typename T> struct FFORColumn {
 
   BPColumn<T> bp;
   UINT_T *bases;
+
+  size_t get_n_values() const { return bp.n_values; }
+  size_t get_n_vecs() const { return bp.get_n_vecs(); }
 
   device::FFORColumn<T> copy_to_device() const {
     return device::FFORColumn<T>{
@@ -169,6 +174,9 @@ template <typename T> struct ALPExtendedColumn {
 
   size_t compressed_size_bytes_alp_extended;
 
+  size_t get_n_values() const { return ffor.bp.n_values; }
+  size_t get_n_vecs() const { return ffor.bp.get_n_vecs(); }
+
   double get_compression_ratio() const {
     return static_cast<double>(ffor.bp.n_values * sizeof(T)) /
            static_cast<double>(compressed_size_bytes_alp_extended);
@@ -205,6 +213,9 @@ template <typename T> struct ALPColumn {
 
   size_t compressed_size_bytes_alp;
   size_t compressed_size_bytes_alp_extended;
+
+  size_t get_n_values() const { return ffor.bp.n_values; }
+  size_t get_n_vecs() const { return ffor.bp.get_n_vecs(); }
 
   double get_compression_ratio() const {
     return static_cast<double>(ffor.bp.n_values * sizeof(T)) /

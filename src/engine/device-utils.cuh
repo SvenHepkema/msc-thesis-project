@@ -1,6 +1,4 @@
-#include "../common/consts.hpp"
-#include "../common/utils.hpp"
-#include "device-types.cuh"
+#include "../flsgpu/flsgpu-api.cuh"
 
 #ifndef GPU_DEVICE_UTILS_CUH
 #define GPU_DEVICE_UTILS_CUH

@@ -29,9 +29,8 @@
 #ifndef DATAGENERATION_H
 #define DATAGENERATION_H
 
-namespace data {
+namespace datageneration { 
 
-namespace generation {
 template <typename T> std::unique_ptr<T> allocate_column(const size_t count) {
   return std::unique_ptr<T>(new T[count]);
 }
@@ -43,48 +42,6 @@ std::function<T()> get_random_number_generator(const T min, const T max) {
   std::uniform_int_distribution<T> uniform_dist(min, max);
 
   return std::bind(uniform_dist, random_engine);
-}
-
-template <typename T>
-std::unique_ptr<T> read_file_as(runspec::DataSpecification spec) {
-  auto column = allocate_column<T>(spec.count);
-
-  std::ifstream inputFile(spec.name, std::ios::binary | std::ios::ate);
-  if (!inputFile) {
-    throw std::invalid_argument("Could not open the specified file.");
-  }
-
-  const std::streamsize file_size = inputFile.tellg();
-  inputFile.seekg(0, std::ios::beg);
-
-  bool file_size_is_multiple_of_T_size =
-      static_cast<size_t>(file_size) % static_cast<size_t>(sizeof(T)) != 0;
-  if (file_size_is_multiple_of_T_size) {
-    throw std::invalid_argument(
-        "File size is incorrect, it is not a multiple of the type's size.");
-  }
-
-  const std::streamsize read_size = std::min(
-      file_size, static_cast<std::streamsize>((spec.count * sizeof(T))));
-  if (!inputFile.read(reinterpret_cast<char *>(column.get()), read_size)) {
-    throw std::invalid_argument("Failed to read file into column");
-  }
-
-  inputFile.close();
-
-  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
-  if (values_in_file < spec.count) {
-    size_t n_filled_values = values_in_file;
-    size_t n_empty_values_column = spec.count - n_filled_values;
-    while (n_empty_values_column > 0) {
-      std::memcpy(column.get() + n_filled_values, column.get(),
-                  std::min(n_empty_values_column, values_in_file));
-      n_filled_values += values_in_file;
-      n_empty_values_column -= values_in_file;
-    }
-  }
-
-  return column;
 }
 
 template <typename T>
@@ -147,14 +104,6 @@ void fill_array_with_random_data(T *array, const size_t count,
   }
 }
 
-template <typename T> std::vector<T> generate_indices() {
-  std::vector<T> indices(consts::VALUES_PER_VECTOR);
-  for (T i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
-    indices[i] = i;
-  }
-  return indices;
-}
-
 template <typename T>
 std::unique_ptr<T> generate_index_column(const size_t count, const T max,
                                          const T offset = 0) {
@@ -202,6 +151,69 @@ std::unique_ptr<T> generate_magic_column(const size_t count,
 
   return column;
 }
+
+template <typename T>
+std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
+
+  // Open file
+  std::ifstream inputFile(path, std::ios::binary | std::ios::ate);
+  if (!inputFile) {
+    throw std::invalid_argument("Could not open the specified file.");
+  }
+  // Get file size
+  const std::streamsize file_size = inputFile.tellg();
+  inputFile.seekg(0, std::ios::beg);
+
+  // Check file size to contain right type of data
+  bool file_size_is_multiple_of_T_size =
+      static_cast<size_t>(file_size) % static_cast<size_t>(sizeof(T)) != 0;
+  if (file_size_is_multiple_of_T_size) {
+    throw std::invalid_argument(
+        "File size is incorrect, it is not a multiple of the type's size.");
+  }
+
+  const size_t values_in_file = static_cast<size_t>(file_size) / sizeof(T);
+  size_t count = input_count == 0 ? values_in_file : input_count;
+  count = count - (count % consts::VALUES_PER_VECTOR);
+  auto column = new T[count];
+
+  // Read either the file size, or the total number of values needed,
+  // whichever is smaller
+  const std::streamsize read_size =
+      std::min(file_size, static_cast<std::streamsize>((count * sizeof(T))));
+  if (!inputFile.read(reinterpret_cast<char *>(column), read_size)) {
+    throw std::invalid_argument("Failed to read file into column");
+  }
+
+  inputFile.close();
+
+  // Copy paste the values in file until the column is filled
+  if (values_in_file < count) {
+    size_t n_filled_values = values_in_file;
+    size_t n_empty_values_column = count - n_filled_values;
+    while (n_empty_values_column > 0) {
+      std::memcpy(column + n_filled_values, column,
+                  std::min(n_empty_values_column, values_in_file));
+      n_filled_values += values_in_file;
+
+      if (n_empty_values_column < values_in_file) {
+        break;
+      }
+      n_empty_values_column -= values_in_file;
+    }
+  }
+
+  return std::make_pair(column, count);
+}
+
+template <typename T> std::vector<T> generate_indices() {
+  std::vector<T> indices(consts::VALUES_PER_VECTOR);
+  for (T i{0}; i < consts::VALUES_PER_VECTOR; ++i) {
+    indices[i] = i;
+  }
+  return indices;
+}
+
 
 template <typename T>
 alp::AlpCompressionData<T> *generate_alp_datastructure(
@@ -305,186 +317,9 @@ modify_alp_value_bit_width(const size_t count, const int32_t value_bit_width,
   return data;
 }
 
+
 } // namespace generation
 
-namespace lambda {
-
-template <typename T>
-verification::DataGenerator<T, int32_t>
-get_bp_data(const std::string dataset_name) {
-  if (dataset_name == "index") {
-    return [](int32_t value_bit_width, size_t count) -> T * {
-      return generation::generate_index_column<T>(
-                 count, utils::h_set_first_n_bits<T>(value_bit_width))
-          .release();
-    };
-  } else if (dataset_name == "random") {
-    return [](int32_t value_bit_width, size_t count) -> T * {
-      return generation::generate_random_column<T>(
-                 count, T{0}, utils::h_set_first_n_bits<T>(value_bit_width))
-          .release();
-    };
-  } else {
-    throw std::invalid_argument(
-        "This data generator only accepts 'index' & 'random'");
-  }
-}
-
-template <typename T>
-verification::DataGenerator<T, int32_t>
-get_ffor_data(const std::string dataset_name, T base) {
-  auto get_max_value = [](const int32_t value_bit_width, T l_base) -> T {
-    return utils::h_set_first_n_bits<T>(value_bit_width) +
-           (value_bit_width == sizeof(T) * 8 ? T{0} : l_base);
-  };
-
-  if (dataset_name == "index") {
-    return [base, get_max_value](const int32_t value_bit_width,
-                                 const size_t count) -> T * {
-      return generation::generate_index_column<T>(
-                 count, get_max_value(value_bit_width, base), base)
-          .release();
-    };
-  } else if (dataset_name == "random") {
-    return [base, get_max_value](const int32_t value_bit_width,
-                                 const size_t count) -> T * {
-      return generation::generate_random_column<T>(
-                 count, base, get_max_value(value_bit_width, base))
-          .release();
-    };
-  } else {
-    throw std::invalid_argument(
-        "This data generator only accepts 'index' & 'random'");
-  }
-}
-
-template <typename T>
-verification::DataGenerator<T, int32_t> get_binary_column() {
-  return [](const int32_t value_bit_width, const size_t count) -> T * {
-    auto data = generation::generate_magic_column<T>(count);
-
-    if (value_bit_width != -1) {
-      T *out = new T[count];
-      auto n_vecs = utils::get_n_vecs_from_size(count);
-      size_t compressed_vector_size = static_cast<size_t>(
-          utils::get_compressed_vector_size<T>(value_bit_width));
-
-      for (size_t i{0}; i < n_vecs; ++i) {
-        fls::pack(data.get() + i * consts::VALUES_PER_VECTOR,
-                  out + i * compressed_vector_size,
-                  static_cast<uint8_t>(value_bit_width));
-      }
-      return out;
-    } else {
-      return data.release();
-    }
-  };
-}
-
-template <typename T>
-verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>
-get_alp_datastructure(const runspec::DataSpecification spec) {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "T should be float or double");
-  unsigned repeat = static_cast<unsigned>(spec.n_vecs);
-
-  if (spec.use_index()) {
-    throw std::invalid_argument("This data generator does not support "
-                                "generating an array of sequential numbers");
-  } else if (spec.use_file()) {
-    T *data = generation::read_file_as<T>(spec).release();
-    alp::AlpCompressionData<T> *compressed_data =
-        new alp::AlpCompressionData<T>(spec.count);
-    alp::int_encode(data, spec.count, compressed_data);
-
-    return [compressed_data]([[__maybe_unused__]] int32_t unused,
-                             [[__maybe_unused__]] size_t count)
-               -> alp::AlpCompressionData<T> * { return compressed_data; };
-  } else if (spec.params_type == runspec::DataGenerationParametersType::NONE) {
-    return [repeat]([[__maybe_unused__]] int32_t unused,
-                    size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(count, -1, -1, repeat);
-    };
-  } else if (spec.params_type == runspec::DataGenerationParametersType::EC) {
-    return [repeat](int32_t exceptions_per_vec,
-                    size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(
-          count, exceptions_per_vec, -1, repeat);
-    };
-  } else if (spec.params_type == runspec::DataGenerationParametersType::VBW) {
-    return [repeat](int32_t value_bit_width,
-                    size_t count) -> alp::AlpCompressionData<T> * {
-      return generation::generate_alp_datastructure<T>(count, -1,
-                                                       value_bit_width, repeat);
-    };
-  } else {
-    throw std::invalid_argument(
-        "This data generator does not accept the specified dataset_name");
-  }
-}
-
-template <typename T>
-std::pair<alp::AlpCompressionData<T> *,
-          verification::DataGenerator<alp::AlpCompressionData<T>, int32_t>>
-get_alp_reusable_datastructure(const runspec::DataSpecification spec) {
-  auto data = data::lambda::get_alp_datastructure<T>(spec)(0, spec.count);
-
-  if (spec.params_type == runspec::DataGenerationParametersType::NONE) {
-    return std::make_pair(
-        data, [data]([[maybe_unused]] int32_t exceptions_per_vec,
-                     [[maybe_unused]] size_t count) { return data; });
-  } else if (spec.params_type == runspec::DataGenerationParametersType::EC) {
-    return std::make_pair(
-        data, [data](int32_t exceptions_per_vec, size_t count) {
-          return data::generation::modify_alp_exception_count<T>(
-              count, exceptions_per_vec, data);
-        });
-  } else if (spec.params_type == runspec::DataGenerationParametersType::VBW) {
-    return std::make_pair(data, [data](int32_t value_bit_width, size_t count) {
-      return data::generation::modify_alp_value_bit_width<T>(
-          count, value_bit_width, data);
-    });
-  } else {
-    throw std::invalid_argument("This data generator does not accept the "
-                                "specified dataset generation type");
-  }
-}
-
-template <typename T>
-std::pair<alp::AlpCompressionData<T> *,
-          verification::DataGenerator<alp::ALPMagicCompressionData<T>, int32_t>>
-get_reusable_compressed_binary_column(const runspec::DataSpecification spec) {
-  auto [d, g] = get_alp_reusable_datastructure<T>(spec);
-  auto data = d;
-  auto generator = g;
-
-  return std::make_pair(
-      data,
-      [generator](const int32_t value_bit_width,
-                  const size_t count) -> alp::ALPMagicCompressionData<T> * {
-        T magic_value = consts::as<T>::MAGIC_NUMBER;
-
-        alp::AlpCompressionData<T> *generated_data =
-            generator(value_bit_width, count);
-
-        int32_t should_contain_magic_number =
-            generation::get_random_number_generator<int32_t>(0, 100)();
-
-        // Select a random decoded number, extremely inefficiently
-        if (should_contain_magic_number > 50) {
-          T *output_array = new T[count];
-          alp::int_decode(output_array, generated_data);
-          size_t index_magic_number =
-              generation::get_random_number_generator<size_t>(0, count)();
-          magic_value = output_array[index_magic_number];
-          delete[] output_array;
-        }
-
-        return new alp::ALPMagicCompressionData<T>(generated_data, magic_value);
-      });
-}
-
-} // namespace lambda
 } // namespace data
 
 #endif // DATAGENERATION_H

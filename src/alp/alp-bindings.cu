@@ -5,7 +5,7 @@
 #include <iterator>
 #include <stdexcept>
 
-#include "../fls/compression.hpp"
+#include "../fls/fls-bindings.hpp"
 #include "alp-bindings.cuh"
 #include "config.hpp"
 #include "decoder.hpp"
@@ -117,7 +117,7 @@ flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values) {
     alp::encoder<T>::analyze_ffor(encoded_array, bit_widths[vi],
                                   reinterpret_cast<INT_T *>(&bases[vi]));
     fls::ffor(reinterpret_cast<UINT_T *>(encoded_array), packed_array,
-              &bit_widths[vi], &bases[vi]);
+              bit_widths[vi], &bases[vi]);
 
     input_array += consts::VALUES_PER_VECTOR;
     size_t compressed_values_size = bit_widths[vi] * utils::get_n_lanes<T>();
@@ -190,12 +190,12 @@ void decode(const flsgpu::host::ALPColumn<T> column, T *output_array) {
   for (size_t vi{0}; vi < n_vecs; ++vi) {
     generated::falp::fallback::scalar::falp(
         column.ffor.bp.packed_array + column.ffor.bp.vector_offsets[vi],
-        output_array, column.ffor.bp.bit_widths[vi], column.ffor.bases[vi],
+        output_array, column.ffor.bp.bit_widths[vi], &column.ffor.bases[vi],
         column.factor_indices[vi], column.fraction_indices[vi]);
 
     alp::decoder<T>::patch_exceptions(
         output_array, column.exceptions + column.exceptions_offsets[vi],
-        column.positions + column.exceptions_offsets[vi], column.counts[vi]);
+        column.positions + column.exceptions_offsets[vi], &column.counts[vi]);
 
     output_array += consts::VALUES_PER_VECTOR;
   }

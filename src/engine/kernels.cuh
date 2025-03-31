@@ -170,11 +170,12 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __host__ T* decompress_column(const ColumnT column) {
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
-  auto device_column = column.copy_to_device();
+	using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  DeviceColumnT device_column = column.copy_to_device();
   GPUArray<T> device_out(column.get_n_values());
 
   device::decompress_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                            ColumnT>
+                            DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(device_column,
                                                           device_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -189,12 +190,13 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __host__ bool query_column(const ColumnT column) {
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
-  auto device_column = column.copy_to_device();
+	using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  DeviceColumnT device_column = column.copy_to_device();
   GPUArray<T> device_out(1);
   bool result;
 
   device::query_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                       ColumnT>
+                       DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_column, device_out.get(), consts::as<T>::MAGIC_NUMBER);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
@@ -208,12 +210,13 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT, unsigned N_REPETITIONS>
 __host__ bool compute_column(const ColumnT column, const T magic_value) {
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.get_n_vecs());
-  auto device_column = column.copy_to_device();
+	using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  DeviceColumnT device_column = column.copy_to_device();
   GPUArray<T> device_out(1);
   bool result;
 
   device::compute_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                         ColumnT, N_REPETITIONS>
+                         DeviceColumnT, N_REPETITIONS>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(device_column,
                                                           device_out.get(), 0);
   CUDA_SAFE_CALL(cudaDeviceSynchronize());

@@ -1,4 +1,4 @@
-#include "compression.hpp"
+#include "fls-bindings.hpp"
 #include <cstdint>
 
 namespace fls

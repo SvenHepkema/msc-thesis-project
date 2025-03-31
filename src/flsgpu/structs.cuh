@@ -106,6 +106,8 @@ namespace host {
 
 template <typename T> struct BPColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
+	using DeviceColumnT = typename device::BPColumn<T>;
+
   size_t n_values;
   size_t n_packed_values;
 
@@ -129,6 +131,7 @@ template <typename T> struct BPColumn {
 
 template <typename T> struct FFORColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
+	using DeviceColumnT = typename device::FFORColumn<T>;
 
   BPColumn<T> bp;
   UINT_T *bases;
@@ -161,6 +164,8 @@ template <typename T> __host__ void load_alp_constants() {
 } // namespace constant_memory
 
 template <typename T> struct ALPExtendedColumn {
+	using DeviceColumnT = typename device::ALPExtendedColumn<T>;
+
   FFORColumn<T> ffor;
 
   uint8_t *factor_indices;
@@ -200,6 +205,8 @@ template <typename T> struct ALPExtendedColumn {
 };
 
 template <typename T> struct ALPColumn {
+	using DeviceColumnT = typename device::ALPColumn<T>;
+
   FFORColumn<T> ffor;
 
   uint8_t *factor_indices;

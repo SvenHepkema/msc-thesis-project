@@ -14,11 +14,11 @@ struct CLIArgs {
 
 CLIArgs parse_cli_args(const int argc, char **argv) {
   if (argc != 2) {
-    std::printf("Wrong arg count, correct usage: %s <n_values>\n", argv[0]);
+    std::printf("Wrong arg count, correct usage: %s <n_vecs>\n", argv[0]);
     exit(1);
   }
   int32_t argcounter = 0;
-  return CLIArgs{std::stoul(argv[++argcounter])};
+  return CLIArgs{std::stoul(argv[++argcounter]) * consts::VALUES_PER_VECTOR};
 }
 
 int main(int argc, char **argv) {
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
   using T = uint32_t;
 
-  auto failed_results = std::vector<verification::ExecutionResult<T>>();
+  auto results = std::vector<verification::ExecutionResult<T>>();
   for (vbw_t i{0}; i < sizeof(T) * 8; ++i) {
     auto column = data::generators::columns::generate_random_bp_column<T>(
         args.n_values, data::generators::ValueRange<vbw_t>(0, sizeof(T) * 8));
@@ -40,23 +40,17 @@ int main(int argc, char **argv) {
         flsgpu::device::BPDecompressor<
             T, flsgpu::device::BitUnpackerStatefulBranchless<
                    T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                   flsgpu::device::BPFunctor<T>>>>(column);
+                   flsgpu::device::BPFunctor<T>>>,
+        flsgpu::host::BPColumn<T>>(column);
 
-    auto result = verification::compare_data(out_a, out_b, args.n_values);
-    if (!result.success) {
-      failed_results.push_back(result);
-    }
+    results.push_back(verification::compare_data(out_a, out_b, args.n_values));
 
     flsgpu::host::free_column(column);
-		delete out_a;
-		delete out_b;
+    delete out_a;
+    delete out_b;
   }
 
-  for (auto fail : failed_results) {
-    for (auto difference : fail.differences) {
-      difference.log<T>();
-    }
-  }
 
-  exit(failed_results.size());
+
+  exit(verification::process_results(results, true));
 }

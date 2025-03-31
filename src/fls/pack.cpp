@@ -1,5 +1,5 @@
-#include "compression.hpp"
 #include <cstdint>
+#include "fls-bindings.hpp"
 
 namespace fls {
 void static pack_0bit_8ow(const uint8_t *__restrict in,

@@ -3,7 +3,7 @@
 #include <limits>
 #include <type_traits>
 
-#include "consts.hpp"
+#include "consts.cuh"
 
 #ifndef FASTLANES_UTILS_H
 #define FASTLANES_UTILS_H

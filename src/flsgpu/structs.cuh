@@ -1,12 +1,13 @@
 #include <cstddef>
 #include <cstdint>
+#include <tuple>
 
 #include "device-types.cuh"
 #include "host-utils.cuh"
 #include "utils.cuh"
 
-#ifndef STRUCTS_CUH 
-#define STRUCTS_CUH 
+#ifndef STRUCTS_CUH
+#define STRUCTS_CUH
 
 namespace flsgpu {
 
@@ -53,6 +54,7 @@ template <typename T> struct ALPExtendedColumn {
 };
 
 } // namespace device
+
 namespace host {
 
 template <typename T> struct BPColumn {
@@ -65,9 +67,11 @@ template <typename T> struct BPColumn {
   vbw_t *bit_widths;
   size_t *vector_offsets;
 
-  device::BPColumn<T> copy_to_device() {
+  device::BPColumn<T> copy_to_device() const {
+    const size_t branchless_extra_access_buffer =
+        sizeof(T) * utils::get_n_lanes<T>() * 4;
     return device::BPColumn<T>{
-        n_values, n_vecs(),
+        n_values + branchless_extra_access_buffer, n_vecs(),
         GPUArray<UINT_T>(n_packed_values, packed_array).release(),
         GPUArray<vbw_t>(n_vecs(), bit_widths).release(),
         GPUArray<size_t>(n_vecs(), vector_offsets).release()};
@@ -80,33 +84,9 @@ template <typename T> struct FFORColumn {
   BPColumn<T> bp;
   UINT_T *bases;
 
-  device::FFORColumn<T> copy_to_device() {
+  device::FFORColumn<T> copy_to_device() const {
     return device::FFORColumn<T>{
         bp.copy_to_device(), GPUArray<UINT_T>(bp.n_vecs(), bases).release()};
-  }
-};
-
-template <typename T> struct ALPColumn {
-  FFORColumn<T> ffor;
-
-  uint8_t *factor_indices;
-  uint8_t *fraction_indices;
-
-  size_t n_exceptions;
-  T *exceptions;
-  uint16_t *positions;
-  uint16_t *counts;
-
-  device::ALPColumn<T> copy_to_device() {
-    return device::ALPColumn<T>{
-        ffor.copy_to_device(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
-        n_exceptions,
-        GPUArray<T>(n_exceptions, exceptions).release(),
-        GPUArray<uint16_t>(n_exceptions, positions).release(),
-        GPUArray<uint16_t>(ffor.bp.n_vecs(), counts).release(),
-    };
   }
 };
 
@@ -121,7 +101,7 @@ template <typename T> struct ALPExtendedColumn {
   uint16_t *positions;
   uint16_t *offsets_counts;
 
-  device::ALPExtendedColumn<T> copy_to_device() {
+  device::ALPExtendedColumn<T> copy_to_device() const {
     return device::ALPExtendedColumn<T>{
         ffor.copy_to_device(),
         GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
@@ -132,6 +112,119 @@ template <typename T> struct ALPExtendedColumn {
         GPUArray<uint16_t>(ffor.bp.n_vecs() * utils::get_n_lanes<T>(),
                            offsets_counts)
             .release(),
+    };
+  }
+};
+
+template <typename T> struct ALPColumn {
+  FFORColumn<T> ffor;
+
+  uint8_t *factor_indices;
+  uint8_t *fraction_indices;
+
+  size_t n_exceptions;
+  T *exceptions;
+  uint16_t *positions;
+  uint16_t *counts;
+
+  device::ALPColumn<T> copy_to_device() const {
+    return device::ALPColumn<T>{
+        ffor.copy_to_device(),
+        GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
+        GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
+        n_exceptions,
+        GPUArray<T>(n_exceptions, exceptions).release(),
+        GPUArray<uint16_t>(n_exceptions, positions).release(),
+        GPUArray<uint16_t>(ffor.bp.n_vecs(), counts).release(),
+    };
+  }
+
+  std::tuple<T *, uint16_t *, uint16_t *>
+  convert_exceptions_to_lane_divided_format() const {
+    constexpr auto N_LANES = utils::get_n_lanes<T>();
+    constexpr auto VALUES_PER_LANE = utils::get_values_per_lane<T>();
+
+    // New exception allocations
+    size_t n_vecs = ffor.bp.n_vecs();
+    T *out_exceptions = reinterpret_cast<T *>(malloc(sizeof(T) * n_exceptions));
+    uint16_t *out_positions =
+        reinterpret_cast<uint16_t *>(malloc(sizeof(uint16_t) * n_exceptions));
+    uint16_t *out_offsets_counts = reinterpret_cast<uint16_t *>(
+        malloc(sizeof(uint16_t) * n_vecs * N_LANES));
+
+    // Intermediate arrays for reordering positions and exceptions
+    T vec_exceptions[consts::VALUES_PER_VECTOR];
+    T vec_exceptions_positions[consts::VALUES_PER_VECTOR];
+    uint16_t lane_counts[N_LANES];
+
+    // Copies of pointers for pointer arithmetic
+    T *c_exceptions = exceptions;
+    uint16_t *c_positions = positions;
+    T *c_out_exceptions = out_exceptions;
+    uint16_t *c_out_positions = out_positions;
+    uint16_t *c_out_offsets_counts = out_offsets_counts;
+
+    for (size_t vec_index{0}; vec_index < n_vecs; ++vec_index) {
+      uint32_t vec_exception_count = counts[vec_index];
+
+      // Reset counts
+      for (size_t j{0}; j < N_LANES; ++j) {
+        lane_counts[j] = 0;
+      }
+
+      // Split all exceptions into lanes
+      for (size_t exception_index{0}; exception_index < vec_exception_count;
+           ++exception_index) {
+        T exception = c_exceptions[exception_index];
+        uint16_t position = c_positions[exception_index];
+
+        uint32_t lane = position % N_LANES;
+        uint32_t lane_exception_count = lane_counts[lane];
+        ++lane_counts[lane];
+        vec_exceptions[lane * VALUES_PER_LANE + lane_exception_count] =
+            exception;
+        vec_exceptions_positions[lane * VALUES_PER_LANE +
+                                 lane_exception_count] = position;
+      }
+
+      // Merge and concatenate all exceptions per lane into single contiguous
+      // array
+      uint32_t vec_exceptions_counter = 0;
+      for (size_t lane{0}; lane < N_LANES; ++lane) {
+        uint32_t exc_in_lane_count = lane_counts[lane];
+        for (size_t exc_in_lane{0}; exc_in_lane < exc_in_lane_count;
+             ++exc_in_lane) {
+
+          c_out_exceptions[vec_exceptions_counter] =
+              vec_exceptions[lane * VALUES_PER_LANE + exc_in_lane];
+          c_out_positions[vec_exceptions_counter] =
+              vec_exceptions_positions[lane * VALUES_PER_LANE + exc_in_lane];
+          ++vec_exceptions_counter;
+        }
+
+        c_out_offsets_counts[lane] =
+            (exc_in_lane_count << 10) |
+            (vec_exceptions_counter - exc_in_lane_count);
+      }
+
+      c_exceptions += vec_exception_count;
+      c_positions += vec_exception_count;
+      c_out_exceptions += vec_exception_count;
+      c_out_positions += vec_exception_count;
+      c_out_offsets_counts += utils::get_n_lanes<T>();
+    }
+
+    return std::make_tuple(out_exceptions, out_positions, out_offsets_counts);
+  }
+
+  ALPExtendedColumn<T> create_extended_column() const {
+    // WARNING: The extended column points to the same memory for the ffor
+    // column, factor & frac10 indices, however this can be changed if needed
+    auto [e_exceptions, e_positions, e_offsets_counts] =
+        convert_exceptions_to_lane_divided_format();
+    return ALPExtendedColumn<T>{
+        ffor,         factor_indices, fraction_indices, n_exceptions,
+        e_exceptions, e_positions,    e_offsets_counts,
     };
   }
 };
@@ -170,4 +263,4 @@ template <typename T> void destroy_column(device::ALPExtendedColumn<T> column) {
 } // namespace host
 } // namespace flsgpu
 
-#endif // STRUCTS_CUH 
+#endif // STRUCTS_CUH

@@ -6,21 +6,6 @@
 
 namespace fls {
 
-template<typename T>
-struct FLSColumn {
-	const T* column;
-	uint8_t vbw;
-	const size_t size;
-};
-
-template<typename T>
-struct FFORColumn {
-	const T* column;
-	const T* base_p;
-	uint8_t vbw;
-	const size_t size;
-};
-
 void pack(const uint64_t *__restrict in, uint64_t *__restrict out, uint8_t bw);
 void pack(const uint32_t *__restrict in, uint32_t *__restrict out, uint8_t bw);
 void pack(const uint16_t *__restrict in, uint16_t *__restrict out, uint8_t bw);
@@ -65,6 +50,8 @@ void unffor(const int64_t* __restrict in, int64_t* __restrict out, uint8_t bw, c
 void unffor(const int32_t* __restrict in, int32_t* __restrict out, uint8_t bw, const int32_t* __restrict a_base_p);
 void unffor(const int16_t* __restrict in, int16_t* __restrict out, uint8_t bw, const int16_t* __restrict a_base_p);
 void unffor(const int8_t* __restrict in, int8_t* __restrict out, uint8_t bw, const int8_t* __restrict a_base_p);
+
+
 } // namespace fls
 
 #endif

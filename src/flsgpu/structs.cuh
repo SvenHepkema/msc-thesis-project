@@ -162,10 +162,17 @@ template <typename T> struct ALPExtendedColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
-  size_t* exceptions_offsets;
+  size_t *exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *offsets_counts;
+
+  size_t compressed_size_bytes_alp_extended;
+
+  double get_compression_ratio() const {
+    return static_cast<double>(ffor.bp.n_values * sizeof(T)) /
+           static_cast<double>(compressed_size_bytes_alp_extended);
+  }
 
   device::ALPExtendedColumn<T> copy_to_device() const {
     constant_memory::load_alp_constants<T>();
@@ -191,10 +198,18 @@ template <typename T> struct ALPColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
-  size_t* exceptions_offsets;
+  size_t *exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *counts;
+
+  size_t compressed_size_bytes_alp;
+  size_t compressed_size_bytes_alp_extended;
+
+  double get_compression_ratio() const {
+    return static_cast<double>(ffor.bp.n_values * sizeof(T)) /
+           static_cast<double>(compressed_size_bytes_alp);
+  }
 
   device::ALPColumn<T> copy_to_device() const {
     constant_memory::load_alp_constants<T>();
@@ -293,28 +308,61 @@ template <typename T> struct ALPColumn {
     // column, factor & frac10 indices, however this can be changed if needed
     auto [e_exceptions, e_positions, e_offsets_counts] =
         convert_exceptions_to_lane_divided_format();
-    return ALPExtendedColumn<T>{
-        ffor,         factor_indices, fraction_indices, n_exceptions,
-        e_exceptions, e_positions,    e_offsets_counts,
-    };
+    return ALPExtendedColumn<T>{ffor,
+                                factor_indices,
+                                fraction_indices,
+                                n_exceptions,
+                                e_exceptions,
+                                e_positions,
+                                e_offsets_counts,
+                                compressed_size_bytes_alp_extended};
   }
 };
 
+template <typename T> void free_column(BPColumn<T> column) {
+  delete[] column.packed_array;
+  delete[] column.bit_widths;
+  delete[] column.vector_offsets;
+}
+
+template <typename T> void free_column(FFORColumn<T> column) {
+  free_column(column.bp);
+  delete[] column.bases;
+}
+
+template <typename T> void free_column(ALPColumn<T> column) {
+  free_column(column.ffor);
+  delete[] column.factor_indices;
+  delete[] column.fraction_indices;
+  delete[] column.exceptions;
+  delete[] column.positions;
+  delete[] column.counts;
+}
+
+template <typename T> void free_column(ALPExtendedColumn<T> column) {
+  free_column(column.ffor);
+  delete[] column.factor_indices;
+  delete[] column.fraction_indices;
+  delete[] column.exceptions;
+  delete[] column.positions;
+  delete[] column.offsets_counts;
+}
+
 // Structs that are passed to the GPU cannot contain methods,
 // that is why there is a separate method for the destructors
-template <typename T> void destroy_column(device::BPColumn<T> column) {
+template <typename T> void free_column(device::BPColumn<T> column) {
   free_device_pointer(column.packed_array);
   free_device_pointer(column.bit_widths);
   free_device_pointer(column.vector_offsets);
 }
 
-template <typename T> void destroy_column(device::FFORColumn<T> column) {
-  destroy_column(column.bp);
+template <typename T> void free_column(device::FFORColumn<T> column) {
+  free_column(column.bp);
   free_device_pointer(column.bases);
 }
 
-template <typename T> void destroy_column(device::ALPColumn<T> column) {
-  destroy_column(column.ffor);
+template <typename T> void free_column(device::ALPColumn<T> column) {
+  free_column(column.ffor);
   free_device_pointer(column.factor_indices);
   free_device_pointer(column.fraction_indices);
   free_device_pointer(column.exceptions);
@@ -322,8 +370,8 @@ template <typename T> void destroy_column(device::ALPColumn<T> column) {
   free_device_pointer(column.counts);
 }
 
-template <typename T> void destroy_column(device::ALPExtendedColumn<T> column) {
-  destroy_column(column.ffor);
+template <typename T> void free_column(device::ALPExtendedColumn<T> column) {
+  free_column(column.ffor);
   free_device_pointer(column.factor_indices);
   free_device_pointer(column.fraction_indices);
   free_device_pointer(column.exceptions);

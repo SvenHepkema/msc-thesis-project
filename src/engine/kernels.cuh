@@ -1,12 +1,14 @@
+#include "../flsgpu/flsgpu-api.cuh"
 #include "device-utils.cuh"
 #include "old-fls.cuh"
-#include "../flsgpu/flsgpu-api.cuh"
+#include <cstddef>
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
 
 namespace kernels {
 
+namespace device {
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor>
 struct Baseline : flsgpu::device::BitUnpackerBase<T> {
@@ -14,10 +16,10 @@ struct Baseline : flsgpu::device::BitUnpackerBase<T> {
 
   const UINT_T *in;
 
-  __device__ __forceinline__ Baseline(const UINT_T *__restrict a_in,
-                                   const lane_t lane,
-                                   [[maybe_unused]] const vbw_t value_bit_width,
-                                   [[maybe_unused]] OutputProcessor processor)
+  __device__ __forceinline__
+  Baseline(const UINT_T *__restrict a_in, const lane_t lane,
+           [[maybe_unused]] const vbw_t value_bit_width,
+           [[maybe_unused]] OutputProcessor processor)
       : in(a_in + lane){};
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
@@ -42,9 +44,9 @@ struct DummyALPExceptionPatcher : flsgpu::device::ALPExceptionPatcherBase<T> {
 public:
   void __device__ __forceinline__ patch_if_needed(T *out) override {}
 
-  __device__ __forceinline__ DummyALPExceptionPatcher(const flsgpu::device::ALPColumn<T> column,
-                                                      const vi_t vector_index,
-                                                      const lane_t lane) {}
+  __device__ __forceinline__
+  DummyALPExceptionPatcher(const flsgpu::device::ALPColumn<T> column,
+                           const vi_t vector_index, const lane_t lane) {}
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
@@ -90,10 +92,10 @@ __global__ void decompress_column(const ColumnT column, T *out) {
   }
 }
 
-
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
-__global__ void query_column(const ColumnT column, T *out, const T magic_value) {
+__global__ void query_column(const ColumnT column, bool *out,
+                             const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
   const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
@@ -114,7 +116,7 @@ __global__ void query_column(const ColumnT column, T *out, const T magic_value) 
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT, int N_REPETITIONS = 10>
-__global__ void compute_column(const ColumnT column, T *__restrict out, 
+__global__ void compute_column(const ColumnT column, bool *__restrict out,
                                const T runtime_zero) {
   constexpr T RANDOM_VALUE = 3;
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
@@ -136,6 +138,7 @@ __global__ void compute_column(const ColumnT column, T *__restrict out,
         registers[j] *= RANDOM_VALUE;
         registers[j] <<= RANDOM_VALUE;
         registers[j] += RANDOM_VALUE;
+        registers[j] >>= RANDOM_VALUE;
         registers[j] &= runtime_zero;
       }
     }
@@ -145,6 +148,74 @@ __global__ void compute_column(const ColumnT column, T *__restrict out,
 
   checker.write_result(out);
 }
+} // namespace device
+
+namespace host {
+template <typename T> struct ThreadblockMapping {
+  static constexpr unsigned N_WARPS_PER_BLOCK =
+      std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
+  static constexpr unsigned N_THREADS_PER_BLOCK =
+      N_WARPS_PER_BLOCK * consts::THREADS_PER_WARP;
+  static constexpr unsigned N_CONCURRENT_VECTORS_PER_BLOCK =
+      N_THREADS_PER_BLOCK / utils::get_n_lanes<T>();
+
+  const unsigned n_blocks;
+
+  ThreadblockMapping(const size_t unpack_n_vecs, const size_t n_vecs)
+      : n_blocks(n_vecs / (unpack_n_vecs * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename DecompressorT, typename ColumnT>
+__host__ void decompress_column(const ColumnT column,
+                                uint32_t *__restrict out) {
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+  GPUArray<T> device_out(column.n_values());
+
+  device::decompress_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
+                            ColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          column.copy_to_device(), device_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(out);
+}
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename DecompressorT, typename ColumnT>
+__host__ bool query_column(const ColumnT column, const T magic_value) {
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+  GPUArray<T> device_out(1);
+  bool result;
+
+  device::query_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
+                       ColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          column.copy_to_device(), device_out.get(), magic_value);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(&result);
+  return result;
+}
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename DecompressorT, typename ColumnT, unsigned N_REPETITIONS>
+__host__ bool compute_column(const ColumnT column, const T magic_value) {
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, column.n_vecs());
+  GPUArray<T> device_out(1);
+  bool result;
+
+  device::compute_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
+                         ColumnT, N_REPETITIONS>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          column.copy_to_device(), device_out.get(), 0);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+
+  device_out.copy_to_host(&result);
+  return result;
+}
+
+} // namespace host
 
 } // namespace kernels
 

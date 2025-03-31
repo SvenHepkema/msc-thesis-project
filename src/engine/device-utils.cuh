@@ -54,11 +54,11 @@ template <typename T, unsigned N_VALUES> struct MagicChecker {
     }
   }
 
-  __device__ __forceinline__ void write_result(T *__restrict out) {
+  __device__ __forceinline__ void write_result(bool *__restrict out) {
     // This is a branch, as we do not want to write 0s, only emit a write
     // if we found a magic value
     if (!no_magic_found) {
-      *out = static_cast<T>(1);
+      *out = true;
     }
   }
 };

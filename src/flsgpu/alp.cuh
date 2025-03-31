@@ -3,105 +3,15 @@
 #include <type_traits>
 
 #include "../alp/constants.hpp"
-#include "../common/utils.hpp"
 #include "fls.cuh"
 #include "src/alp/config.hpp"
+#include "structs.cuh"
 
 #ifndef ALP_CUH
 #define ALP_CUH
 
-template <typename T> struct AlpColumn {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  UINT_T *ffor_array;
-  UINT_T *ffor_bases;
-  uint8_t *bit_widths; // INFO Would it be faster to bitpack theses three
-                       // uint8_t into a 16 or 32?
-  uint8_t *exponents;  // INFO For float this can be bitpacked with exponent and
-                       // factor
-  uint8_t *factors;
-
-  T *exceptions;
-  uint16_t *positions;
-  uint16_t *counts;
-};
-
-template <typename T> struct AlpExtendedColumn {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  UINT_T *ffor_array;
-  UINT_T *ffor_bases;
-  uint8_t *bit_widths;
-  uint8_t *exponents;
-  uint8_t *factors;
-
-  T *exceptions;
-  uint16_t *positions;
-
-  // Length: vecs * n_lanes
-  // Bitpacked count (5 bits) + offset (10 bits)
-  // offset = offsets_counts & 0x3FF
-  // count = offsets_counts >> 10
-  uint16_t *offsets_counts;
-};
-
-template <typename T> struct AlpRdColumn {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  uint16_t *left_ffor_array;
-  uint16_t *left_ffor_bases;
-  uint8_t *left_bit_widths;
-
-  UINT_T *right_ffor_array;
-  UINT_T *right_ffor_bases;
-  uint8_t *right_bit_widths;
-
-  uint16_t *left_parts_dicts;
-
-  uint16_t *exceptions;
-  uint16_t *positions;
-  uint16_t *counts;
-};
-
-namespace constant_memory {
-constexpr int32_t F_FACT_ARR_COUNT = 10;
-constexpr int32_t F_FRAC_ARR_COUNT = 11;
-__constant__ int32_t F_FACT_ARRAY[F_FACT_ARR_COUNT];
-__constant__ float F_FRAC_ARRAY[F_FRAC_ARR_COUNT];
-
-constexpr int32_t D_FACT_ARR_COUNT = 19;
-constexpr int32_t D_FRAC_ARR_COUNT = 21;
-__constant__ int64_t D_FACT_ARRAY[D_FACT_ARR_COUNT];
-__constant__ double D_FRAC_ARRAY[D_FRAC_ARR_COUNT];
-
-template <typename T> __host__ void load_alp_constants() {
-  cudaMemcpyToSymbol(F_FACT_ARRAY, alp::Constants<float>::FACT_ARR,
-                     F_FACT_ARR_COUNT * sizeof(int32_t));
-  cudaMemcpyToSymbol(F_FRAC_ARRAY, alp::Constants<float>::FRAC_ARR,
-                     F_FRAC_ARR_COUNT * sizeof(float));
-
-  cudaMemcpyToSymbol(D_FACT_ARRAY, alp::Constants<double>::FACT_ARR,
-                     D_FACT_ARR_COUNT * sizeof(int64_t));
-  cudaMemcpyToSymbol(D_FRAC_ARRAY, alp::Constants<double>::FRAC_ARR,
-                     D_FRAC_ARR_COUNT * sizeof(double));
-}
-
-template <typename T> __device__ __forceinline__ T *get_frac_arr();
-template <> __device__ __forceinline__ float *get_frac_arr() {
-  return F_FRAC_ARRAY;
-}
-template <> __device__ __forceinline__ double *get_frac_arr() {
-  return D_FRAC_ARRAY;
-}
-
-template <typename T> __device__ __forceinline__ T *get_fact_arr();
-template <> __device__ __forceinline__ int32_t *get_fact_arr() {
-  return F_FACT_ARRAY;
-}
-template <> __device__ __forceinline__ int64_t *get_fact_arr() {
-  return D_FACT_ARRAY;
-}
-} // namespace constant_memory
+namespace flsgpu {
+namespace device {
 
 template <typename T, unsigned UNPACK_N_VECTORS>
 struct ALPFunctor : FunctorBase<T> {
@@ -130,32 +40,6 @@ public:
     return static_cast<T>(static_cast<INT_T>((value + base[vector_index]) *
                                              factor[vector_index])) *
            frac10[vector_index];
-  }
-};
-
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename UnpackerT, typename PatcherT, typename ColumnT>
-struct AlpUnpacker {
-  UnpackerT unpacker;
-  PatcherT patcher;
-
-  int start_index = 0;
-
-  __device__ __forceinline__ AlpUnpacker(const ColumnT column,
-                                         const vi_t vector_index,
-                                         const lane_t lane)
-      : unpacker(UnpackerT(
-            column.ffor_array + consts::VALUES_PER_VECTOR * vector_index, lane,
-            column.bit_widths[vector_index],
-            ALPFunctor<T, UNPACK_N_VECTORS>(column.ffor_bases + vector_index,
-                                            column.factors + vector_index,
-                                            column.exponents + vector_index))),
-        patcher(PatcherT(column, vector_index, lane)) {}
-
-  __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
-    unpacker.unpack_next_into(out);
-    patcher.patch_if_needed(out);
-    ++start_index;
   }
 };
 
@@ -204,7 +88,7 @@ public:
   }
 
   __device__ __forceinline__
-  StatelessALPExceptionPatcher(const AlpColumn<T> column,
+  StatelessALPExceptionPatcher(const ALPColumn<T> column,
                                const vi_t first_vector_index, const lane_t lane)
       : lane(lane) {
 
@@ -258,7 +142,7 @@ public:
   }
 
   __device__ __forceinline__
-  StatefulALPExceptionPatcher(const AlpColumn<T> column,
+  StatefulALPExceptionPatcher(const ALPColumn<T> column,
                               const vi_t first_vector_index, const lane_t lane)
       : lane(lane) {
 
@@ -284,7 +168,7 @@ private:
 
 public:
   __device__ __forceinline__
-  NaiveALPExceptionPatcher(const AlpExtendedColumn<T> column,
+  NaiveALPExceptionPatcher(const ALPExtendedColumn<T> column,
                            const vi_t vector_index, const lane_t lane)
       : current_position(lane) {
 #pragma unroll
@@ -348,7 +232,7 @@ private:
 
 public:
   __device__ __forceinline__
-  NaiveBranchlessALPExceptionPatcher(const AlpExtendedColumn<T> column,
+  NaiveBranchlessALPExceptionPatcher(const ALPExtendedColumn<T> column,
                                      const vi_t vector_index, const lane_t lane)
       : current_position(lane) {
 #pragma unroll
@@ -398,7 +282,7 @@ private:
 
 public:
   __device__ __forceinline__ PrefetchPositionALPExceptionPatcher(
-      const AlpExtendedColumn<T> column, const vi_t first_vector_index,
+      const ALPExtendedColumn<T> column, const vi_t first_vector_index,
       const lane_t lane)
       : position(lane) {
 #pragma unroll
@@ -461,7 +345,7 @@ public:
   }
 
   __device__ __forceinline__ PrefetchAllALPExceptionPatcher(
-      const AlpExtendedColumn<T> column, const vi_t first_vector_index,
+      const ALPExtendedColumn<T> column, const vi_t first_vector_index,
       const lane_t lane)
       : current_position(lane) {
     // Parse the data from the column
@@ -517,7 +401,7 @@ public:
   void __device__ __forceinline__ read_next_exception() {}
 
   __device__ __forceinline__ PrefetchAllBranchlessALPExceptionPatcher(
-      const AlpExtendedColumn<T> column, const vi_t first_vector_index,
+      const ALPExtendedColumn<T> column, const vi_t first_vector_index,
       const lane_t lane)
       : current_position(lane) {
 #pragma unroll
@@ -568,4 +452,32 @@ public:
   }
 };
 
+template <typename T, unsigned UNPACK_N_VECTORS, typename UnpackerT,
+          typename PatcherT, typename ColumnT>
+struct ALPDecompressor : DecompressorBase<T> {
+  UnpackerT unpacker;
+  PatcherT patcher;
+
+  int start_index = 0;
+
+  __device__ __forceinline__ ALPDecompressor(const ColumnT column,
+                                         const vi_t vector_index,
+                                         const lane_t lane)
+      : unpacker(
+            column.ffor.bp.packed_array + column.ffor.bp.vector_offsets[vector_index], lane,
+            column.ffor.bp.bit_widths[vector_index],
+            ALPFunctor<T, UNPACK_N_VECTORS>(column.ffor.bases + vector_index,
+                                            column.factors + vector_index,
+                                            column.exponents + vector_index))),
+        patcher(PatcherT(column, vector_index, lane)) {}
+
+  __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
+    unpacker.unpack_next_into(out);
+    patcher.patch_if_needed(out);
+    ++start_index;
+  }
+};
+
+} // namespace device
+} // namespace flsgpu
 #endif // ALP_CUH

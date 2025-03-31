@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <tuple>
 
+#include "../alp/constants.hpp"
 #include "device-types.cuh"
 #include "host-utils.cuh"
 #include "utils.cuh"
@@ -12,6 +13,22 @@
 namespace flsgpu {
 
 namespace device {
+
+template <typename T> struct FunctorBase {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  virtual __device__ __forceinline__ T
+  operator()(const UINT_T value, [[maybe_unused]] const vi_t vector_index);
+};
+
+template <typename T> struct DecompressorBase {
+  /* Constructor, cannot be enforced
+__device__ DecompressorBase(const ColumnT column,
+const vi_t vector_index, const lane_t lane)
+*/
+
+  virtual void __device__ unpack_next_into(T *__restrict out);
+};
 
 template <typename T> struct BPColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -53,6 +70,34 @@ template <typename T> struct ALPExtendedColumn {
   uint16_t *offsets_counts;
 };
 
+namespace constant_memory {
+constexpr int32_t F_FACT_ARR_COUNT = 10;
+constexpr int32_t F_FRAC_ARR_COUNT = 11;
+__constant__ int32_t F_FACT_ARRAY[F_FACT_ARR_COUNT];
+__constant__ float F_FRAC_ARRAY[F_FRAC_ARR_COUNT];
+
+constexpr int32_t D_FACT_ARR_COUNT = 19;
+constexpr int32_t D_FRAC_ARR_COUNT = 21;
+__constant__ int64_t D_FACT_ARRAY[D_FACT_ARR_COUNT];
+__constant__ double D_FRAC_ARRAY[D_FRAC_ARR_COUNT];
+
+template <typename T> __device__ __forceinline__ T *get_frac_arr();
+template <> __device__ __forceinline__ float *get_frac_arr() {
+  return F_FRAC_ARRAY;
+}
+template <> __device__ __forceinline__ double *get_frac_arr() {
+  return D_FRAC_ARRAY;
+}
+
+template <typename T> __device__ __forceinline__ T *get_fact_arr();
+template <> __device__ __forceinline__ int32_t *get_fact_arr() {
+  return F_FACT_ARRAY;
+}
+template <> __device__ __forceinline__ int64_t *get_fact_arr() {
+  return D_FACT_ARRAY;
+}
+} // namespace constant_memory
+
 } // namespace device
 
 namespace host {
@@ -90,6 +135,24 @@ template <typename T> struct FFORColumn {
   }
 };
 
+namespace constant_memory {
+template <typename T> __host__ void load_alp_constants() {
+  cudaMemcpyToSymbol(
+      device::constant_memory::F_FACT_ARRAY, alp::Constants<float>::FACT_ARR,
+      device::constant_memory::F_FACT_ARR_COUNT * sizeof(int32_t));
+  cudaMemcpyToSymbol(device::constant_memory::F_FRAC_ARRAY,
+                     alp::Constants<float>::FRAC_ARR,
+                     device::constant_memory::F_FRAC_ARR_COUNT * sizeof(float));
+
+  cudaMemcpyToSymbol(
+      device::constant_memory::D_FACT_ARRAY, alp::Constants<double>::FACT_ARR,
+      device::constant_memory::D_FACT_ARR_COUNT * sizeof(int64_t));
+  cudaMemcpyToSymbol(
+      device::constant_memory::D_FRAC_ARRAY, alp::Constants<double>::FRAC_ARR,
+      device::constant_memory::D_FRAC_ARR_COUNT * sizeof(double));
+}
+} // namespace constant_memory
+
 template <typename T> struct ALPExtendedColumn {
   FFORColumn<T> ffor;
 
@@ -102,6 +165,7 @@ template <typename T> struct ALPExtendedColumn {
   uint16_t *offsets_counts;
 
   device::ALPExtendedColumn<T> copy_to_device() const {
+    constant_memory::load_alp_constants<T>();
     return device::ALPExtendedColumn<T>{
         ffor.copy_to_device(),
         GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
@@ -128,6 +192,7 @@ template <typename T> struct ALPColumn {
   uint16_t *counts;
 
   device::ALPColumn<T> copy_to_device() const {
+    constant_memory::load_alp_constants<T>();
     return device::ALPColumn<T>{
         ffor.copy_to_device(),
         GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),

@@ -3,18 +3,15 @@
 #include <cstdio>
 #include <type_traits>
 
-#include "../common/utils.hpp"
 #include "device-types.cuh"
+#include "structs.cuh"
+#include "utils.cuh"
 
 #ifndef FLS_CUH
 #define FLS_CUH
 
-template <typename T> struct FunctorBase {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  virtual __device__ __forceinline__ T
-  operator()(const UINT_T value, [[maybe_unused]] const vi_t vector_index);
-};
+namespace flsgpu {
+namespace device {
 
 template <typename T> struct BPFunctor : FunctorBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -25,17 +22,29 @@ template <typename T> struct BPFunctor : FunctorBase<T> {
   }
 };
 
-template <typename T> struct FFORFunctor : FunctorBase<T> {
+template <typename T, unsigned UNPACK_N_VECTORS>
+struct FFORFunctor : FunctorBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
-  const T base;
-  __device__ __forceinline__ FFORFunctor(const T base) : base(base){};
-  __device__ __forceinline__ T operator()(
-      const UINT_T value, [[maybe_unused]] const vi_t vector_index) override {
-    return value + base;
+  const UINT_T bases[UNPACK_N_VECTORS];
+  __device__ __forceinline__ FFORFunctor(const UINT_T *a_bases) {
+#pragma unroll
+    for (int32_t i{0}; i < UNPACK_N_VECTORS; ++i) {
+      bases[i] = a_bases[i];
+    }
+  };
+
+  __device__ __forceinline__ UINT_T
+  operator()(const UINT_T value, const vi_t vector_index) override {
+    return value + bases[vector_index];
   }
 };
 
 template <typename T> struct BitUnpackerBase {
+  /* Constructor, but cannot be enforced
+BitUnpackerBase(
+const UINT_T *__restrict in, const lane_t lane,
+const vbw_t value_bit_width, OutputProcessor processor)
+  */
   virtual __device__ __forceinline__ void unpack_next_into(T *__restrict out);
 };
 
@@ -426,7 +435,7 @@ __device__ void unpack_vector_stateless(
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor, int32_t OFFSET = 0>
+          typename OutputProcessor>
 struct BitUnpackerStateless : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -444,9 +453,8 @@ struct BitUnpackerStateless : BitUnpackerBase<T> {
                                                   OutputProcessor processor)
       : in(in), lane(lane), value_bit_width(value_bit_width),
         processor(processor),
-        vector_offset(OFFSET != 0 ? OFFSET
-                                  : utils::get_compressed_vector_size<UINT_T>(
-                                        value_bit_width)) {}
+        vector_offset(
+            utils::get_compressed_vector_size<UINT_T>(value_bit_width)) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
     unpack_vector_stateless<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
@@ -488,7 +496,7 @@ __device__ void unpack_vector_stateless_branchless(
 }
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor, int32_t OFFSET = 0>
+          typename OutputProcessor>
 struct BitUnpackerStatelessBranchless : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -505,9 +513,8 @@ struct BitUnpackerStatelessBranchless : BitUnpackerBase<T> {
       const vbw_t value_bit_width, OutputProcessor processor)
       : in(in), lane(lane), value_bit_width(value_bit_width),
         processor(processor),
-        vector_offset(OFFSET != 0 ? OFFSET
-                                  : utils::get_compressed_vector_size<UINT_T>(
-                                        value_bit_width)) {}
+        vector_offset(
+            utils::get_compressed_vector_size<UINT_T>(value_bit_width)) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
 #pragma unroll
@@ -521,7 +528,7 @@ struct BitUnpackerStatelessBranchless : BitUnpackerBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor, typename LoaderT, int32_t OFFSET = 0>
+          typename OutputProcessor, typename LoaderT>
 struct BitUnpackerStateful : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   LoaderT loader;
@@ -532,10 +539,8 @@ struct BitUnpackerStateful : BitUnpackerBase<T> {
                                                  const lane_t lane,
                                                  const vbw_t value_bit_width,
                                                  OutputProcessor processor)
-      : loader(in + lane, OFFSET != 0
-                              ? OFFSET
-                              : utils::get_compressed_vector_size<UINT_T>(
-                                    value_bit_width)),
+      : loader(in + lane,
+               utils::get_compressed_vector_size<UINT_T>(value_bit_width)),
         masker(value_bit_width), processor(processor) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
@@ -568,7 +573,7 @@ struct BitUnpackerStateful : BitUnpackerBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor, int32_t OFFSET = 0>
+          typename OutputProcessor>
 struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   OutputProcessor processor;
@@ -585,9 +590,7 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
       const vbw_t value_bit_width, OutputProcessor processor)
       : in(a_in + lane), value_bit_width(value_bit_width),
         value_mask(utils::set_first_n_bits<T>(value_bit_width)),
-        vector_offset(OFFSET != 0 ? OFFSET
-                                  : utils::get_compressed_vector_size<UINT_T>(
-                                        value_bit_width)),
+        vector_offset(utils::get_compressed_vector_size<T>(value_bit_width)),
         processor(processor) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
@@ -614,5 +617,38 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
     }
   }
 };
+
+template <typename T, typename UnpackerT>
+struct BPDecompressor : DecompressorBase<T> {
+  UnpackerT unpacker;
+  __device__ __forceinline__ BPDecompressor(const BPColumn<T> column,
+                                            const vi_t vector_index,
+                                            const lane_t lane)
+      : unpacker(column.packed_array + column.vector_offsets[vector_index],
+                 lane, column.bit_widths[vector_index], BPFunctor<T>()) {}
+
+  void __device__ unpack_next_into(T *__restrict out) {
+    unpacker.unpack_next_into(out);
+  }
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, typename UnpackerT>
+struct FFORDecompressor : DecompressorBase<T> {
+  UnpackerT unpacker;
+  __device__ __forceinline__ FFORDecompressor(const FFORColumn<T> column,
+                                              const vi_t vector_index,
+                                              const lane_t lane)
+      : unpacker(
+            column.bp.packed_array + column.bp.vector_offsets[vector_index],
+            lane, column.bp.bit_widths[vector_index],
+            FFORFunctor<T, UNPACK_N_VECTORS>(column.bases + vector_index)) {}
+
+  void __device__ unpack_next_into(T *__restrict out) {
+    unpacker.unpack_next_into(out);
+  }
+};
+
+} // namespace device
+} // namespace flsgpu
 
 #endif // FLS_CUH

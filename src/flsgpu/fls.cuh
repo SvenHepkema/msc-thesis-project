@@ -28,8 +28,8 @@ struct FFORFunctor : FunctorBase<T> {
   const UINT_T bases[UNPACK_N_VECTORS];
   __device__ __forceinline__ FFORFunctor(const UINT_T *a_bases) {
 #pragma unroll
-    for (int32_t i{0}; i < UNPACK_N_VECTORS; ++i) {
-      bases[i] = a_bases[i];
+    for (int32_t v{0}; v < UNPACK_N_VECTORS; ++v) {
+      bases[v] = a_bases[v];
     }
   };
 

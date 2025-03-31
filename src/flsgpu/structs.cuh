@@ -53,6 +53,7 @@ template <typename T> struct ALPColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
+  size_t *exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *counts;
@@ -65,6 +66,7 @@ template <typename T> struct ALPExtendedColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
+  size_t *exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *offsets_counts;
@@ -160,6 +162,7 @@ template <typename T> struct ALPExtendedColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
+  size_t* exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *offsets_counts;
@@ -171,6 +174,7 @@ template <typename T> struct ALPExtendedColumn {
         GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
         GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
         n_exceptions,
+        GPUArray<T>(ffor.bp.n_vecs(), exceptions_offsets).release(),
         GPUArray<T>(n_exceptions, exceptions).release(),
         GPUArray<uint16_t>(n_exceptions, positions).release(),
         GPUArray<uint16_t>(ffor.bp.n_vecs() * utils::get_n_lanes<T>(),
@@ -187,6 +191,7 @@ template <typename T> struct ALPColumn {
   uint8_t *fraction_indices;
 
   size_t n_exceptions;
+  size_t* exceptions_offsets;
   T *exceptions;
   uint16_t *positions;
   uint16_t *counts;
@@ -198,6 +203,7 @@ template <typename T> struct ALPColumn {
         GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
         GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
         n_exceptions,
+        GPUArray<T>(ffor.bp.n_vecs(), exceptions_offsets).release(),
         GPUArray<T>(n_exceptions, exceptions).release(),
         GPUArray<uint16_t>(n_exceptions, positions).release(),
         GPUArray<uint16_t>(ffor.bp.n_vecs(), counts).release(),

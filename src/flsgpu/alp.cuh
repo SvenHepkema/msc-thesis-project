@@ -19,17 +19,17 @@ private:
   using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
-  UINT_T base[UNPACK_N_VECTORS];
+  UINT_T bases[UNPACK_N_VECTORS];
   INT_T factor[UNPACK_N_VECTORS];
   T frac10[UNPACK_N_VECTORS];
 
 public:
-  __device__ __forceinline__ ALPFunctor(const UINT_T *bases,
+  __device__ __forceinline__ ALPFunctor(const UINT_T *a_bases,
                                         const uint8_t *factor_indices,
                                         const uint8_t *frac10_indices) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
-      base[v] = bases[v];
+      bases[v] = a_bases[v];
       factor[v] = constant_memory::get_fact_arr<INT_T>()[factor_indices[v]];
       frac10[v] = constant_memory::get_frac_arr<T>()[frac10_indices[v]];
     }
@@ -37,7 +37,7 @@ public:
 
   __device__ __forceinline__ T operator()(const UINT_T value,
                                           const vi_t vector_index) override {
-    return static_cast<T>(static_cast<INT_T>((value + base[vector_index]) *
+    return static_cast<T>(static_cast<INT_T>((value + bases[vector_index]) *
                                              factor[vector_index])) *
            frac10[vector_index];
   }
@@ -47,8 +47,6 @@ template <typename T> struct ALPExceptionPatcherBase {
 public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
 };
-
-#define CONDITION
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
@@ -97,9 +95,9 @@ public:
       auto vec_index = first_vector_index + v;
       exceptions_count[v] = column.counts[vec_index];
       vec_exceptions_positions[v] =
-          column.positions + consts::VALUES_PER_VECTOR * vec_index;
+          column.positions + column.exceptions_offsets[vec_index];
       vec_exceptions[v] =
-          column.exceptions + consts::VALUES_PER_VECTOR * vec_index;
+          column.exceptions + column.exceptions_offsets[vec_index];
     }
   }
 };
@@ -151,9 +149,9 @@ public:
       auto vec_index = first_vector_index + v;
       exceptions_count[v] = column.counts[vec_index];
       vec_exceptions_positions[v] =
-          column.positions + consts::VALUES_PER_VECTOR * vec_index;
+          column.positions + column.exceptions_offsets[vec_index];
       vec_exceptions[v] =
-          column.exceptions + consts::VALUES_PER_VECTOR * vec_index;
+          column.exceptions + column.exceptions_offsets[vec_index];
     }
   }
 };
@@ -181,11 +179,10 @@ public:
       count[v] = offset_count >> 10;
 
       const auto offset = (offset_count & 0x3FF);
-      // These consts should be N_LANES, but the arrays are not packed yet
       positions[v] = column.positions +
-                     consts::VALUES_PER_VECTOR * current_vector_index + offset;
+                     column.exceptions_offsets[current_vector_index] + offset;
       exceptions[v] = column.exceptions +
-                      consts::VALUES_PER_VECTOR * current_vector_index + offset;
+                      column.exceptions_offsets[current_vector_index] + offset;
     }
   }
 
@@ -244,12 +241,12 @@ public:
                                 lane];
       count[v] = offset_count >> 10;
 
-      // These consts should be N_LANES, but the arrays are not packed yet
-      const auto vec_offset = consts::VALUES_PER_VECTOR * current_vector_index;
-      const auto offset = (offset_count & 0x3FF);
+      const auto exceptions_offset =
+          column.exceptions_offsets[current_vector_index];
+      const auto lane_offset = (offset_count & 0x3FF);
 
-      positions[v] = column.positions + vec_offset + offset;
-      exceptions[v] = column.exceptions + vec_offset + offset;
+      positions[v] = column.positions + exceptions_offset + lane_offset;
+      exceptions[v] = column.exceptions + exceptions_offset + lane_offset;
     }
   }
 
@@ -292,10 +289,10 @@ public:
           column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
       count[v] = offset_count >> 10;
 
-      const auto offset =
-          vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
-      positions[v] = column.positions + offset;
-      exceptions[v] = column.exceptions + offset;
+      const auto exceptions_offset = column.exceptions_offsets[vector_index];
+      const auto lane_offset = (offset_count & 0x3FF);
+      positions[v] = column.positions + exceptions_offset + lane_offset;
+      exceptions[v] = column.exceptions + exceptions_offset + lane_offset;
 
       next_position[v] = *positions[v];
     }
@@ -349,7 +346,6 @@ public:
       const lane_t lane)
       : current_position(lane) {
     // Parse the data from the column
-    // These consts should be N_LANES, but the arrays are not packed yet
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       const auto vector_index = first_vector_index + v;
@@ -357,10 +353,10 @@ public:
           column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
       count[v] = offset_count >> 10;
 
-      const auto offset =
-          vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
-      positions[v] = column.positions + offset;
-      exceptions[v] = column.exceptions + offset;
+      const auto exceptions_offset = column.exceptions_offsets[vector_index];
+      const auto lane_offset = (offset_count & 0x3FF);
+      positions[v] = column.positions + exceptions_offset + lane_offset;
+      exceptions[v] = column.exceptions + exceptions_offset + lane_offset;
 
       next_position[v] = *positions[v];
       next_exception[v] = *exceptions[v];
@@ -407,15 +403,14 @@ public:
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       const vi_t vector_index = first_vector_index + v;
-      // These consts should be N_LANES, but the arrays are not packed yet
       const auto offset_count =
           column.offsets_counts[vector_index * utils::get_n_lanes<T>() + lane];
       count[v] = offset_count >> 10;
 
-      const auto offset =
-          vector_index * consts::VALUES_PER_VECTOR + (offset_count & 0x3FF);
-      positions[v] = column.positions + offset;
-      exceptions[v] = column.exceptions + offset;
+      const auto exceptions_offset = column.exceptions_offsets[vector_index];
+      const auto lane_offset = (offset_count & 0x3FF);
+      positions[v] = column.positions + exceptions_offset + lane_offset;
+      exceptions[v] = column.exceptions + exceptions_offset + lane_offset;
 
       next_position[v] = *positions[v];
       next_exception[v] = *exceptions[v];
@@ -461,14 +456,15 @@ struct ALPDecompressor : DecompressorBase<T> {
   int start_index = 0;
 
   __device__ __forceinline__ ALPDecompressor(const ColumnT column,
-                                         const vi_t vector_index,
-                                         const lane_t lane)
+                                             const vi_t vector_index,
+                                             const lane_t lane)
       : unpacker(
-            column.ffor.bp.packed_array + column.ffor.bp.vector_offsets[vector_index], lane,
-            column.ffor.bp.bit_widths[vector_index],
+            column.ffor.bp.packed_array +
+                column.ffor.bp.vector_offsets[vector_index],
+            lane, column.ffor.bp.bit_widths[vector_index],
             ALPFunctor<T, UNPACK_N_VECTORS>(column.ffor.bases + vector_index,
                                             column.factors + vector_index,
-                                            column.exponents + vector_index))),
+                                            column.exponents + vector_index)),
         patcher(PatcherT(column, vector_index, lane)) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {

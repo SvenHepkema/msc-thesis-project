@@ -34,19 +34,16 @@ int main(int argc, char **argv) {
 
     auto column =
         data::generators::fls_bindings::compress(array, args.n_values, vbw);
-    T *out = data::generators::fls_bindings::decompress(column);
 
-    /*
-constexpr unsigned UNPACK_N_VECTORS = 1;
-constexpr unsigned UNPACK_N_VALUES = 1;
-T *out_b = kernels::host::decompress_column<
-T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-flsgpu::device::BPDecompressor<
-T, flsgpu::device::BitUnpackerStatefulBranchless<
-       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-       flsgpu::device::BPFunctor<T>>>,
-flsgpu::host::BPColumn<T>>(column);
-                    */
+    constexpr unsigned UNPACK_N_VECTORS = 1;
+    constexpr unsigned UNPACK_N_VALUES = 1;
+    T *out = kernels::host::decompress_column<
+        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+        flsgpu::device::BPDecompressor<
+            T, flsgpu::device::BitUnpackerStatefulBranchless<
+                   T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                   flsgpu::device::BPFunctor<T>>>,
+        flsgpu::host::BPColumn<T>>(column);
 
     results.push_back(verification::compare_data(array, out, args.n_values));
 

@@ -229,13 +229,14 @@ std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
   return std::make_pair(column, count);
 }
 
-template <typename T> T *generate_index_array(const size_t n_values, const vbw_t value_bit_width) {
-	T mask = utils::h_set_first_n_bits<T>(value_bit_width);
-  T *array =new T[n_values];
+template <typename T>
+T *generate_index_array(const size_t n_values, const vbw_t value_bit_width) {
+  T mask = utils::h_set_first_n_bits<T>(value_bit_width);
+  T *array = new T[n_values];
 
-	for (size_t i{0}; i < n_values; i++) {
-		array[i] = i & mask;
-	}
+  for (size_t i{0}; i < n_values; i++) {
+    array[i] = i & mask;
+  }
 
   return array;
 }
@@ -289,19 +290,16 @@ template <typename T> T *decompress(const flsgpu::host::BPColumn<T> column) {
 }
 
 template <typename T> T *decompress(const flsgpu::host::FFORColumn<T> column) {
-  // WARNING Assumes vbw is constant for all vectors
-  vbw_t value_bit_width = column.bit_widths[0];
   size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
-  size_t compressed_vector_size =
-      utils::get_compressed_vector_size<T>(value_bit_width);
   T *out_array = new T[column.n_values];
   T *c_out_array = out_array;
   T *c_packed_array = column.packed_array;
 
   for (size_t vi{0}; vi < n_vecs; ++vi) {
-    fls::unffor(column.packed_array, c_out_array, value_bit_width,
+    fls::unffor(column.packed_array, c_out_array, column.bp.bit_widths[vi],
                 column.bases[vi]);
-    c_packed_array += compressed_vector_size;
+    c_packed_array +=
+        utils::get_compressed_vector_size<T>(column.bp.bit_widths[vi]);
     c_out_array += consts::VALUES_PER_VECTOR;
   }
 

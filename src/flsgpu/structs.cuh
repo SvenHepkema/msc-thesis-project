@@ -106,7 +106,7 @@ namespace host {
 
 template <typename T> struct BPColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
-	using DeviceColumnT = typename device::BPColumn<T>;
+  using DeviceColumnT = typename device::BPColumn<T>;
 
   size_t n_values;
   size_t n_packed_values;
@@ -122,8 +122,10 @@ template <typename T> struct BPColumn {
     const size_t branchless_extra_access_buffer =
         sizeof(T) * utils::get_n_lanes<T>() * 4;
     return device::BPColumn<T>{
-        n_values + branchless_extra_access_buffer, get_n_vecs(),
-        GPUArray<UINT_T>(n_packed_values, packed_array).release(),
+        n_values, get_n_vecs(),
+        GPUArray<UINT_T>(n_packed_values + branchless_extra_access_buffer,
+                         packed_array)
+            .release(),
         GPUArray<vbw_t>(get_n_vecs(), bit_widths).release(),
         GPUArray<size_t>(get_n_vecs(), vector_offsets).release()};
   }
@@ -131,7 +133,7 @@ template <typename T> struct BPColumn {
 
 template <typename T> struct FFORColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
-	using DeviceColumnT = typename device::FFORColumn<T>;
+  using DeviceColumnT = typename device::FFORColumn<T>;
 
   BPColumn<T> bp;
   UINT_T *bases;
@@ -164,7 +166,7 @@ template <typename T> __host__ void load_alp_constants() {
 } // namespace constant_memory
 
 template <typename T> struct ALPExtendedColumn {
-	using DeviceColumnT = typename device::ALPExtendedColumn<T>;
+  using DeviceColumnT = typename device::ALPExtendedColumn<T>;
 
   FFORColumn<T> ffor;
 
@@ -205,7 +207,7 @@ template <typename T> struct ALPExtendedColumn {
 };
 
 template <typename T> struct ALPColumn {
-	using DeviceColumnT = typename device::ALPColumn<T>;
+  using DeviceColumnT = typename device::ALPColumn<T>;
 
   FFORColumn<T> ffor;
 

@@ -47,7 +47,8 @@ template <typename T> struct FFORColumn {
 };
 
 template <typename T> struct ALPColumn {
-  FFORColumn<T> ffor;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
   uint8_t *fraction_indices;
@@ -60,7 +61,8 @@ template <typename T> struct ALPColumn {
 };
 
 template <typename T> struct ALPExtendedColumn {
-  FFORColumn<T> ffor;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
   uint8_t *fraction_indices;
@@ -166,9 +168,10 @@ template <typename T> __host__ void load_alp_constants() {
 } // namespace constant_memory
 
 template <typename T> struct ALPExtendedColumn {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   using DeviceColumnT = typename device::ALPExtendedColumn<T>;
 
-  FFORColumn<T> ffor;
+  FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
   uint8_t *fraction_indices;
@@ -193,13 +196,13 @@ template <typename T> struct ALPExtendedColumn {
     constant_memory::load_alp_constants<T>();
     return device::ALPExtendedColumn<T>{
         ffor.copy_to_device(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
+        GPUArray<uint8_t>(ffor.bp.get_n_vecs(), factor_indices).release(),
+        GPUArray<uint8_t>(ffor.bp.get_n_vecs(), fraction_indices).release(),
         n_exceptions,
-        GPUArray<T>(ffor.bp.n_vecs(), exceptions_offsets).release(),
+        GPUArray<T>(ffor.bp.get_n_vecs(), exceptions_offsets).release(),
         GPUArray<T>(n_exceptions, exceptions).release(),
         GPUArray<uint16_t>(n_exceptions, positions).release(),
-        GPUArray<uint16_t>(ffor.bp.n_vecs() * utils::get_n_lanes<T>(),
+        GPUArray<uint16_t>(ffor.bp.get_n_vecs() * utils::get_n_lanes<T>(),
                            offsets_counts)
             .release(),
     };
@@ -207,9 +210,10 @@ template <typename T> struct ALPExtendedColumn {
 };
 
 template <typename T> struct ALPColumn {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   using DeviceColumnT = typename device::ALPColumn<T>;
 
-  FFORColumn<T> ffor;
+  FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
   uint8_t *fraction_indices;
@@ -235,13 +239,13 @@ template <typename T> struct ALPColumn {
     constant_memory::load_alp_constants<T>();
     return device::ALPColumn<T>{
         ffor.copy_to_device(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), factor_indices).release(),
-        GPUArray<uint8_t>(ffor.bp.n_vecs(), fraction_indices).release(),
+        GPUArray<uint8_t>(ffor.bp.get_n_vecs(), factor_indices).release(),
+        GPUArray<uint8_t>(ffor.bp.get_n_vecs(), fraction_indices).release(),
         n_exceptions,
-        GPUArray<T>(ffor.bp.n_vecs(), exceptions_offsets).release(),
+        GPUArray<size_t>(ffor.bp.get_n_vecs(), exceptions_offsets).release(),
         GPUArray<T>(n_exceptions, exceptions).release(),
         GPUArray<uint16_t>(n_exceptions, positions).release(),
-        GPUArray<uint16_t>(ffor.bp.n_vecs(), counts).release(),
+        GPUArray<uint16_t>(ffor.bp.get_n_vecs(), counts).release(),
     };
   }
 
@@ -251,12 +255,11 @@ template <typename T> struct ALPColumn {
     constexpr auto VALUES_PER_LANE = utils::get_values_per_lane<T>();
 
     // New exception allocations
-    size_t n_vecs = ffor.bp.n_vecs();
     T *out_exceptions = reinterpret_cast<T *>(malloc(sizeof(T) * n_exceptions));
     uint16_t *out_positions =
         reinterpret_cast<uint16_t *>(malloc(sizeof(uint16_t) * n_exceptions));
     uint16_t *out_offsets_counts = reinterpret_cast<uint16_t *>(
-        malloc(sizeof(uint16_t) * n_vecs * N_LANES));
+        malloc(sizeof(uint16_t) * ffor.get_n_vecs() * N_LANES));
 
     // Intermediate arrays for reordering positions and exceptions
     T vec_exceptions[consts::VALUES_PER_VECTOR];
@@ -270,7 +273,7 @@ template <typename T> struct ALPColumn {
     uint16_t *c_out_positions = out_positions;
     uint16_t *c_out_offsets_counts = out_offsets_counts;
 
-    for (size_t vec_index{0}; vec_index < n_vecs; ++vec_index) {
+    for (size_t vec_index{0}; vec_index < ffor.get_n_vecs(); ++vec_index) {
       uint32_t vec_exception_count = counts[vec_index];
 
       // Reset counts

@@ -458,13 +458,13 @@ struct ALPDecompressor : DecompressorBase<T> {
   __device__ __forceinline__ ALPDecompressor(const ColumnT column,
                                              const vi_t vector_index,
                                              const lane_t lane)
-      : unpacker(
-            column.ffor.bp.packed_array +
-                column.ffor.bp.vector_offsets[vector_index],
-            lane, column.ffor.bp.bit_widths[vector_index],
-            ALPFunctor<T, UNPACK_N_VECTORS>(column.ffor.bases + vector_index,
-                                            column.factors + vector_index,
-                                            column.exponents + vector_index)),
+      : unpacker(column.ffor.bp.packed_array +
+                     column.ffor.bp.vector_offsets[vector_index],
+                 lane, column.ffor.bp.bit_widths[vector_index],
+                 ALPFunctor<T, UNPACK_N_VECTORS>(
+                     column.ffor.bases + vector_index,
+                     column.factor_indices + vector_index,
+                     column.fraction_indices + vector_index)),
         patcher(PatcherT(column, vector_index, lane)) {}
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {

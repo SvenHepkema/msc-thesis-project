@@ -3,8 +3,8 @@
 #include <exception>
 #include <type_traits>
 
-#include "constants.hpp"
 #include "config.hpp"
+#include "constants.hpp"
 ;
 #include "../flsgpu/flsgpu-api.cuh"
 
@@ -31,10 +31,11 @@ template <typename T>
 bool is_compressable(const T *input_array, const size_t n_elements);
 
 template <typename T>
-flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_elements);
+flsgpu::host::ALPColumn<T> encode(const T *input_array,
+                                  const size_t n_elements);
 
 template <typename T>
-void decode(const flsgpu::host::ALPColumn<T> column, T* output_array);
+T *decode(const flsgpu::host::ALPColumn<T> column, T *output_array);
 
 } // namespace alp
 

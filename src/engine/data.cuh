@@ -150,7 +150,7 @@ T *generate_positions(T *positions, const T *counts, const size_t n_vecs) {
   auto rng = std::default_random_engine(random_device());
   T *c_positions = positions;
   for (size_t vi{0}; vi < n_vecs; ++vi) {
-    std::shuffle(std::begin(indices), std::end(indices), rng);
+    std::shuffle(indices, indices + consts::VALUES_PER_VECTOR, rng);
     std::memcpy(c_positions, indices, sizeof(T) * counts[vi]);
     std::sort(c_positions, c_positions + counts[vi]);
     c_positions += counts[vi];
@@ -176,8 +176,8 @@ template <typename T> struct ValueRange {
 namespace arrays {
 
 template <typename T>
-std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
-
+std::pair<T *, size_t> read_file_as(const std::string path,
+                                    const size_t input_count) {
   // Open file
   std::ifstream inputFile(path, std::ios::binary | std::ios::ate);
   if (!inputFile) {
@@ -375,22 +375,22 @@ flsgpu::host::FFORColumn<T> generate_random_ffor_column(
 
 template <typename T>
 flsgpu::host::ALPColumn<T> generate_alp_column(
-    const size_t n_values, const ValueRange<uint16_t> exceptions_per_vec,
-    const ValueRange<vbw_t> bit_width_range, const unsigned repeat = 1) {
+    const size_t n_values, const ValueRange<vbw_t> bit_width_range,
+    const ValueRange<uint16_t> exceptions_per_vec, const unsigned repeat = 1) {
   static_assert(std::is_floating_point<T>::value,
                 "T should be a floating point type.");
   using UINT_T = typename utils::same_width_uint<T>::type;
 
   const size_t n_vecs = utils::get_n_vecs_from_size(n_values);
-  auto column = new flsgpu::host::ALPColumn<T>();
+  auto column = flsgpu::host::ALPColumn<T>();
   column.ffor = generate_random_ffor_column<UINT_T>(
-      n_values, bit_width_range, repeat, ValueRange<UINT_T>(2, 20));
+      n_values, bit_width_range, ValueRange<UINT_T>(2, 20), repeat);
 
   // Note we halve the frac and fact because otherwise you
   // will have integer overflow in the decoding for some combinations
   int32_t frac_arr_size = sizeof(T) == 4 ? 11 : 21;
   int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
-  column.fractions_indices = primitives::fill_array_with_random_data<uint8_t>(
+  column.fraction_indices = primitives::fill_array_with_random_data<uint8_t>(
       new uint8_t[n_vecs], n_vecs, repeat, 0,
       static_cast<uint8_t>(frac_arr_size / 2));
   column.factor_indices = primitives::fill_array_with_random_data<uint8_t>(
@@ -406,7 +406,7 @@ flsgpu::host::ALPColumn<T> generate_alp_column(
   column.exceptions_offsets =
       primitives::prefix_sum_array(column.counts, new size_t[n_vecs], n_vecs);
   column.exceptions = primitives::fill_array_with_random_bytes(
-      new T[column.n_exceptions], n_values);
+      new T[column.n_exceptions], column.n_exceptions);
   column.positions = primitives::generate_positions<uint16_t>(
       new uint16_t[column.n_exceptions], column.counts, n_vecs);
 

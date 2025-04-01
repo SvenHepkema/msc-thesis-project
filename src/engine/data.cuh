@@ -113,10 +113,12 @@ T_sum sum_array(const T *array, const size_t n_values) {
 template <typename T_in, typename T_out>
 T_out *prefix_sum_array(const T_in *in, T_out *out, const size_t n_values) {
   T_out sum = 0;
+  T_out old_sum = 0;
 
   for (size_t i{0}; i < n_values; ++i) {
+    old_sum = sum;
     sum += in[i];
-    out[i] = sum;
+    out[i] = old_sum;
   }
 
   return out;
@@ -159,8 +161,6 @@ T *generate_positions(T *positions, const T *counts, const size_t n_vecs) {
 }
 
 } // namespace primitives
-
-namespace generators {
 
 template <typename T> struct ValueRange {
   const T min;
@@ -241,6 +241,13 @@ T *generate_index_array(const size_t n_values, const vbw_t value_bit_width) {
   return array;
 }
 
+template <typename T>
+T *generate_random_array(const size_t n_values, const vbw_t value_bit_width) {
+  T max_value = utils::h_set_first_n_bits<T>(value_bit_width);
+  return primitives::fill_array_with_random_data(new T[n_values], n_values, 1,
+                                                 T{0}, max_value);
+}
+
 } // namespace arrays
 
 namespace fls_bindings {
@@ -275,14 +282,13 @@ flsgpu::host::BPColumn<T> compress(const T *array, const size_t n_values,
 }
 
 template <typename T> T *decompress(const flsgpu::host::BPColumn<T> column) {
-  T *out_array = new T[column.n_values];
+  T *out_array = new T[column.get_n_values()];
   T *c_out_array = out_array;
   T *c_packed_array = column.packed_array;
 
   for (size_t vi{0}; vi < column.get_n_vecs(); ++vi) {
+    c_packed_array = column.packed_array + column.vector_offsets[vi];
     fls::unpack(c_packed_array, c_out_array, column.bit_widths[vi]);
-    c_packed_array +=
-        utils::get_compressed_vector_size<T>(column.bit_widths[vi]);
     c_out_array += consts::VALUES_PER_VECTOR;
   }
 
@@ -290,16 +296,14 @@ template <typename T> T *decompress(const flsgpu::host::BPColumn<T> column) {
 }
 
 template <typename T> T *decompress(const flsgpu::host::FFORColumn<T> column) {
-  size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
-  T *out_array = new T[column.n_values];
+  T *out_array = new T[column.get_n_values()];
   T *c_out_array = out_array;
-  T *c_packed_array = column.packed_array;
+  T *c_packed_array = column.bp.packed_array + column.bp.vector_offsets[0];
 
-  for (size_t vi{0}; vi < n_vecs; ++vi) {
-    fls::unffor(column.packed_array, c_out_array, column.bp.bit_widths[vi],
-                column.bases[vi]);
-    c_packed_array +=
-        utils::get_compressed_vector_size<T>(column.bp.bit_widths[vi]);
+  for (size_t vi{0}; vi < column.get_n_vecs(); ++vi) {
+    c_packed_array = column.bp.packed_array + column.bp.vector_offsets[vi];
+    fls::unffor(c_packed_array, c_out_array, column.bp.bit_widths[vi],
+                &column.bases[vi]);
     c_out_array += consts::VALUES_PER_VECTOR;
   }
 
@@ -316,11 +320,22 @@ generate_index_bp_column(const size_t n_values, const vbw_t value_bit_width) {
   size_t n_vecs = utils::get_n_vecs_from_size(n_values);
   size_t n_packed_values =
       n_vecs * utils::get_compressed_vector_size<T>(value_bit_width);
-  T *array = arrays::generate_index_array<T>(n_values);
+  T *array = arrays::generate_index_array<T>(n_values, value_bit_width);
 
   auto column = fls_bindings::compress<T>(array, n_values, value_bit_width);
   delete[] array;
   return column;
+}
+
+template <typename T>
+flsgpu::host::FFORColumn<T>
+generate_index_ffor_column(const size_t n_values, const vbw_t value_bit_width) {
+  size_t n_vecs = utils::get_n_vecs_from_size(n_values);
+  return flsgpu::host::FFORColumn<T>{
+      generate_index_bp_column<T>(n_values, value_bit_width),
+      primitives::fill_array_with_random_data<T>(new T[n_vecs], n_vecs, 1, 0,
+                                                 64),
+  };
 }
 
 template <typename T>
@@ -440,7 +455,6 @@ void modify_alp_value_bit_width(flsgpu::host::ALPColumn<T> column,
 
 } // namespace columns
 
-} // namespace generators
 } // namespace data
 
 #endif // DATA_CUH

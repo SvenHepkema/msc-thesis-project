@@ -143,7 +143,7 @@ template <typename T> struct FFORColumn {
 
   device::FFORColumn<T> copy_to_device() const {
     return device::FFORColumn<T>{
-        bp.copy_to_device(), GPUArray<UINT_T>(bp.n_vecs(), bases).release()};
+        bp.copy_to_device(), GPUArray<UINT_T>(bp.get_n_vecs(), bases).release()};
   }
 };
 

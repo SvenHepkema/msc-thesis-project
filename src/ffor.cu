@@ -29,27 +29,27 @@ int main(int argc, char **argv) {
   auto results = std::vector<verification::ExecutionResult<T>>();
 
   for (vbw_t vbw{0}; vbw <= sizeof(T) * 8; ++vbw) {
-    auto array =
-        data::generators::arrays::generate_index_array<T>(args.n_values, vbw);
+    auto column = data::columns::generate_random_ffor_column<T>(
+        args.n_values, data::ValueRange<vbw_t>(vbw), data::ValueRange<T>(0));
 
-    auto column =
-        data::generators::fls_bindings::compress(array, args.n_values, vbw);
+    auto out_a = data::fls_bindings::decompress(column);
 
     constexpr unsigned UNPACK_N_VECTORS = 1;
     constexpr unsigned UNPACK_N_VALUES = 1;
-    T *out = kernels::host::decompress_column<
+    T *out_b = kernels::host::decompress_column<
         T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        flsgpu::device::BPDecompressor<
-            T, flsgpu::device::BitUnpackerStatefulBranchless<
-                   T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                   flsgpu::device::BPFunctor<T>>>,
-        flsgpu::host::BPColumn<T>>(column);
+        flsgpu::device::FFORDecompressor<
+            T, UNPACK_N_VECTORS,
+            flsgpu::device::BitUnpackerStatefulBranchless<
+                T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                flsgpu::device::FFORFunctor<T, UNPACK_N_VECTORS>>>,
+        flsgpu::host::FFORColumn<T>>(column);
 
-    results.push_back(verification::compare_data(array, out, args.n_values));
+    results.push_back(verification::compare_data(out_a, out_b, args.n_values));
 
     flsgpu::host::free_column(column);
-    delete[] array;
-    delete[] out;
+    delete[] out_a;
+    delete[] out_b;
   }
 
   exit(verification::process_results(results, true));

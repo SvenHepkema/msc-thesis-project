@@ -25,7 +25,7 @@ template <typename T> struct BPFunctor : FunctorBase<T> {
 template <typename T, unsigned UNPACK_N_VECTORS>
 struct FFORFunctor : FunctorBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
-  const UINT_T bases[UNPACK_N_VECTORS];
+  UINT_T bases[UNPACK_N_VECTORS];
   __device__ __forceinline__ FFORFunctor(const UINT_T *a_bases) {
 #pragma unroll
     for (int32_t v{0}; v < UNPACK_N_VECTORS; ++v) {

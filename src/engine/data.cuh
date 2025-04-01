@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -173,6 +174,7 @@ template <typename T> struct ValueRange {
 };
 
 namespace arrays {
+
 template <typename T>
 std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
 
@@ -227,6 +229,17 @@ std::pair<T *, size_t> read_file_as(size_t input_count, std::string path) {
   return std::make_pair(column, count);
 }
 
+template <typename T> T *generate_index_array(const size_t n_values, const vbw_t value_bit_width) {
+	T mask = utils::h_set_first_n_bits<T>(value_bit_width);
+  T *array =new T[n_values];
+
+	for (size_t i{0}; i < n_values; i++) {
+		array[i] = i & mask;
+	}
+
+  return array;
+}
+
 } // namespace arrays
 
 namespace fls_bindings {
@@ -235,8 +248,9 @@ template <typename T>
 flsgpu::host::BPColumn<T> compress(const T *array, const size_t n_values,
                                    const vbw_t value_bit_width) {
   size_t n_vecs = utils::get_n_vecs_from_size(n_values);
-  size_t n_packed_values =
-      n_vecs * utils::get_compressed_vector_size<T>(value_bit_width);
+  size_t compressed_vector_size =
+      utils::get_compressed_vector_size<T>(value_bit_width);
+  size_t n_packed_values = n_vecs * compressed_vector_size;
 
   T *packed_array = new T[n_packed_values];
   T *c_packed_array = packed_array;
@@ -244,35 +258,30 @@ flsgpu::host::BPColumn<T> compress(const T *array, const size_t n_values,
   for (size_t vi{0}; vi < n_vecs; ++vi) {
     fls::pack(array, c_packed_array, value_bit_width);
     array += consts::VALUES_PER_VECTOR;
-    c_packed_array += n_packed_values;
+    c_packed_array += compressed_vector_size;
   }
 
   return flsgpu::host::BPColumn<T>{
       n_values,
       n_packed_values,
-      primitives::fill_array_with_random_bytes(new T[n_packed_values],
-                                               n_packed_values),
-      primitives::fill_array_with_constant(new T[n_vecs], n_vecs,
-                                           value_bit_width),
-      primitives::fill_array_with_sequence(
-          new T[n_vecs], n_vecs, 0,
+      packed_array,
+      primitives::fill_array_with_constant<vbw_t>(new vbw_t[n_vecs], n_vecs,
+                                                  value_bit_width),
+      primitives::fill_array_with_sequence<size_t>(
+          new size_t[n_vecs], n_vecs, 0,
           utils::get_compressed_vector_size<T>(value_bit_width)),
   };
 }
 
 template <typename T> T *decompress(const flsgpu::host::BPColumn<T> column) {
-  // WARNING Assumes vbw is constant for all vectors
-  vbw_t value_bit_width = column.bit_widths[0];
-  size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
-  size_t compressed_vector_size =
-      utils::get_compressed_vector_size<T>(value_bit_width);
   T *out_array = new T[column.n_values];
   T *c_out_array = out_array;
   T *c_packed_array = column.packed_array;
 
-  for (size_t vi{0}; vi < n_vecs; ++vi) {
-    fls::unpack(column.packed_array, c_out_array, value_bit_width);
-    c_packed_array += compressed_vector_size;
+  for (size_t vi{0}; vi < column.get_n_vecs(); ++vi) {
+    fls::unpack(c_packed_array, c_out_array, column.bit_widths[vi]);
+    c_packed_array +=
+        utils::get_compressed_vector_size<T>(column.bit_widths[vi]);
     c_out_array += consts::VALUES_PER_VECTOR;
   }
 
@@ -309,11 +318,9 @@ generate_index_bp_column(const size_t n_values, const vbw_t value_bit_width) {
   size_t n_vecs = utils::get_n_vecs_from_size(n_values);
   size_t n_packed_values =
       n_vecs * utils::get_compressed_vector_size<T>(value_bit_width);
-  T *array = primitives::fill_array_with_sequence(
-      new T[n_values], n_vecs, 0,
-      utils::get_compressed_vector_size<T>(value_bit_width));
+  T *array = arrays::generate_index_array<T>(n_values);
 
-  auto column = fls_bindings::compress(array, n_values, value_bit_width);
+  auto column = fls_bindings::compress<T>(array, n_values, value_bit_width);
   delete[] array;
   return column;
 }
@@ -324,7 +331,7 @@ generate_random_bp_column(const size_t n_values,
                           const ValueRange<vbw_t> value_bit_width,
                           const int32_t repeat = 1) {
   size_t n_vecs = utils::get_n_vecs_from_size(n_values);
-  vbw_t *bit_widths = primitives::fill_array_with_random_data(
+  vbw_t *bit_widths = primitives::fill_array_with_random_data<vbw_t>(
       new vbw_t[n_vecs], n_vecs, repeat, value_bit_width.min,
       value_bit_width.max);
   size_t n_packed_values =
@@ -334,8 +341,8 @@ generate_random_bp_column(const size_t n_values,
   return flsgpu::host::BPColumn<T>{
       n_values,
       n_packed_values,
-      primitives::fill_array_with_random_bytes(new T[n_packed_values],
-                                               n_packed_values),
+      primitives::fill_array_with_random_bytes<T>(new T[n_packed_values],
+                                                  n_packed_values),
       bit_widths,
       primitives::prefix_sum_array(bit_widths, new size_t[n_vecs], n_vecs),
   };
@@ -348,8 +355,8 @@ flsgpu::host::FFORColumn<T> generate_random_ffor_column(
   size_t n_vecs = utils::get_n_vecs_from_size(n_values);
   return flsgpu::host::FFORColumn<T>{
       generate_random_bp_column<T>(n_values, value_bit_width, repeat),
-      primitives::fill_array_with_random_data(new T[n_vecs], n_vecs, 1,
-                                              bases.min, bases.max),
+      primitives::fill_array_with_random_data<T>(new T[n_vecs], n_vecs, 1,
+                                                 bases.min, bases.max),
   };
 }
 

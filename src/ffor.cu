@@ -27,30 +27,33 @@ int main(int argc, char **argv) {
   using T = uint32_t;
 
   auto results = std::vector<verification::ExecutionResult<T>>();
-  for (vbw_t i{0}; i < sizeof(T) * 8; ++i) {
-    auto column = data::generators::columns::generate_random_bp_column<T>(
-        args.n_values, data::generators::ValueRange<vbw_t>(0, sizeof(T) * 8));
 
-    T *out_a = data::generators::fls_bindings::decompress(column);
+  for (vbw_t vbw{0}; vbw <= sizeof(T) * 8; ++vbw) {
+    auto array =
+        data::generators::arrays::generate_index_array<T>(args.n_values, vbw);
 
-    constexpr unsigned UNPACK_N_VECTORS = 1;
-    constexpr unsigned UNPACK_N_VALUES = 1;
-    T *out_b = kernels::host::decompress_column<
-        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        flsgpu::device::BPDecompressor<
-            T, flsgpu::device::BitUnpackerStatefulBranchless<
-                   T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                   flsgpu::device::BPFunctor<T>>>,
-        flsgpu::host::BPColumn<T>>(column);
+    auto column =
+        data::generators::fls_bindings::compress(array, args.n_values, vbw);
+    T *out = data::generators::fls_bindings::decompress(column);
 
-    results.push_back(verification::compare_data(out_a, out_b, args.n_values));
+    /*
+constexpr unsigned UNPACK_N_VECTORS = 1;
+constexpr unsigned UNPACK_N_VALUES = 1;
+T *out_b = kernels::host::decompress_column<
+T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+flsgpu::device::BPDecompressor<
+T, flsgpu::device::BitUnpackerStatefulBranchless<
+       T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+       flsgpu::device::BPFunctor<T>>>,
+flsgpu::host::BPColumn<T>>(column);
+                    */
+
+    results.push_back(verification::compare_data(array, out, args.n_values));
 
     flsgpu::host::free_column(column);
-    delete out_a;
-    delete out_b;
+    delete[] array;
+    delete[] out;
   }
-
-
 
   exit(verification::process_results(results, true));
 }

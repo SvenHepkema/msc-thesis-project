@@ -346,18 +346,19 @@ struct RegisterBranchlessLoader : LoaderBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS> struct Masker {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   const vbw_t value_bit_width;
   const T value_mask;
   uint16_t buffer_offset = 0;
 
   __device__ __forceinline__ Masker(const vbw_t value_bit_width)
       : value_bit_width(value_bit_width),
-        value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
+        value_mask(utils::set_first_n_bits<UINT_T>(value_bit_width)){};
 
   __device__ __forceinline__ Masker(const uint16_t buffer_offset,
                                     const vbw_t value_bit_width)
       : buffer_offset(buffer_offset), value_bit_width(value_bit_width),
-        value_mask(utils::set_first_n_bits<T>(value_bit_width)){};
+        value_mask(utils::set_first_n_bits<UINT_T>(value_bit_width)){};
 
   __device__ __forceinline__ void mask_and_increment(T *values,
                                                      const T *buffers) {
@@ -480,7 +481,7 @@ __device__ void unpack_vector_stateless_branchless(
   int32_t n_input_line = preceding_bits_first / LANE_BIT_WIDTH;
   int32_t offset_first = preceding_bits_first % LANE_BIT_WIDTH;
   int32_t offset_second = BIT_COUNT - offset_first;
-  UINT_T value_mask = utils::set_first_n_bits<T>(value_bit_width);
+  UINT_T value_mask = utils::set_first_n_bits<UINT_T>(value_bit_width);
 
   UINT_T values[UNPACK_N_VECTORS] = {0};
 
@@ -589,7 +590,7 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
       const UINT_T *__restrict a_in, const lane_t lane,
       const vbw_t value_bit_width, OutputProcessor processor)
       : in(a_in + lane), value_bit_width(value_bit_width),
-        value_mask(utils::set_first_n_bits<T>(value_bit_width)),
+        value_mask(utils::set_first_n_bits<UINT_T>(value_bit_width)),
         vector_offset(utils::get_compressed_vector_size<T>(value_bit_width)),
         processor(processor) {}
 

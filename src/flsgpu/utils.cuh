@@ -58,11 +58,13 @@ template <typename T> constexpr T h_set_first_n_bits(const int32_t count) {
 }
 
 template <typename T> constexpr T set_first_n_bits(const int32_t count) {
-  using U_T = typename same_width_uint<T>::type;
+  using UINT_T = typename same_width_uint<T>::type;
+  static_assert(std::is_integral<T>::value, "T must be an integer type");
 
-  return reinterpret_type<U_T, T>(
-      std::numeric_limits<U_T>::max() >>
-      reinterpret_type<int32_t, U_T>(utils::sizeof_in_bits<U_T>() - count));
+  return reinterpret_type<UINT_T, T>(
+      std::numeric_limits<UINT_T>::max() >>
+      reinterpret_type<int32_t, UINT_T>(utils::sizeof_in_bits<UINT_T>() -
+                                        count));
 }
 
 template <typename T> constexpr int32_t get_lane_bitwidth() {

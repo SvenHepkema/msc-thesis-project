@@ -93,11 +93,11 @@ public:
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       auto vec_index = first_vector_index + v;
-      exceptions_count[v] = column.counts[vec_index];
+      exceptions_count[v] = column.counts[vec_index + v];
       vec_exceptions_positions[v] =
-          column.positions + column.exceptions_offsets[vec_index];
+          column.positions + column.exceptions_offsets[vec_index + v];
       vec_exceptions[v] =
-          column.exceptions + column.exceptions_offsets[vec_index];
+          column.exceptions + column.exceptions_offsets[vec_index + v];
     }
   }
 };
@@ -147,11 +147,11 @@ public:
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       auto vec_index = first_vector_index + v;
-      exceptions_count[v] = column.counts[vec_index];
+      exceptions_count[v] = column.counts[vec_index + v];
       vec_exceptions_positions[v] =
-          column.positions + column.exceptions_offsets[vec_index];
+          column.positions + column.exceptions_offsets[vec_index + v];
       vec_exceptions[v] =
-          column.exceptions + column.exceptions_offsets[vec_index];
+          column.exceptions + column.exceptions_offsets[vec_index + v];
     }
   }
 };

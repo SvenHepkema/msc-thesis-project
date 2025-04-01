@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
     // auto column = alp::encode(array, size);
     auto out_a = alp::decode(column, new T[args.n_values]);
 
+		auto extended_column = column.create_extended_column();
     T *out_b = kernels::host::decompress_column<
         T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
         flsgpu::device::ALPDecompressor<
@@ -49,10 +50,10 @@ int main(int argc, char **argv) {
             flsgpu::device::BitUnpackerStatefulBranchless<
                 T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
                 flsgpu::device::ALPFunctor<T, UNPACK_N_VECTORS>>,
-            flsgpu::device::StatelessALPExceptionPatcher<T, UNPACK_N_VECTORS,
-                                                         UNPACK_N_VALUES>,
-            flsgpu::device::ALPColumn<T>>,
-        flsgpu::host::ALPColumn<T>>(column);
+            flsgpu::device::PrefetchAllALPExceptionPatcher<T, UNPACK_N_VECTORS,
+                                                           UNPACK_N_VALUES>,
+            flsgpu::device::ALPExtendedColumn<T>>,
+        flsgpu::host::ALPExtendedColumn<T>>(extended_column);
 
     results.push_back(verification::compare_data(out_a, out_b, args.n_values));
 

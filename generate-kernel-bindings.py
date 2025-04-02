@@ -12,6 +12,7 @@ FILE_HEADER = """
 #include <stdexcept>
 
 #include "kernel-bindings.cuh"
+#include "../engine/kernels.cuh"
 
 namespace bindings{
 """
@@ -57,6 +58,9 @@ UNPACKERS = [
     "StatefulRegisterBranchless4",
     "StatefulBranchless",
 ]
+BEST_UNPACKER = [
+    "StatefulBranchless",
+]
 
 
 PATCHERS = [
@@ -67,6 +71,9 @@ PATCHERS = [
     "NaiveBranchless",
     "PrefetchPosition",
     "PrefetchAll",
+    "PrefetchAllBranchless",
+]
+BEST_PATCHER = [
     "PrefetchAllBranchless",
 ]
 
@@ -93,31 +100,35 @@ def get_decompressor_type(
     column_t = get_column_t(encoding, data_type)
     functor = f"BPFunctor<{data_type}>"
     patcher_t = f""
+    decompressor_t = f"{encoding}Decompressor"
     if "FFOR" in encoding:
         functor = f"FFORFunctor<{data_type}, {n_vec}>"
     elif "ALPExtended" in encoding:
         functor = f"ALPFunctor<{data_type}, {n_vec}>"
-        patcher_t = f"flsgpu::device::{patcher}<{data_type}, {n_vec}, {n_val}>,"
+        patcher_t = f"flsgpu::device::{patcher}ALPExceptionPatcher<{data_type}, {n_vec}, {n_val}>,"
+        decompressor_t = "ALPDecompressor"
     elif "ALP" in encoding:
         functor = f"ALPFunctor<{data_type}, {n_vec}>"
-        patcher_t = f"flsgpu::device::{patcher}<{data_type}, {n_vec}, {n_val}>,"
+        patcher_t = f"flsgpu::device::{patcher}ALPExceptionPatcher<{data_type}, {n_vec}, {n_val}>,"
 
     loader_t = ""
-    if "Stateful" in unpacker:
+    if "Stateful" in unpacker and "StatefulBranchless" not in unpacker:
+        loader_t = ", flsgpu::device::"
         if "Cache" in unpacker:
-            loader_t += f"CacheLoader<{data_type}, {n_vec}>,"
+            loader_t += f"CacheLoader<{data_type}, {n_vec}>"
         elif "Local" in unpacker:
-            loader_t += f"LocalMemoryLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+            loader_t += f"LocalMemoryLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
         elif "RegisterBranchless" in unpacker:
             loader_t += (
-                f"RegisterBranchlessLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+                f"RegisterBranchlessLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
             )
         elif "Register" in unpacker:
-            loader_t += f"RegisterLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+            loader_t += f"RegisterLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
+        unpacker = "Stateful"
 
     unpacker_t = f"flsgpu::device::BitUnpacker{unpacker}<{data_type}, {n_vec}, {n_val},  flsgpu::device::{functor} {loader_t}>"
 
-    return f"flsgpu::device::{encoding}Decompressor<{data_type}, {n_vec}, {unpacker_t}, {patcher_t} {column_t}>"
+    return f"flsgpu::device::{decompressor_t}<{data_type}, {n_vec}, {unpacker_t}, {patcher_t} {column_t}>"
 
 
 def get_if_statement(
@@ -144,7 +155,7 @@ def get_if_statement(
     )
 
     return (
-        f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == {unpacker} && patcher == {patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
+        f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == Unpacker::{unpacker} && patcher == Patcher::{patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
         + "{"  # }
         f"return kernels::host::{function}<{data_type}, {n_vec}, {n_val}, {decompressor_t}, {column_t} {',' + str(n_repetitions) if n_repetitions else ''}>(column);"
         "}"
@@ -161,12 +172,12 @@ def get_function(
     is_compute_column: bool = False,
 ) -> str:
     assert not (is_multi_column and is_compute_column)
-    column_t = get_column_t(data_type, encoding)
+    column_t = get_column_t(encoding, data_type)
     return (
         f"{return_type} {name}(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
         + "{"
         + "\n".join(content)
-        + f'throw std::invalid_argument("Could not find correct bindingi in {name}");'
+        + f'throw std::invalid_argument("Could not find correct binding in {name} {encoding}<{data_type}>");'
         + "}"
     )
 
@@ -175,13 +186,16 @@ def write_file(
     file_name: str,
     functions: list[str],
 ):
-    with open(file_name, "w") as f:
+    logging.info(f"Writing file {file_name}")
+    with open(os.path.join(GENERATED_BINDINGS_DIR, file_name), "w") as f:
         f.write("\n".join([FILE_HEADER] + functions + [FILE_FOOTER]))
 
 
 def main(args):
     for encoding in ["BP", "FFOR"]:
-        for binding in ["decompress_column", "query_column"]:
+        for binding, return_type in zip(
+            ["decompress_column", "query_column"], [None, "bool"]
+        ):
             write_file(
                 f"{encoding.lower()}-{binding}-bindings.cu",
                 [
@@ -189,7 +203,7 @@ def main(args):
                         encoding,
                         data_type,
                         binding,
-                        data_type + "*",
+                        return_type if return_type else data_type + "*",
                         [
                             get_if_statement(
                                 encoding,
@@ -210,7 +224,11 @@ def main(args):
             )
     for encoding in ["FFOR"]:
         for binding, options in zip(
-            ["query_multi_column", "compute_column"], [(True, False), (False, True)]
+            # Reinsert when multcolumn is done
+            # ["query_multi_column", "compute_column"],
+            # [(True, False), (False, True)]
+            ["compute_column"],
+            [(False, True)],
         ):
             write_file(
                 f"{encoding.lower()}-{binding}-bindings.cu",
@@ -219,7 +237,7 @@ def main(args):
                         encoding,
                         data_type,
                         binding,
-                        data_type + "*",
+                        "bool",
                         [
                             get_if_statement(
                                 encoding,
@@ -229,6 +247,7 @@ def main(args):
                                 n_val,
                                 unpacker,
                                 "None",
+                                n_repetitions=10
                             )
                             for n_vec in [1, 4]
                             for n_val in [1]
@@ -240,24 +259,31 @@ def main(args):
                     for data_type in ["uint32_t", "uint64_t"]
                 ],
             )
-    for encoding, patchers in zip(
+    for encoding, patchers_per_encoding in zip(
         ["ALP", "ALPExtended"], [PATCHERS[1:3], PATCHERS[3:]]
     ):
-        for binding, option in zip(
-            ["decompress_column", "query_column", "query_multi_column"],
-            [False, False, True],
+        for binding, option, return_type, unpackers, patchers in zip(
+            # Reinsert when multcolumn is done
+            # ["decompress_column", "query_column", "query_multi_column"],
+            # [False, False, True],
+            #[None, "bool", "bool"],
+            # [UNPACKERS, UNPACKERS, BEST_UNPACKER],
+            # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
+            ["decompress_column", "query_column"],
+            [False, False],
+            [None, "bool"],
+            [UNPACKERS, UNPACKERS],
+            [patchers_per_encoding, patchers_per_encoding],
         ):
             n_cols = range(1, 10 + 1) if option else [None]
             write_file(
-                os.path.join(
-                    GENERATED_BINDINGS_DIR, f"{encoding.lower()}-{binding}-bindings.cu"
-                ),
+                f"{encoding.lower()}-{binding}-bindings.cu",
                 [
                     get_function(
                         encoding,
                         data_type,
                         binding,
-                        data_type + "*",
+                        return_type if return_type else data_type + "*",
                         [
                             get_if_statement(
                                 encoding,
@@ -273,7 +299,7 @@ def main(args):
                             for n_vec in [1, 4]
                             for n_val in [1]
                             for n_col in n_cols
-                            for unpacker in UNPACKERS
+                            for unpacker in unpackers
                             for patcher in patchers
                         ],
                         is_multi_column=option,

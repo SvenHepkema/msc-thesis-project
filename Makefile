@@ -16,6 +16,7 @@ HEADER_FILES=src/alp/alp-bindings.cuh $(wildcard src/flsgpu/*.cuh) $(wildcard sr
 
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))
+GENERATED_BINDINGS_OBJ := $(patsubst src/generated-bindings/%.cu, obj/generated-bindings-%.o, $(wildcard src/generated-bindings/*.cu))
 
 # OBJ Files
 obj/fls-%.o: src/fls/%.cpp
@@ -24,11 +25,14 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
+obj/generated-bindings-%.o: src/generated-bindings/%.cu
+	nvcc $^ -c -o $@ $(CUDA_FLAGS) 
+
 obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/alp/alp-bindings.cu 
 
 # Executables
-SOURCE_FILES=obj/alp-bindings.o $(FLS_OBJ) $(ALP_OBJ) 
+SOURCE_FILES=obj/alp-bindings.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
 
 ffor: src/ffor.cu $(SOURCE_FILES) $(HEADER_FILES)
 	nvcc $(CUDA_FLAGS) -o bin/$@ src/ffor.cu $(SOURCE_FILES)

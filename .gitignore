@@ -4,3 +4,4 @@ compile_commands.json
 .cache/
 data-input/
 data-benchmark/
+src/generated-bindings/*.cu

@@ -1,6 +1,5 @@
 #include <cstdint>
 
-#include "../engine/kernels.cuh"
 #include "../flsgpu/flsgpu-api.cuh"
 
 #ifndef GENERATED_KERNEL_BINDINGS_CUH
@@ -18,6 +17,9 @@ enum class Unpacker {
   StatefulRegister1,
   StatefulRegister2,
   StatefulRegister4,
+  StatefulRegisterBranchless1,
+  StatefulRegisterBranchless2,
+  StatefulRegisterBranchless4,
   StatefulBranchless,
 };
 
@@ -76,84 +78,85 @@ float *decompress_column(const flsgpu::device::ALPExtendedColumn<float> column,
                          const unsigned unpack_n_vectors,
                          const unsigned unpack_n_values,
                          const Unpacker unpacker, const Patcher patcher);
-double *
-decompress_column(const flsgpu::device::ALPExtendedColumn<double> column,
+bool decompress_column(const flsgpu::device::ALPExtendedColumn<double> column,
+                       const unsigned unpack_n_vectors,
+                       const unsigned unpack_n_values, const Unpacker unpacker,
+                       const Patcher patcher);
+
+bool query_column(const flsgpu::device::BPColumn<uint32_t> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::BPColumn<uint64_t> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::FFORColumn<uint32_t> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::FFORColumn<uint64_t> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::ALPColumn<float> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::ALPColumn<double> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::ALPExtendedColumn<float> column,
+                  const unsigned unpack_n_vectors,
+                  const unsigned unpack_n_values, const Unpacker unpacker,
+                  const Patcher patcher);
+bool query_column(const flsgpu::device::ALPExtendedColumn<double> column,
                   const unsigned unpack_n_vectors,
                   const unsigned unpack_n_values, const Unpacker unpacker,
                   const Patcher patcher);
 
-uint32_t *query_column(const flsgpu::device::BPColumn<uint32_t> column,
-                       const unsigned unpack_n_vectors,
-                       const unsigned unpack_n_values, const Unpacker unpacker,
-                       const Patcher patcher);
-uint64_t *query_column(const flsgpu::device::BPColumn<uint64_t> column,
-                       const unsigned unpack_n_vectors,
-                       const unsigned unpack_n_values, const Unpacker unpacker,
-                       const Patcher patcher);
-uint32_t *query_column(const flsgpu::device::FFORColumn<uint32_t> column,
-                       const unsigned unpack_n_vectors,
-                       const unsigned unpack_n_values, const Unpacker unpacker,
-                       const Patcher patcher);
-uint64_t *query_column(const flsgpu::device::FFORColumn<uint64_t> column,
-                       const unsigned unpack_n_vectors,
-                       const unsigned unpack_n_values, const Unpacker unpacker,
-                       const Patcher patcher);
-float *query_column(const flsgpu::device::ALPColumn<float> column,
+bool compute_column(const flsgpu::device::FFORColumn<uint32_t> column,
                     const unsigned unpack_n_vectors,
                     const unsigned unpack_n_values, const Unpacker unpacker,
                     const Patcher patcher);
-double *query_column(const flsgpu::device::ALPColumn<double> column,
-                     const unsigned unpack_n_vectors,
-                     const unsigned unpack_n_values, const Unpacker unpacker,
-                     const Patcher patcher);
-float *query_column(const flsgpu::device::ALPExtendedColumn<float> column,
+bool compute_column(const flsgpu::device::FFORColumn<uint64_t> column,
                     const unsigned unpack_n_vectors,
                     const unsigned unpack_n_values, const Unpacker unpacker,
                     const Patcher patcher);
-double *query_column(const flsgpu::device::ALPExtendedColumn<double> column,
-                     const unsigned unpack_n_vectors,
-                     const unsigned unpack_n_values, const Unpacker unpacker,
-                     const Patcher patcher);
 
-uint32_t *compute_column(const flsgpu::device::FFORColumn<uint32_t> column,
-                         const unsigned unpack_n_vectors,
-                         const unsigned unpack_n_values,
-                         const Unpacker unpacker, const Patcher patcher);
-uint64_t *compute_column(const flsgpu::device::FFORColumn<uint64_t> column,
-                         const unsigned unpack_n_vectors,
-                         const unsigned unpack_n_values,
-                         const Unpacker unpacker, const Patcher patcher);
-
-uint32_t *query_multi_column(const flsgpu::device::FFORColumn<uint32_t> column,
+/*
+bool query_multi_column(const flsgpu::device::FFORColumn<uint32_t> column,
                              const unsigned unpack_n_vectors,
                              const unsigned unpack_n_values,
                              const Unpacker unpacker, const Patcher patcher,
                              const unsigned n_columns);
-uint64_t *query_multi_column(const flsgpu::device::FFORColumn<uint64_t> column,
+bool query_multi_column(const flsgpu::device::FFORColumn<uint64_t> column,
                              const unsigned unpack_n_vectors,
                              const unsigned unpack_n_values,
                              const Unpacker unpacker, const Patcher patcher,
                              const unsigned n_columns);
-float *query_multi_column(const flsgpu::device::ALPColumn<float> column,
+bool query_multi_column(const flsgpu::device::ALPColumn<float> column,
                           const unsigned unpack_n_vectors,
                           const unsigned unpack_n_values,
                           const Unpacker unpacker, const Patcher patcher,
                           const unsigned n_columns);
-double *query_multi_column(const flsgpu::device::ALPColumn<double> column,
+bool query_multi_column(const flsgpu::device::ALPColumn<double> column,
                            const unsigned unpack_n_vectors,
                            const unsigned unpack_n_values,
                            const Unpacker unpacker, const Patcher patcher,
                            const unsigned n_columns);
-float *query_multi_column(const flsgpu::device::ALPExtendedColumn<float> column,
+bool query_multi_column(const flsgpu::device::ALPExtendedColumn<float> column,
                           const unsigned unpack_n_vectors,
                           const unsigned unpack_n_values,
                           const Unpacker unpacker, const Patcher patcher,
                           const unsigned n_columns);
-double *
+bool
 query_multi_column(const flsgpu::device::ALPExtendedColumn<double> column,
                    const unsigned unpack_n_vectors,
                    const unsigned unpack_n_values, const Unpacker unpacker,
                    const Patcher patcher, const unsigned n_columns);
+                                                                         */
 
 } // namespace bindings
 

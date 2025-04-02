@@ -42,12 +42,14 @@ template <typename T> struct BPColumn {
 
 template <typename T> struct FFORColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
+  size_t n_values;
   BPColumn<T> bp;
   UINT_T *bases;
 };
 
 template <typename T> struct ALPColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
+  size_t n_values;
   FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
@@ -62,6 +64,7 @@ template <typename T> struct ALPColumn {
 
 template <typename T> struct ALPExtendedColumn {
   using UINT_T = typename utils::same_width_uint<T>::type;
+  size_t n_values;
   FFORColumn<UINT_T> ffor;
 
   uint8_t *factor_indices;
@@ -145,7 +148,8 @@ template <typename T> struct FFORColumn {
 
   device::FFORColumn<T> copy_to_device() const {
     return device::FFORColumn<T>{
-        bp.copy_to_device(), GPUArray<UINT_T>(bp.get_n_vecs(), bases).release()};
+        get_n_values(), bp.copy_to_device(),
+        GPUArray<UINT_T>(bp.get_n_vecs(), bases).release()};
   }
 };
 
@@ -195,6 +199,7 @@ template <typename T> struct ALPExtendedColumn {
   device::ALPExtendedColumn<T> copy_to_device() const {
     constant_memory::load_alp_constants<T>();
     return device::ALPExtendedColumn<T>{
+        get_n_values(),
         ffor.copy_to_device(),
         GPUArray<uint8_t>(ffor.bp.get_n_vecs(), factor_indices).release(),
         GPUArray<uint8_t>(ffor.bp.get_n_vecs(), fraction_indices).release(),
@@ -238,6 +243,7 @@ template <typename T> struct ALPColumn {
   device::ALPColumn<T> copy_to_device() const {
     constant_memory::load_alp_constants<T>();
     return device::ALPColumn<T>{
+        get_n_values(),
         ffor.copy_to_device(),
         GPUArray<uint8_t>(ffor.bp.get_n_vecs(), factor_indices).release(),
         GPUArray<uint8_t>(ffor.bp.get_n_vecs(), fraction_indices).release(),
@@ -331,15 +337,10 @@ template <typename T> struct ALPColumn {
     // column, factor & frac10 indices, however this can be changed if needed
     auto [e_exceptions, e_positions, e_offsets_counts] =
         convert_exceptions_to_lane_divided_format();
-    return ALPExtendedColumn<T>{ffor,
-                                factor_indices,
-                                fraction_indices,
-                                n_exceptions,
-                                exceptions_offsets,
-                                e_exceptions,
-                                e_positions,
-                                e_offsets_counts,
-                                compressed_size_bytes_alp_extended};
+    return ALPExtendedColumn<T>{
+        ffor,         factor_indices,     fraction_indices,
+        n_exceptions, exceptions_offsets, e_exceptions,
+        e_positions,  e_offsets_counts,   compressed_size_bytes_alp_extended};
   }
 };
 

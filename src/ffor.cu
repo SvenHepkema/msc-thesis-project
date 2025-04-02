@@ -21,16 +21,47 @@ CLIArgs parse_cli_args(const int argc, char **argv) {
   return CLIArgs{std::stoul(argv[++argcounter]) * consts::VALUES_PER_VECTOR};
 }
 
-int main(int argc, char **argv) {
-  CLIArgs args = parse_cli_args(argc, argv);
-
-  using T = double;
+template <typename T>
+std::vector<verification::ExecutionResult<T>> test_ffor(CLIArgs args) {
   using UINT_T = typename utils::same_width_uint<T>::type;
+  auto results = std::vector<verification::ExecutionResult<T>>();
 
+  for (vbw_t vbw{0}; vbw <= sizeof(T) * 8; ++vbw) {
+    constexpr unsigned UNPACK_N_VECTORS = 4;
+    constexpr unsigned UNPACK_N_VALUES = 1;
+
+    // auto column = data::columns::generate_index_bp_column<T>(args.n_values,
+    // vbw);
+    auto column = data::columns::generate_random_bp_column<T>(
+        args.n_values, data::ValueRange<vbw_t>(vbw), UNPACK_N_VECTORS);
+    auto out_a = data::fls_bindings::decompress(column);
+
+    T *out_b = kernels::host::decompress_column<
+        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+        flsgpu::device::BPDecompressor<
+            T, flsgpu::device::BitUnpackerStatefulBranchless<
+                   T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                   flsgpu::device::BPFunctor<T>>>,
+        flsgpu::host::BPColumn<T>>(column);
+
+    results.push_back(verification::compare_data(out_a, out_b, args.n_values));
+
+    flsgpu::host::free_column(column);
+    // delete[] array;
+    delete[] out_a;
+    delete[] out_b;
+  }
+
+  return results;
+}
+
+template <typename T>
+std::vector<verification::ExecutionResult<T>> test_alp(CLIArgs args) {
+  using UINT_T = typename utils::same_width_uint<T>::type;
   auto results = std::vector<verification::ExecutionResult<T>>();
 
   for (vbw_t vbw{0}; vbw <= sizeof(T) * 8 / 2; ++vbw) {
-    constexpr unsigned UNPACK_N_VECTORS = 1;
+    constexpr unsigned UNPACK_N_VECTORS = 4;
     constexpr unsigned UNPACK_N_VALUES = 1;
 
     auto column = data::columns::generate_alp_column<T>(
@@ -42,7 +73,7 @@ int main(int argc, char **argv) {
     // auto column = alp::encode(array, size);
     auto out_a = alp::decode(column, new T[args.n_values]);
 
-		auto extended_column = column.create_extended_column();
+    auto extended_column = column.create_extended_column();
     T *out_b = kernels::host::decompress_column<
         T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
         flsgpu::device::ALPDecompressor<
@@ -63,5 +94,13 @@ int main(int argc, char **argv) {
     delete[] out_b;
   }
 
+  return results;
+}
+
+int main(int argc, char **argv) {
+  CLIArgs args = parse_cli_args(argc, argv);
+
+  // auto results = test_ffor<uint32_t>(args);
+  auto results = test_alp<float>(args);
   exit(verification::process_results(results, true));
 }

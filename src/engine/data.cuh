@@ -124,6 +124,15 @@ T_out *prefix_sum_array(const T_in *in, T_out *out, const size_t n_values) {
   return out;
 }
 
+template <typename T, typename LambdaT>
+T *map(LambdaT lambda, T *array, const size_t n_values) {
+  for (size_t i{0}; i < n_values; ++i) {
+    array[i] = lambda(array[i]);
+  }
+
+  return array;
+}
+
 template <typename T>
 std::tuple<T *, bool> make_column_magic(T *data, const size_t n_values) {
   auto generate_index = get_random_number_generator<size_t>(0, n_values - 1);
@@ -357,7 +366,10 @@ generate_random_bp_column(const size_t n_values,
       primitives::fill_array_with_random_bytes<T>(new T[n_packed_values],
                                                   n_packed_values),
       bit_widths,
-      primitives::prefix_sum_array(bit_widths, new size_t[n_vecs], n_vecs),
+      primitives::map(
+          [](const T value) { return value * utils::get_n_lanes<T>(); },
+          primitives::prefix_sum_array(bit_widths, new size_t[n_vecs], n_vecs),
+          n_vecs),
   };
 }
 
@@ -391,10 +403,10 @@ flsgpu::host::ALPColumn<T> generate_alp_column(
   int32_t frac_arr_size = sizeof(T) == 4 ? 11 : 21;
   int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
   column.fraction_indices = primitives::fill_array_with_random_data<uint8_t>(
-      new uint8_t[n_vecs], n_vecs, repeat, 0,
+      new uint8_t[n_vecs], n_vecs, 1, 0,
       static_cast<uint8_t>(frac_arr_size / 2));
   column.factor_indices = primitives::fill_array_with_random_data<uint8_t>(
-      new uint8_t[n_vecs], n_vecs, repeat, 0,
+      new uint8_t[n_vecs], n_vecs, 1, 0,
       static_cast<uint8_t>(fact_arr_size / 2));
 
   column.counts = primitives::fill_array_with_random_data<uint16_t>(

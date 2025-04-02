@@ -453,8 +453,6 @@ struct ALPDecompressor : DecompressorBase<T> {
   UnpackerT unpacker;
   PatcherT patcher;
 
-  int start_index = 0;
-
   __device__ __forceinline__ ALPDecompressor(const ColumnT column,
                                              const vi_t vector_index,
                                              const lane_t lane)
@@ -470,7 +468,6 @@ struct ALPDecompressor : DecompressorBase<T> {
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) {
     unpacker.unpack_next_into(out);
     patcher.patch_if_needed(out);
-    ++start_index;
   }
 };
 

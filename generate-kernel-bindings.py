@@ -5,476 +5,286 @@ import sys
 
 import argparse
 import logging
-from typing import Any, NewType
-import math
 
-from dataclasses import dataclass
-
-Code = NewType("Code", str)
-
-
-@dataclass
-class Parameter:
-    tag: str
-    values: list[Any]
-
-
-@dataclass
-class MultiParameter:
-    parameters: list[Parameter]
-
-    def __post_init__(self):
-        equal_length = len(self.parameters[0].values)
-        for parameter in self.parameters:
-            assert equal_length == len(parameter.values)
-
+GENERATED_BINDINGS_DIR = "./src/generated-bindings/"
 
 FILE_HEADER = """
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
 #include <stdexcept>
 
-#include "../alp/alp-bindings.hpp"
-#include "../common/consts.hpp"
-#include "../common/runspec.hpp"
-#include "alp.cuh"
-#include "host-alp-utils.cuh"
-#include "host-utils.cuh"
-#include "kernels-global.cuh"
+#include "kernel-bindings.cuh"
 
-#ifndef GENERATED_KERNEL_CALLS
-#define GENERATED_KERNEL_CALLS
-
-namespace generated_kernel_calls {
+namespace bindings{
 """
 
 FILE_FOOTER = """
 }
-#endif // GENERATED_KERNEL_CALLS
-"""
-
-FUNCTION_FOOTER = """
-}
-"""
-
-FLS_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void fls_decompress_column(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-    const T *in,
-    const int32_t value_bit_width) {
-"""
-
-FLS_DECOMPRESS_COLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    kernels::device::fls::decompress_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
-        <<<n_blocks, n_threads>>>(                 
-            out, in, value_bit_width);            
-        }
-"""
-
-FLS_QUERY_COLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void fls_query_column(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-    const T *in,
-    const int32_t value_bit_width
-    ) {
-"""
-
-FLS_QUERY_COLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    kernels::device::fls::query_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
-        <<<n_blocks, n_threads>>>(                 
-            out, in, value_bit_width);            
-        }
-"""
-
-FLS_QUERY_MULTICOLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void fls_query_multicolumn(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-    const T *in_a,
-    const T *in_b,
-    const T *in_c,
-    const T *in_d,
-    const int32_t value_bit_width
-    ) {
 """
 
 
-FLS_QUERY_MULTICOLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    kernels::device::fls::query_multicolumn<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
-        <<<n_blocks, n_threads>>>(                 
-            out, in_a, in_b, in_c, in_d, 
-            value_bit_width, value_bit_width, value_bit_width, value_bit_width);            
-        }
-"""
+DATA_TYPES = [
+    "uint32_t",
+    "uint64_t",
+    "float",
+    "double",
+]
 
-FLS_QUERY_COLUMN_UNROLLED_FUNCTION_SIGNATURE = """
-template <typename T>
-void fls_query_column_unrolled(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-    const T *in,
-    const int32_t value_bit_width
-    ) {
-"""
+FUNCTIONS = [
+    "decompress_column",
+    "query_column",
+    "compute_column",
+    "query_multi_column",
+]
 
-FLS_QUERY_COLUMN_UNROLLED_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    kernels::device::fls::query_column_unrolled<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
-        <<<n_blocks, n_threads>>>(                 
-            out, in, value_bit_width);            
-        }
-"""
+ENCODINGS = [
+    "BP",
+    "FFOR",
+    "ALP",
+    "ALPExtended",
+]
 
-FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void fls_compute_column(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-    const T *in,
-    const int32_t value_bit_width) {
-"""
-
-FLS_COMPUTE_COLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    kernels::device::fls::compute_column<                                   
-        T, XXN_VEC, XXN_VAL, XXUNPACKER_T>           
-        <<<n_blocks, n_threads>>>(                 
-            out, in, value_bit_width, 0);            
-        }
-"""
-
-ALP_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void alp_decompress_column(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-const alp::AlpCompressionData<T> *data
-) {
-"""
-
-ALP_DECOMPRESS_COLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec.patcher && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    XXCOLUMN_COPY
-    kernels::device::alp::decompress_column<                                   
-        T, XXN_VEC, XXN_VAL, 
-        AlpUnpacker<T, XXN_VEC, XXN_VAL,
-            XXUNPACKER_T,
-            XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
-            XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
-        <<<n_blocks, n_threads>>>(                 
-            out, column);            
-    transfer::destroy_alp_column(column);
-}
-"""
-
-ALP_QUERY_COLUMN_FUNCTION_SIGNATURE = """
-template <typename T>
-void alp_query_column(const runspec::KernelSpecification spec,
-    const unsigned n_blocks, const unsigned n_threads,
-    T *out,
-const alp::AlpCompressionData<T> *data,
- const T magic_value
-) {
-"""
-ALP_QUERY_COLUMN_IF_STATEMENT = """
-if (runspec::XXUNPACKER_ENUM == spec.unpacker && runspec::XXPATCHER_ENUM == spec.patcher && spec.n_vecs == XXN_VEC && spec.n_vals == XXN_VAL) {
-    XXCOLUMN_COPY
-    kernels::device::alp::query_column<                                   
-        T, XXN_VEC, XXN_VAL, 
-        AlpUnpacker<T, XXN_VEC, XXN_VAL,
-        XXUNPACKER_T,
-            XXPATCHER_T<T, XXN_VEC, XXN_VAL >, 
-            XXCOLUMN_T<T>>, XXCOLUMN_T<T>>
-        <<<n_blocks, n_threads>>>(                 
-            out, column, magic_value);            
-    transfer::destroy_alp_column(column);
-}
-"""
-
-
-ALP_COLUMN = "AlpColumn"
-ALP_COLUMN_EXTENDED = "AlpExtendedColumn"
-ALP_COLUMN_COPY = "auto column = transfer::copy_alp_column_to_gpu(data);"
-ALP_COLUMN_EXTENDED_COPY = (
-    "auto column = transfer::copy_alp_extended_column_to_gpu(data);"
-)
-
-
-def packer(name: str, is_alp: bool, additional_param: str | None = None) -> str:
-    return f'{name}<T, XXN_VEC, XXN_VAL, {"BPFunctor<T>" if not is_alp else "ALPFunctor<T, XXN_VEC>"} {", " + additional_param if additional_param else ""} {", consts::VALUES_PER_VECTOR" if is_alp else ""}>'
-
-
-def get_fls_parameters(for_alp: bool):
-    return [
-        MultiParameter(
-            [
-                Parameter(
-                    "XXUNPACKER_ENUM",
-                    [
-                        "STATELESS",
-                        "STATEFUL_CACHE",
-                        "STATEFUL_LOCAL_MEMORY_1",
-                        "STATEFUL_LOCAL_MEMORY_2",
-                        "STATEFUL_LOCAL_MEMORY_4",
-                        "STATEFUL_REGISTER_1",
-                        "STATEFUL_REGISTER_2",
-                        "STATEFUL_REGISTER_4",
-                        "STATEFUL_REGISTER_BRANCHLESS_1",
-                        "STATEFUL_REGISTER_BRANCHLESS_2",
-                        "STATEFUL_REGISTER_BRANCHLESS_4",
-                        "STATELESS_BRANCHLESS",
-                        "STATEFUL_BRANCHLESS",
-                    ],
-                ),
-                Parameter(
-                    "XXUNPACKER_T",
-                    [
-                        packer("BitUnpackerStateless", for_alp),
-                        packer(
-                            "BitUnpackerStateful", for_alp, "CacheLoader<T, XXN_VEC>"
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "LocalMemoryLoader<T, XXN_VEC, 1>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "LocalMemoryLoader<T, XXN_VEC, 2>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "LocalMemoryLoader<T, XXN_VEC, 4>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterLoader<T, XXN_VEC, 1>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterLoader<T, XXN_VEC, 2>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterLoader<T, XXN_VEC, 4>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterBranchlessLoader<T, XXN_VEC, 1>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterBranchlessLoader<T, XXN_VEC, 2>",
-                        ),
-                        packer(
-                            "BitUnpackerStateful",
-                            for_alp,
-                            "RegisterBranchlessLoader<T, XXN_VEC, 4>",
-                        ),
-                        packer("BitUnpackerStatelessBranchless", for_alp),
-                        packer("BitUnpackerStatefulBranchless", for_alp),
-                    ],
-                ),
-            ]
-        ),
-        Parameter("XXN_VEC", [1, 4]),
-        Parameter("XXN_VAL", [1]),
-    ]
-
-
-FLS_PARAMETERS = get_fls_parameters(False)
-
-DUMMY_FLS_PARAMETERS = [
-        MultiParameter(
-            [
-                Parameter(
-                    "XXUNPACKER_ENUM",
-                    [
-                        "DUMMY",
-                    ],
-                ),
-                Parameter(
-                    "XXUNPACKER_T",
-                    [
-                        packer("kernels::device::fls::Dummy", False),
-                    ],
-                ),
-            ]
-        ),
-        Parameter("XXN_VEC", [1, 4]),
-        Parameter("XXN_VAL", [1, 32]),
-    ]
-
-OLD_FLS_ADJUSTED_PARAMETERS = [
-        MultiParameter(
-            [
-                Parameter(
-                    "XXUNPACKER_ENUM",
-                    [
-                        "OLD_FLS_ADJUSTED",
-                    ],
-                ),
-                Parameter(
-                    "XXUNPACKER_T",
-                    [
-                        packer("kernels::device::fls::OldFLSAdjusted", False),
-                    ],
-                ),
-            ]
-        ),
-        Parameter("XXN_VEC", [1]),
-        Parameter("XXN_VAL", [32]),
-    ]
-
-ALP_PARAMETERS = [
-    *get_fls_parameters(True),
-    MultiParameter(
-        [
-            Parameter(
-                "XXPATCHER_ENUM",
-                [
-                    "STATELESS_P",
-                    "STATEFUL_P",
-                    "NAIVE",
-                    "NAIVE_BRANCHLESS",
-                    "PREFETCH_POSITION",
-                    "PREFETCH_ALL",
-                    "PREFETCH_ALL_BRANCHLESS",
-                ],
-            ),
-            Parameter(
-                "XXPATCHER_T",
-                [
-                    "StatelessALPExceptionPatcher",
-                    "StatefulALPExceptionPatcher",
-                    "NaiveALPExceptionPatcher",
-                    "NaiveBranchlessALPExceptionPatcher",
-                    "PrefetchPositionALPExceptionPatcher",
-                    "PrefetchAllALPExceptionPatcher",
-                    "PrefetchAllBranchlessALPExceptionPatcher",
-                ],
-            ),
-            Parameter(
-                "XXCOLUMN_T",
-                [
-                    ALP_COLUMN,
-                    ALP_COLUMN,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                    ALP_COLUMN_EXTENDED,
-                ],
-            ),
-            Parameter(
-                "XXCOLUMN_COPY",
-                [
-                    ALP_COLUMN_COPY,
-                    ALP_COLUMN_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                    ALP_COLUMN_EXTENDED_COPY,
-                ],
-            ),
-        ]
-    ),
+UNPACKERS = [
+    "Stateless",
+    "StatelessBranchless",
+    "StatefulCache",
+    "StatefulLocal1",
+    "StatefulLocal2",
+    "StatefulLocal4",
+    "StatefulRegister1",
+    "StatefulRegister2",
+    "StatefulRegister4",
+    "StatefulRegisterBranchless1",
+    "StatefulRegisterBranchless2",
+    "StatefulRegisterBranchless4",
+    "StatefulBranchless",
 ]
 
 
-def insert_parameters(
-    code: Code, input_parameters: list[Parameter | MultiParameter]
-) -> Code:
-    results = [code]
+PATCHERS = [
+    "None",
+    "Stateless",
+    "Stateful",
+    "Naive",
+    "NaiveBranchless",
+    "PrefetchPosition",
+    "PrefetchAll",
+    "PrefetchAllBranchless",
+]
 
-    multi_parameters = [
-        MultiParameter([p]) if isinstance(p, Parameter) else p for p in input_parameters
-    ]
 
-    for mp in multi_parameters:
-        n_params = len(mp.parameters)
-        n_values = len(mp.parameters[0].values)
+def get_column_t(encoding: str, data_type: str) -> str:
+    column_t = f"BPColumn<{data_type}>"
+    if "FFOR" in encoding:
+        column_t = f"FFORColumn<{data_type}>"
+    elif "ALPExtended" in encoding:
+        column_t = f"ALPExtendedColumn<{data_type}>"
+    elif "ALP" in encoding:
+        column_t = f"ALPColumn<{data_type}>"
+    return "flsgpu::device::" + column_t
 
-        len_pre_application = len(results)
-        results *= n_values
-        for p in range(n_params):
-            for v in range(n_values):
-                tag = mp.parameters[p].tag
-                value = mp.parameters[p].values[v]
 
-                for i in range(len_pre_application):
-                    index = i + v * len_pre_application
-                    results[index] = results[index].replace(tag, str(value))
+def get_decompressor_type(
+    encoding: str,
+    data_type: str,
+    unpacker: str,
+    patcher: str,
+    n_vec: int,
+    n_val: int,
+) -> str:
+    column_t = get_column_t(encoding, data_type)
+    functor = f"BPFunctor<{data_type}>"
+    patcher_t = f""
+    if "FFOR" in encoding:
+        functor = f"FFORFunctor<{data_type}, {n_vec}>"
+    elif "ALPExtended" in encoding:
+        functor = f"ALPFunctor<{data_type}, {n_vec}>"
+        patcher_t = f"flsgpu::device::{patcher}<{data_type}, {n_vec}, {n_val}>,"
+    elif "ALP" in encoding:
+        functor = f"ALPFunctor<{data_type}, {n_vec}>"
+        patcher_t = f"flsgpu::device::{patcher}<{data_type}, {n_vec}, {n_val}>,"
 
-    return Code("".join(results))
+    loader_t = ""
+    if "Stateful" in unpacker:
+        if "Cache" in unpacker:
+            loader_t += f"CacheLoader<{data_type}, {n_vec}>,"
+        elif "Local" in unpacker:
+            loader_t += f"LocalMemoryLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+        elif "RegisterBranchless" in unpacker:
+            loader_t += (
+                f"RegisterBranchlessLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+            )
+        elif "Register" in unpacker:
+            loader_t += f"RegisterLoader<{data_type}, {n_vec}, {unpacker[-1]}>,"
+
+    unpacker_t = f"flsgpu::device::BitUnpacker{unpacker}<{data_type}, {n_vec}, {n_val},  flsgpu::device::{functor} {loader_t}>"
+
+    return f"flsgpu::device::{encoding}Decompressor<{data_type}, {n_vec}, {unpacker_t}, {patcher_t} {column_t}>"
+
+
+def get_if_statement(
+    encoding: str,
+    data_type: str,
+    function: str,
+    n_vec: int,
+    n_val: int,
+    unpacker: str,
+    patcher: str,
+    n_columns: int | None = None,
+    n_repetitions: int | None = None,
+) -> str:
+    assert data_type in DATA_TYPES
+    assert function in FUNCTIONS
+    assert n_vec in [1, 2, 4, 8]
+    assert n_val in [1, 32]
+    assert unpacker in UNPACKERS
+    assert patcher in PATCHERS
+
+    column_t = get_column_t(encoding, data_type)
+    decompressor_t = get_decompressor_type(
+        encoding, data_type, unpacker, patcher, n_vec, n_val
+    )
+
+    return (
+        f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == {unpacker} && patcher == {patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
+        + "{"  # }
+        f"return kernels::host::{function}<{data_type}, {n_vec}, {n_val}, {decompressor_t}, {column_t} {',' + str(n_repetitions) if n_repetitions else ''}>(column);"
+        "}"
+    )
+
+
+def get_function(
+    encoding: str,
+    data_type: str,
+    name: str,
+    return_type: str,
+    content: list[str],
+    is_multi_column: bool = False,
+    is_compute_column: bool = False,
+) -> str:
+    assert not (is_multi_column and is_compute_column)
+    column_t = get_column_t(data_type, encoding)
+    return (
+        f"{return_type} {name}(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
+        + "{"
+        + "\n".join(content)
+        + f'throw std::invalid_argument("Could not find correct bindingi in {name}");'
+        + "}"
+    )
+
+
+def write_file(
+    file_name: str,
+    functions: list[str],
+):
+    with open(file_name, "w") as f:
+        f.write("\n".join([FILE_HEADER] + functions + [FILE_FOOTER]))
 
 
 def main(args):
-    code = FILE_HEADER
-    code += (
-        FLS_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
-        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        + insert_parameters(Code(FLS_DECOMPRESS_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
-        + FUNCTION_FOOTER
-    )
-    code += (
-        FLS_QUERY_COLUMN_FUNCTION_SIGNATURE
-        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        + insert_parameters(Code(FLS_QUERY_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
-        + FUNCTION_FOOTER
-    )
-    code += (
-        FLS_COMPUTE_COLUMN_FUNCTION_SIGNATURE
-        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), DUMMY_FLS_PARAMETERS)
-        #+ insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), OLD_FLS_ADJUSTED_PARAMETERS)
-        + insert_parameters(Code(FLS_COMPUTE_COLUMN_IF_STATEMENT), FLS_PARAMETERS)
-        + FUNCTION_FOOTER
-    )
-    code += (
-        ALP_DECOMPRESS_COLUMN_FUNCTION_SIGNATURE
-        + insert_parameters(Code(ALP_DECOMPRESS_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
-        + FUNCTION_FOOTER
-    )
-    code += (
-        ALP_QUERY_COLUMN_FUNCTION_SIGNATURE
-        + insert_parameters(Code(ALP_QUERY_COLUMN_IF_STATEMENT), ALP_PARAMETERS)
-        + FUNCTION_FOOTER
-    )
-    code += FILE_FOOTER
-
-    args.out.write(code)
+    for encoding in ["BP", "FFOR"]:
+        for binding in ["decompress_column", "query_column"]:
+            write_file(
+                f"{encoding.lower()}-{binding}-bindings.cu",
+                [
+                    get_function(
+                        encoding,
+                        data_type,
+                        binding,
+                        data_type + "*",
+                        [
+                            get_if_statement(
+                                encoding,
+                                data_type,
+                                binding,
+                                n_vec,
+                                n_val,
+                                unpacker,
+                                "None",
+                            )
+                            for n_vec in [1, 4]
+                            for n_val in [1]
+                            for unpacker in UNPACKERS
+                        ],
+                    )
+                    for data_type in ["uint32_t", "uint64_t"]
+                ],
+            )
+    for encoding in ["FFOR"]:
+        for binding, options in zip(
+            ["query_multi_column", "compute_column"], [(True, False), (False, True)]
+        ):
+            write_file(
+                f"{encoding.lower()}-{binding}-bindings.cu",
+                [
+                    get_function(
+                        encoding,
+                        data_type,
+                        binding,
+                        data_type + "*",
+                        [
+                            get_if_statement(
+                                encoding,
+                                data_type,
+                                binding,
+                                n_vec,
+                                n_val,
+                                unpacker,
+                                "None",
+                            )
+                            for n_vec in [1, 4]
+                            for n_val in [1]
+                            for unpacker in UNPACKERS
+                        ],
+                        is_multi_column=options[0],
+                        is_compute_column=options[1],
+                    )
+                    for data_type in ["uint32_t", "uint64_t"]
+                ],
+            )
+    for encoding, patchers in zip(
+        ["ALP", "ALPExtended"], [PATCHERS[1:3], PATCHERS[3:]]
+    ):
+        for binding, option in zip(
+            ["decompress_column", "query_column", "query_multi_column"],
+            [False, False, True],
+        ):
+            n_cols = range(1, 10 + 1) if option else [None]
+            write_file(
+                os.path.join(
+                    GENERATED_BINDINGS_DIR, f"{encoding.lower()}-{binding}-bindings.cu"
+                ),
+                [
+                    get_function(
+                        encoding,
+                        data_type,
+                        binding,
+                        data_type + "*",
+                        [
+                            get_if_statement(
+                                encoding,
+                                data_type,
+                                binding,
+                                n_vec,
+                                n_val,
+                                unpacker,
+                                patcher,
+                                n_columns=n_col,
+                                n_repetitions=None,
+                            )
+                            for n_vec in [1, 4]
+                            for n_val in [1]
+                            for n_col in n_cols
+                            for unpacker in UNPACKERS
+                            for patcher in patchers
+                        ],
+                        is_multi_column=option,
+                    )
+                    for data_type in ["float", "double"]
+                ],
+            )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="program")
-
-    parser.add_argument(
-        "-o", "--out", type=argparse.FileType("w"), default=sys.stdout, help="Out file"
-    )
 
     parser.add_argument(
         "-ll",

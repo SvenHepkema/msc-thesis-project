@@ -510,7 +510,7 @@ struct BitUnpackerStatefulBranchless : BitUnpackerBase<T> {
   }
 };
 
-template <typename T, typename UnpackerT>
+template <typename T, unsigned UNPACK_N_VECTORS, typename UnpackerT, typename ColumnT>
 struct BPDecompressor : DecompressorBase<T> {
   UnpackerT unpacker;
   __device__ __forceinline__ BPDecompressor(const BPColumn<T> column,
@@ -524,7 +524,7 @@ struct BPDecompressor : DecompressorBase<T> {
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS, typename UnpackerT>
+template <typename T, unsigned UNPACK_N_VECTORS, typename UnpackerT, typename ColumnT>
 struct FFORDecompressor : DecompressorBase<T> {
   UnpackerT unpacker;
   __device__ __forceinline__ FFORDecompressor(const FFORColumn<T> column,

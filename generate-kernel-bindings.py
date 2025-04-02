@@ -193,120 +193,122 @@ def write_file(
 
 def main(args):
     for encoding in ["BP", "FFOR"]:
-        for binding, return_type in zip(
-            ["decompress_column", "query_column"], [None, "bool"]
-        ):
-            write_file(
-                f"{encoding.lower()}-{binding}-bindings.cu",
-                [
-                    get_function(
-                        encoding,
-                        data_type,
-                        binding,
-                        return_type if return_type else data_type + "*",
-                        [
-                            get_if_statement(
-                                encoding,
-                                data_type,
-                                binding,
-                                n_vec,
-                                n_val,
-                                unpacker,
-                                "None",
-                            )
-                            for n_vec in [1, 4]
-                            for n_val in [1]
-                            for unpacker in UNPACKERS
-                        ],
-                    )
-                    for data_type in ["uint32_t", "uint64_t"]
-                ],
-            )
+        for data_type in ["uint32_t", "uint64_t"]:
+            for binding, return_type in zip(
+                ["decompress_column", "query_column"], [None, "bool"]
+            ):
+                write_file(
+                    f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
+                    [
+                        get_function(
+                            encoding,
+                            data_type,
+                            binding,
+                            return_type if return_type else data_type + "*",
+                            [
+                                get_if_statement(
+                                    encoding,
+                                    data_type,
+                                    binding,
+                                    n_vec,
+                                    n_val,
+                                    unpacker,
+                                    "None",
+                                )
+                                for n_vec in [1, 4]
+                                for n_val in [1]
+                                for unpacker in UNPACKERS
+                            ],
+                        )
+                    ],
+                )
+
     for encoding in ["FFOR"]:
-        for binding, options in zip(
-            # Reinsert when multcolumn is done
-            # ["query_multi_column", "compute_column"],
-            # [(True, False), (False, True)]
-            ["compute_column"],
-            [(False, True)],
-        ):
-            write_file(
-                f"{encoding.lower()}-{binding}-bindings.cu",
-                [
-                    get_function(
-                        encoding,
-                        data_type,
-                        binding,
-                        "bool",
-                        [
-                            get_if_statement(
-                                encoding,
-                                data_type,
-                                binding,
-                                n_vec,
-                                n_val,
-                                unpacker,
-                                "None",
-                                n_repetitions=10
-                            )
-                            for n_vec in [1, 4]
-                            for n_val in [1]
-                            for unpacker in UNPACKERS
-                        ],
-                        is_multi_column=options[0],
-                        is_compute_column=options[1],
-                    )
-                    for data_type in ["uint32_t", "uint64_t"]
-                ],
-            )
+        for data_type in ["uint32_t", "uint64_t"]:
+            for binding, options in zip(
+                # Reinsert when multcolumn is done
+                # ["query_multi_column", "compute_column"],
+                # [(True, False), (False, True)]
+                ["compute_column"],
+                [(False, True)],
+            ):
+                write_file(
+                    f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
+                    [
+                        get_function(
+                            encoding,
+                            data_type,
+                            binding,
+                            "bool",
+                            [
+                                get_if_statement(
+                                    encoding,
+                                    data_type,
+                                    binding,
+                                    n_vec,
+                                    n_val,
+                                    unpacker,
+                                    "None",
+                                    n_repetitions=10
+                                )
+                                for n_vec in [1, 4]
+                                for n_val in [1]
+                                for unpacker in UNPACKERS
+                            ],
+                            is_multi_column=options[0],
+                            is_compute_column=options[1],
+                        )
+                    ],
+                )
+
     for encoding, patchers_per_encoding in zip(
         ["ALP", "ALPExtended"], [PATCHERS[1:3], PATCHERS[3:]]
     ):
-        for binding, option, return_type, unpackers, patchers in zip(
-            # Reinsert when multcolumn is done
-            # ["decompress_column", "query_column", "query_multi_column"],
-            # [False, False, True],
-            #[None, "bool", "bool"],
-            # [UNPACKERS, UNPACKERS, BEST_UNPACKER],
-            # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
-            ["decompress_column", "query_column"],
-            [False, False],
-            [None, "bool"],
-            [UNPACKERS, UNPACKERS],
-            [patchers_per_encoding, patchers_per_encoding],
-        ):
-            n_cols = range(1, 10 + 1) if option else [None]
-            write_file(
-                f"{encoding.lower()}-{binding}-bindings.cu",
-                [
-                    get_function(
-                        encoding,
-                        data_type,
-                        binding,
-                        return_type if return_type else data_type + "*",
-                        [
-                            get_if_statement(
-                                encoding,
-                                data_type,
-                                binding,
-                                n_vec,
-                                n_val,
-                                unpacker,
-                                patcher,
-                                n_columns=n_col,
-                                n_repetitions=None,
-                            )
-                            for n_vec in [1, 4]
-                            for n_val in [1]
-                            for n_col in n_cols
-                            for unpacker in unpackers
-                            for patcher in patchers
-                        ],
-                        is_multi_column=option,
-                    )
-                    for data_type in ["float", "double"]
-                ],
-            )
+        for data_type in ["float", "double"]:
+            for binding, option, return_type, unpackers, patchers in zip(
+                # Reinsert when multcolumn is done
+                # ["decompress_column", "query_column", "query_multi_column"],
+                # [False, False, True],
+                #[None, "bool", "bool"],
+                # [UNPACKERS, UNPACKERS, BEST_UNPACKER],
+                # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
+                ["decompress_column", "query_column"],
+                [False, False],
+                [None, "bool"],
+                [UNPACKERS, UNPACKERS],
+                [patchers_per_encoding, patchers_per_encoding],
+            ):
+                n_cols = range(1, 10 + 1) if option else [None]
+                write_file(
+                    f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
+                    [
+                        get_function(
+                            encoding,
+                            data_type,
+                            binding,
+                            return_type if return_type else data_type + "*",
+                            [
+                                get_if_statement(
+                                    encoding,
+                                    data_type,
+                                    binding,
+                                    n_vec,
+                                    n_val,
+                                    unpacker,
+                                    patcher,
+                                    n_columns=n_col,
+                                    n_repetitions=None,
+                                )
+                                for n_vec in [1, 4]
+                                for n_val in [1]
+                                for n_col in n_cols
+                                for unpacker in unpackers
+                                for patcher in patchers
+                            ],
+                            is_multi_column=option,
+                        )
+                    ],
+                )
 
 
 if __name__ == "__main__":

@@ -22,6 +22,12 @@ enum class Kernel {
   Query,
 };
 
+enum class Print {
+  PrintNothing,
+  PrintDebug,
+  PrintDebugExit0,
+};
+
 struct ProgramParameters {
   DataType data_type;
   Kernel kernel;
@@ -32,7 +38,7 @@ struct ProgramParameters {
   data::ValueRange<vbw_t> bit_width_range;
   data::ValueRange<uint16_t> ec_range;
   size_t n_values;
-  bool print_debug;
+  Print print_option;
 };
 
 struct CLIArgs {
@@ -50,7 +56,8 @@ struct CLIArgs {
   uint32_t print_debug;
 
   CLIArgs(const int argc, char **argv) {
-    if (argc != 11) {
+		constexpr int32_t CORRECT_ARG_COUNT = 13;
+    if (argc != CORRECT_ARG_COUNT) {
       std::invalid_argument("Wrong arg count.\n");
     }
     int32_t argcounter = 0;
@@ -59,8 +66,8 @@ struct CLIArgs {
     kernel = argv[++argcounter];
     unpack_n_vecs = std::stoul(argv[++argcounter]);
     unpack_n_vals = std::stoul(argv[++argcounter]);
-    patcher = argv[++argcounter];
     unpacker = argv[++argcounter];
+    patcher = argv[++argcounter];
     start_vbw = std::stoul(argv[++argcounter]);
     end_vbw = std::stoul(argv[++argcounter]);
     start_ec = std::stoul(argv[++argcounter]);
@@ -80,7 +87,7 @@ struct CLIArgs {
         data::ValueRange<vbw_t>(start_vbw, end_vbw),
         data::ValueRange<uint16_t>(start_ec, end_ec),
         n_vecs * consts::VALUES_PER_VECTOR,
-        static_cast<bool>(print_debug),
+        static_cast<Print>(print_debug),
     };
   }
 
@@ -266,19 +273,26 @@ int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
   ProgramParameters params = args.parse();
 
+	int32_t exit_code = 0;
+	bool print_debug = params.print_option != Print::PrintNothing;
   switch (params.data_type) {
   case DataType::U32:
-    exit(verification::process_results(execute_ffor<uint32_t>(params),
-                                       params.print_debug));
+    exit_code = verification::process_results(execute_ffor<uint32_t>(params), print_debug);
+		break;
   case DataType::U64:
-    exit(verification::process_results(execute_ffor<uint64_t>(params),
-                                       params.print_debug));
+    exit_code = verification::process_results(execute_ffor<uint64_t>(params), print_debug);
+		break;
   case DataType::F32:
-    exit(verification::process_results(execute_alp<float>(params),
-                                       params.print_debug));
+    exit_code = verification::process_results(execute_alp<float>(params), print_debug);
+		break;
   case DataType::F64:
-    exit(verification::process_results(execute_alp<double>(params),
-                                       params.print_debug));
+    exit_code = verification::process_results(execute_alp<double>(params), print_debug);
+		break;
   }
-  exit(1);
+
+	if (params.print_option == Print::PrintDebugExit0) {
+		exit(0);
+	}
+
+  exit(exit_code);
 }

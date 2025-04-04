@@ -56,7 +56,7 @@ struct CLIArgs {
   uint32_t print_debug;
 
   CLIArgs(const int argc, char **argv) {
-		constexpr int32_t CORRECT_ARG_COUNT = 13;
+    constexpr int32_t CORRECT_ARG_COUNT = 13;
     if (argc != CORRECT_ARG_COUNT) {
       std::invalid_argument("Wrong arg count.\n");
     }
@@ -214,8 +214,8 @@ execute_kernel(const ColumnT column, const ProgramParameters params) {
   } else if (params.kernel == Kernel::Query) {
     return query_column<T, ColumnT>(column, params);
   } else {
-		throw std::invalid_argument("Kernel not implemented yet.\n");
-	}
+    throw std::invalid_argument("Kernel not implemented yet.\n");
+  }
 }
 
 template <typename T>
@@ -228,6 +228,9 @@ execute_ffor(const ProgramParameters params) {
        ++vbw) {
     auto column = data::columns::generate_random_ffor_column<T>(
         params.n_values, data::ValueRange<vbw_t>(0, vbw), params.unpack_n_vecs);
+
+    results.push_back(
+        execute_kernel<T, flsgpu::host::FFORColumn<T>>(column, params));
 
     flsgpu::host::free_column(column);
   }
@@ -273,26 +276,30 @@ int main(int argc, char **argv) {
   CLIArgs args(argc, argv);
   ProgramParameters params = args.parse();
 
-	int32_t exit_code = 0;
-	bool print_debug = params.print_option != Print::PrintNothing;
+  int32_t exit_code = 0;
+  bool print_debug = params.print_option != Print::PrintNothing;
   switch (params.data_type) {
   case DataType::U32:
-    exit_code = verification::process_results(execute_ffor<uint32_t>(params), print_debug);
-		break;
+    exit_code = verification::process_results(execute_ffor<uint32_t>(params),
+                                              print_debug);
+    break;
   case DataType::U64:
-    exit_code = verification::process_results(execute_ffor<uint64_t>(params), print_debug);
-		break;
+    exit_code = verification::process_results(execute_ffor<uint64_t>(params),
+                                              print_debug);
+    break;
   case DataType::F32:
-    exit_code = verification::process_results(execute_alp<float>(params), print_debug);
-		break;
+    exit_code =
+        verification::process_results(execute_alp<float>(params), print_debug);
+    break;
   case DataType::F64:
-    exit_code = verification::process_results(execute_alp<double>(params), print_debug);
-		break;
+    exit_code =
+        verification::process_results(execute_alp<double>(params), print_debug);
+    break;
   }
 
-	if (params.print_option == Print::PrintDebugExit0) {
-		exit(0);
-	}
+  if (params.print_option == Print::PrintDebugExit0) {
+    exit(0);
+  }
 
   exit(exit_code);
 }

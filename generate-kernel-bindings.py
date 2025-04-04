@@ -174,7 +174,7 @@ def get_function(
     assert not (is_multi_column and is_compute_column)
     column_t = get_column_t(encoding, data_type)
     return (
-        f"{return_type} {name}(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
+        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
         + "{"
         + "\n".join(content)
         + f'throw std::invalid_argument("Could not find correct binding in {name} {encoding}<{data_type}>");'

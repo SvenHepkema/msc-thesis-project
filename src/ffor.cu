@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "engine/data.cuh"
-#include "engine/kernels.cuh"
 #include "engine/verification.cuh"
 #include "flsgpu/flsgpu-api.cuh"
+#include "generated-bindings/kernel-bindings.cuh"
 
 struct CLIArgs {
   size_t n_values;
@@ -22,74 +22,32 @@ CLIArgs parse_cli_args(const int argc, char **argv) {
 }
 
 template <typename T>
-std::vector<verification::ExecutionResult<T>> test_ffor(CLIArgs args) {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-  auto results = std::vector<verification::ExecutionResult<T>>();
-
-  for (vbw_t vbw{0}; vbw <= sizeof(T) * 8; ++vbw) {
-    constexpr unsigned UNPACK_N_VECTORS = 4;
-    constexpr unsigned UNPACK_N_VALUES = 1;
-
-    // auto column = data::columns::generate_index_bp_column<T>(args.n_values,
-    // vbw);
-    auto column = data::columns::generate_random_bp_column<T>(
-        args.n_values, data::ValueRange<vbw_t>(vbw), UNPACK_N_VECTORS);
-    auto out_a = data::fls_bindings::decompress(column);
-
-    T *out_b = kernels::host::decompress_column<
-        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        flsgpu::device::BPDecompressor<
-            T, flsgpu::device::BitUnpackerStatefulBranchless<
-                   T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                   flsgpu::device::BPFunctor<T>>>,
-        flsgpu::host::BPColumn<T>>(column);
-
-    results.push_back(verification::compare_data(out_a, out_b, args.n_values));
-
-    flsgpu::host::free_column(column);
-    // delete[] array;
-    delete[] out_a;
-    delete[] out_b;
-  }
-
-  return results;
-}
-
-template <typename T>
 std::vector<verification::ExecutionResult<T>> test_alp(CLIArgs args) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   auto results = std::vector<verification::ExecutionResult<T>>();
 
   for (vbw_t vbw{0}; vbw <= sizeof(T) * 8 / 2; ++vbw) {
-    constexpr unsigned UNPACK_N_VECTORS = 4;
-    constexpr unsigned UNPACK_N_VALUES = 1;
+    constexpr unsigned unpack_n_vectors = 4;
+    constexpr unsigned unpack_n_values = 1;
 
     auto column = data::columns::generate_alp_column<T>(
         args.n_values, data::ValueRange<vbw_t>(vbw),
-        data::ValueRange<uint16_t>(20), UNPACK_N_VECTORS);
+        data::ValueRange<uint16_t>(20), unpack_n_vectors);
     // auto [array, size] =
     // data::arrays::read_file_as<T>("./data-input/basel_wind_f.csv.bin",
     // args.n_values);
     // auto column = alp::encode(array, size);
     auto out_a = alp::decode(column, new T[args.n_values]);
 
-    auto extended_column = column.create_extended_column();
-    T *out_b = kernels::host::decompress_column<
-        T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-        flsgpu::device::ALPDecompressor<
-            T, UNPACK_N_VECTORS,
-            flsgpu::device::BitUnpackerStatefulBranchless<
-                T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
-                flsgpu::device::ALPFunctor<T, UNPACK_N_VECTORS>>,
-            flsgpu::device::PrefetchAllALPExceptionPatcher<T, UNPACK_N_VECTORS,
-                                                           UNPACK_N_VALUES>,
-            flsgpu::device::ALPExtendedColumn<T>>,
-        flsgpu::host::ALPExtendedColumn<T>>(extended_column);
+    auto column_device = column.copy_to_device();
+    T *out_b = bindings::decompress_column<T, flsgpu::device::ALPColumn<T>>(
+        column_device, unpack_n_vectors, unpack_n_values,
+        bindings::Unpacker::StatefulBranchless, bindings::Patcher::Stateless);
 
     results.push_back(verification::compare_data(out_a, out_b, args.n_values));
 
+    flsgpu::host::free_column(column_device);
     flsgpu::host::free_column(column);
-    // delete[] array;
     delete[] out_a;
     delete[] out_b;
   }

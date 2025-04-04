@@ -47,7 +47,7 @@ bool query_column(const ColumnT column, const unsigned unpack_n_vectors,
 template <typename T, typename ColumnT>
 bool compute_column(const ColumnT column, const unsigned unpack_n_vectors,
                     const unsigned unpack_n_values, const Unpacker unpacker,
-                    const Patcher patcher);
+                    const Patcher patcher, const unsigned n_repetitions);
 
 template <typename T, typename ColumnT>
 bool query_multi_column(ColumnT column, const unsigned unpack_n_vectors,
@@ -78,7 +78,7 @@ float *decompress_column(const flsgpu::device::ALPExtendedColumn<float> column,
                          const unsigned unpack_n_vectors,
                          const unsigned unpack_n_values,
                          const Unpacker unpacker, const Patcher patcher);
-bool decompress_column(const flsgpu::device::ALPExtendedColumn<double> column,
+double *decompress_column(const flsgpu::device::ALPExtendedColumn<double> column,
                        const unsigned unpack_n_vectors,
                        const unsigned unpack_n_values, const Unpacker unpacker,
                        const Patcher patcher);
@@ -119,11 +119,11 @@ bool query_column(const flsgpu::device::ALPExtendedColumn<double> column,
 bool compute_column(const flsgpu::device::FFORColumn<uint32_t> column,
                     const unsigned unpack_n_vectors,
                     const unsigned unpack_n_values, const Unpacker unpacker,
-                    const Patcher patcher);
+                    const Patcher patcher, const unsigned n_repetitions);
 bool compute_column(const flsgpu::device::FFORColumn<uint64_t> column,
                     const unsigned unpack_n_vectors,
                     const unsigned unpack_n_values, const Unpacker unpacker,
-                    const Patcher patcher);
+                    const Patcher patcher, const unsigned n_repetitions);
 
 /*
 bool query_multi_column(const flsgpu::device::FFORColumn<uint32_t> column,

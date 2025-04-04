@@ -37,8 +37,8 @@ obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ)
 # Executables
 SOURCE_FILES=obj/alp-bindings.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
 
-executable: src/main.cu $(SOURCE_FILES) $(HEADER_FILES)
-	nvcc $(CUDA_FLAGS) -o bin/$@ src/main.cu $(SOURCE_FILES)
+test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES)
+	nvcc $(CUDA_FLAGS) -o bin/$@ src/test.cu $(SOURCE_FILES)
 
 clean:
 	rm -f bin/*

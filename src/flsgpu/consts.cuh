@@ -17,11 +17,15 @@ struct as {
 template <>
 struct as<float> {
 	static inline constexpr float MAGIC_NUMBER = 0.3214f;
+	static inline constexpr int32_t FACT_ARR_COUNT = 10;
+	static inline constexpr int32_t FRAC_ARR_COUNT = 11;
 };
 
 template <>
 struct as<double> {
 	static inline constexpr double MAGIC_NUMBER = 0.3214;
+	static inline constexpr int32_t FACT_ARR_COUNT = 19;
+	static inline constexpr int32_t FRAC_ARR_COUNT = 21;
 };
 } // namespace consts
 	

@@ -25,13 +25,15 @@ private:
 
 public:
   __device__ __forceinline__ ALPFunctor(const UINT_T *a_bases,
+                                        const INT_T *factors,
                                         const uint8_t *factor_indices,
-                                        const uint8_t *frac10_indices) {
+                                        const T *fractions,
+                                        const uint8_t *fraction_indices) {
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       bases[v] = a_bases[v];
-      factor[v] = constant_memory::get_fact_arr<INT_T>()[factor_indices[v]];
-      frac10[v] = constant_memory::get_frac_arr<T>()[frac10_indices[v]];
+      factor[v] = factors[factor_indices[v]];
+      frac10[v] = fractions[fraction_indices[v]];
     }
   }
 
@@ -460,8 +462,8 @@ struct ALPDecompressor : DecompressorBase<T> {
                      column.ffor.bp.vector_offsets[vector_index],
                  lane, column.ffor.bp.bit_widths[vector_index],
                  ALPFunctor<T, UNPACK_N_VECTORS>(
-                     column.ffor.bases + vector_index,
-                     column.factor_indices + vector_index,
+                     column.ffor.bases + vector_index, column.factors,
+                     column.factor_indices + vector_index, column.fractions,
                      column.fraction_indices + vector_index)),
         patcher(PatcherT(column, vector_index, lane)) {}
 

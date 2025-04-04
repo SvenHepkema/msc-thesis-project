@@ -10,7 +10,8 @@ WARNINGS = -Weverything -Wno-c++98-compat-local-type-template-args -Wno-c++98-co
 NVCC_IGNORE_ERR_NUMBERS=3033,3356
 CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
-CUDA_FLAGS = --std c++17 -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
+#CUSTOM_FLAGS = -DSingleVectorMapping
+CUDA_FLAGS = --std c++17 -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS) $(CUSTOM_FLAGS)
 
 ENGINE_HEADER_FILES=$(wildcard src/engine/*.cuh)
 FLSGPU_HEADER_FILES=$(wildcard src/flsgpu/*.cuh)

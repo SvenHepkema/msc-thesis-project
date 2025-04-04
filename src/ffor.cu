@@ -63,6 +63,6 @@ int main(int argc, char **argv) {
   CLIArgs args = parse_cli_args(argc, argv);
 
   // auto results = test_ffor<uint32_t>(args);
-  auto results = test_alp<float>(args);
+  auto results = test_alp<double>(args);
   exit(verification::process_results(results, true));
 }

@@ -76,7 +76,7 @@ template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __global__ void decompress_column(const ColumnT column, T *out) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const auto mapping = VectorToWarpMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
@@ -98,7 +98,7 @@ template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
 __global__ void query_column(const ColumnT column, bool *out,
                              const T magic_value) {
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const auto mapping = VectorToWarpMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
   const int32_t vector_index = mapping.get_vector_index();
 
@@ -121,7 +121,7 @@ __global__ void compute_column(const ColumnT column, bool *__restrict out,
                                const T runtime_zero) {
   constexpr T RANDOM_VALUE = 3;
   constexpr uint32_t N_VALUES = UNPACK_N_VALUES * UNPACK_N_VECTORS;
-  const auto mapping = VectorToThreadMapping<T, UNPACK_N_VECTORS>();
+  const auto mapping = VectorToWarpMapping<T, UNPACK_N_VECTORS>();
   const lane_t lane = mapping.get_lane();
   const vi_t vector_index = mapping.get_vector_index();
 
@@ -152,7 +152,23 @@ __global__ void compute_column(const ColumnT column, bool *__restrict out,
 } // namespace device
 
 namespace host {
-template <typename T> struct ThreadblockMapping {
+
+template <typename T> struct SingleVectorPerWarpThreadblockMapping {
+  static constexpr unsigned N_WARPS_PER_BLOCK =
+      std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
+  static constexpr unsigned N_THREADS_PER_BLOCK =
+      N_WARPS_PER_BLOCK * consts::THREADS_PER_WARP;
+  static constexpr unsigned N_CONCURRENT_VECTORS_PER_BLOCK =
+      N_THREADS_PER_BLOCK /
+      std::max(utils::get_n_lanes<T>(), consts::THREADS_PER_WARP);
+
+  const unsigned n_blocks;
+
+  SingleVectorPerWarpThreadblockMapping(const size_t unpack_n_vecs,
+                                        const size_t n_vecs)
+      : n_blocks(n_vecs / (unpack_n_vecs * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
+};
+template <typename T> struct FillWarpThreadblockMapping {
   static constexpr unsigned N_WARPS_PER_BLOCK =
       std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
   static constexpr unsigned N_THREADS_PER_BLOCK =
@@ -162,14 +178,21 @@ template <typename T> struct ThreadblockMapping {
 
   const unsigned n_blocks;
 
-  ThreadblockMapping(const size_t unpack_n_vecs, const size_t n_vecs)
+  FillWarpThreadblockMapping(const size_t unpack_n_vecs, const size_t n_vecs)
       : n_blocks(n_vecs / (unpack_n_vecs * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
 };
+
+#ifdef SingleVectorMapping
+template <typename T>
+using ThreadblockMapping = SingleVectorPerWarpThreadblockMapping<T>;
+#else
+template <typename T> using ThreadblockMapping = FillWarpThreadblockMapping<T>;
+#endif
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __host__ T *decompress_column(const ColumnT column) {
-	size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
+  size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   GPUArray<T> device_out(column.n_values);
 
@@ -187,7 +210,7 @@ __host__ T *decompress_column(const ColumnT column) {
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
 __host__ bool query_column(const ColumnT column) {
-	size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
+  size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   GPUArray<bool> device_out(1);
   bool result;
@@ -205,7 +228,7 @@ __host__ bool query_column(const ColumnT column) {
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT, unsigned N_REPETITIONS>
 __host__ bool compute_column(const ColumnT column) {
-	size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
+  size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   GPUArray<bool> device_out(1);
   bool result;

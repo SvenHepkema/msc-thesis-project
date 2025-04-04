@@ -39,14 +39,18 @@ std::vector<verification::ExecutionResult<T>> test_alp(CLIArgs args) {
     // auto column = alp::encode(array, size);
     auto out_a = alp::decode(column, new T[args.n_values]);
 
-    auto column_device = column.copy_to_device();
-    T *out_b = bindings::decompress_column<T, flsgpu::device::ALPColumn<T>>(
-        column_device, unpack_n_vectors, unpack_n_values,
-        bindings::Unpacker::StatefulBranchless, bindings::Patcher::Stateless);
+    auto column_extended = column.create_extended_column();
+    auto column_extended_device = column_extended.copy_to_device();
+    T *out_b =
+        bindings::decompress_column<T, flsgpu::device::ALPExtendedColumn<T>>(
+            column_extended_device, unpack_n_vectors, unpack_n_values,
+            bindings::Unpacker::StatefulBranchless,
+            bindings::Patcher::NaiveBranchless);
 
     results.push_back(verification::compare_data(out_a, out_b, args.n_values));
 
-    flsgpu::host::free_column(column_device);
+    flsgpu::host::free_column(column_extended_device);
+    flsgpu::host::free_column(column_extended);
     flsgpu::host::free_column(column);
     delete[] out_a;
     delete[] out_b;

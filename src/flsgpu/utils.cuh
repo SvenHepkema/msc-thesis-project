@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <type_traits>
 
@@ -86,6 +87,12 @@ constexpr int32_t get_compressed_vector_size(int32_t value_bit_width) {
 
 constexpr size_t get_n_vecs_from_size(const size_t size) {
   return (size + consts::VALUES_PER_VECTOR - 1) / consts::VALUES_PER_VECTOR;
+}
+
+template <typename T> T *copy_array(const T *in, const size_t n_elements) {
+  T *out = new T[n_elements];
+  std::memcpy(out, in, sizeof(T) * n_elements);
+	return out;
 }
 
 } // namespace utils

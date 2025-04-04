@@ -131,7 +131,7 @@ template <typename T> struct FFORColumn {
 };
 
 template <typename T> struct ALPExtendedColumn {
-  using INT_T = typename utils::same_width_uint<T>::type;
+  using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
   using DeviceColumnT = typename device::ALPExtendedColumn<T>;
 
@@ -302,14 +302,28 @@ template <typename T> struct ALPColumn {
   }
 
   ALPExtendedColumn<T> create_extended_column() const {
-    // WARNING: The extended column points to the same memory for the ffor
-    // column, factor & frac10 indices, however this can be changed if needed
     auto [e_exceptions, e_positions, e_offsets_counts] =
         convert_exceptions_to_lane_divided_format();
     return ALPExtendedColumn<T>{
-        ffor,         factor_indices,     fraction_indices,
-        n_exceptions, exceptions_offsets, e_exceptions,
-        e_positions,  e_offsets_counts,   compressed_size_bytes_alp_extended};
+        FFORColumn<UINT_T>{
+            BPColumn<UINT_T>{
+                ffor.bp.n_values,
+                ffor.bp.n_packed_values,
+                utils::copy_array(ffor.bp.packed_array,
+                                  ffor.bp.n_packed_values),
+                utils::copy_array(ffor.bp.bit_widths, get_n_vecs()),
+                utils::copy_array(ffor.bp.vector_offsets, get_n_vecs()),
+            },
+            utils::copy_array(ffor.bases, get_n_vecs()),
+        },
+        utils::copy_array(factor_indices, get_n_vecs()),
+        utils::copy_array(fraction_indices, get_n_vecs()),
+        n_exceptions,
+        utils::copy_array(exceptions_offsets, get_n_vecs()),
+        e_exceptions,
+        e_positions,
+        e_offsets_counts,
+        compressed_size_bytes_alp_extended};
   }
 };
 

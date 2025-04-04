@@ -12,6 +12,8 @@ CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
 CUDA_FLAGS = --std c++17 -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS)
 
+ENGINE_HEADER_FILES=$(wildcard src/engine/*.cuh)
+FLSGPU_HEADER_FILES=$(wildcard src/flsgpu/*.cuh)
 HEADER_FILES=src/alp/alp-bindings.cuh $(wildcard src/flsgpu/*.cuh) $(wildcard src/engine/*.cuh)
 
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
@@ -25,8 +27,8 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/generated-bindings-%.o: src/generated-bindings/%.cu
-	nvcc $^ -c -o $@ $(CUDA_FLAGS) 
+obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) $(ENGINE_HEADER_FILES)
+	nvcc $(word 1, $^) -c -o $@ $(CUDA_FLAGS) 
 
 obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/alp/alp-bindings.cu 

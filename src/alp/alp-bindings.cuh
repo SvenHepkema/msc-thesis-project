@@ -37,6 +37,9 @@ flsgpu::host::ALPColumn<T> encode(const T *input_array,
 template <typename T>
 T *decode(const flsgpu::host::ALPColumn<T> column, T *output_array);
 
+template <typename T>
+T *decode(const flsgpu::host::ALPExtendedColumn<T> column, T *output_array);
+
 } // namespace alp
 
 #endif // ALP_BINDINGS_CUH

@@ -208,6 +208,34 @@ T *decode(const flsgpu::host::ALPColumn<T> column, T *output_array) {
   return output_array;
 }
 
+template <typename T>
+T *decode(const flsgpu::host::ALPExtendedColumn<T> column, T *output_array) {
+  constexpr unsigned N_LANES = utils::get_n_lanes<T>();
+  const size_t n_vecs = utils::get_n_vecs_from_size(column.ffor.bp.n_values);
+
+  T *c_output_array = output_array;
+  for (size_t vi{0}; vi < n_vecs; ++vi) {
+    generated::falp::fallback::scalar::falp(
+        column.ffor.bp.packed_array + column.ffor.bp.vector_offsets[vi],
+        c_output_array, column.ffor.bp.bit_widths[vi], &column.ffor.bases[vi],
+        column.factor_indices[vi], column.fraction_indices[vi]);
+
+		// Reconstruct total count
+    uint16_t count = 0;
+    for (size_t offset_count_i{0}; offset_count_i < N_LANES; ++offset_count_i) {
+      count += column.offsets_counts[vi * N_LANES + offset_count_i] >> 10;
+    }
+
+    alp::decoder<T>::patch_exceptions(
+        c_output_array, column.exceptions + column.exceptions_offsets[vi],
+        column.positions + column.exceptions_offsets[vi], &count);
+
+    c_output_array += consts::VALUES_PER_VECTOR;
+  }
+
+  return output_array;
+}
+
 template bool is_compressable(const float *input_array, const size_t n_values);
 template bool is_compressable(const double *input_array, const size_t n_values);
 
@@ -219,6 +247,10 @@ template flsgpu::host::ALPColumn<double> encode(const double *input_array,
 template float *decode(const flsgpu::host::ALPColumn<float> column,
                        float *output_array);
 template double *decode(const flsgpu::host::ALPColumn<double> column,
+                        double *output_array);
+template float *decode(const flsgpu::host::ALPExtendedColumn<float> column,
+                       float *output_array);
+template double *decode(const flsgpu::host::ALPExtendedColumn<double> column,
                         double *output_array);
 
 } // namespace alp

@@ -28,7 +28,7 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) $(ENGINE_HEADER_FILES)
+obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) src/engine/device-utils.cuh src/engine/kernels.cuh
 	nvcc $(word 1, $^) -c -o $@ $(CUDA_FLAGS) 
 
 obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ) 
@@ -37,8 +37,8 @@ obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ)
 # Executables
 SOURCE_FILES=obj/alp-bindings.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
 
-ffor: src/ffor.cu $(SOURCE_FILES) $(HEADER_FILES)
-	nvcc $(CUDA_FLAGS) -o bin/$@ src/ffor.cu $(SOURCE_FILES)
+executable: src/main.cu $(SOURCE_FILES) $(HEADER_FILES)
+	nvcc $(CUDA_FLAGS) -o bin/$@ src/main.cu $(SOURCE_FILES)
 
 clean:
 	rm -f bin/*

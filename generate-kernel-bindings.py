@@ -139,6 +139,7 @@ def get_if_statement(
     n_val: int,
     unpacker: str,
     patcher: str,
+    is_query_column: bool = False,
     n_columns: int | None = None,
     n_repetitions: int | None = None,
 ) -> str:
@@ -153,11 +154,11 @@ def get_if_statement(
     decompressor_t = get_decompressor_type(
         encoding, data_type, unpacker, patcher, n_vec, n_val
     )
-
+    extra_param = ',' + str(n_columns) if n_columns else ', magic_value' if is_query_column else '' 
     return (
         f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == Unpacker::{unpacker} && patcher == Patcher::{patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
         + "{"  # }
-        f"return kernels::host::{function}<{data_type}, {n_vec}, {n_val}, {decompressor_t}, {column_t} {',' + str(n_repetitions) if n_repetitions else ''}>(column);"
+        f"return kernels::host::{function}<{data_type}, {n_vec}, {n_val}, {decompressor_t}, {column_t} {',' + str(n_repetitions) if n_repetitions else ''}>(column {extra_param});"
         "}"
     )
 
@@ -168,13 +169,14 @@ def get_function(
     name: str,
     return_type: str,
     content: list[str],
+    is_query_column: bool = False,
     is_multi_column: bool = False,
     is_compute_column: bool = False,
 ) -> str:
     assert not (is_multi_column and is_compute_column)
     column_t = get_column_t(encoding, data_type)
     return (
-        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
+        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const ' + data_type + ' magic_value' if is_query_column else ''}{', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
         + "{"
         + "\n".join(content)
         + f'throw std::invalid_argument("Could not find correct binding in {name} {encoding}<{data_type}>");'
@@ -194,8 +196,8 @@ def write_file(
 def main(args):
     for encoding in ["BP", "FFOR"]:
         for data_type in ["uint32_t", "uint64_t"]:
-            for binding, return_type in zip(
-                ["decompress_column", "query_column"], [None, "bool"]
+            for binding, is_query_column in zip(
+                ["decompress_column", "query_column"], [False, True]
             ):
                 write_file(
                     f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
@@ -204,7 +206,7 @@ def main(args):
                             encoding,
                             data_type,
                             binding,
-                            return_type if return_type else data_type + "*",
+                            "bool" if is_query_column else data_type + "*",
                             [
                                 get_if_statement(
                                     encoding,
@@ -214,11 +216,13 @@ def main(args):
                                     n_val,
                                     unpacker,
                                     "None",
+                                    is_query_column=is_query_column,
                                 )
                                 for n_vec in [1, 4]
                                 for n_val in [1]
                                 for unpacker in UNPACKERS
                             ],
+                                    is_query_column=is_query_column,
                         )
                     ],
                 )
@@ -255,6 +259,7 @@ def main(args):
                                 for n_val in [1]
                                 for unpacker in UNPACKERS
                             ],
+                            is_query_column=False,
                             is_multi_column=options[0],
                             is_compute_column=options[1],
                         )
@@ -265,7 +270,7 @@ def main(args):
         ["ALP", "ALPExtended"], [PATCHERS[1:3], PATCHERS[3:]]
     ):
         for data_type in ["float", "double"]:
-            for binding, option, return_type, unpackers, patchers in zip(
+            for binding, option, is_query_column, unpackers, patchers in zip(
                 # Reinsert when multcolumn is done
                 # ["decompress_column", "query_column", "query_multi_column"],
                 # [False, False, True],
@@ -274,7 +279,7 @@ def main(args):
                 # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
                 ["decompress_column", "query_column"],
                 [False, False],
-                [None, "bool"],
+                [False, True],
                 [UNPACKERS, UNPACKERS],
                 [patchers_per_encoding, patchers_per_encoding],
             ):
@@ -286,7 +291,7 @@ def main(args):
                             encoding,
                             data_type,
                             binding,
-                            return_type if return_type else data_type + "*",
+                            "bool" if is_query_column else data_type + "*",
                             [
                                 get_if_statement(
                                     encoding,
@@ -296,6 +301,7 @@ def main(args):
                                     n_val,
                                     unpacker,
                                     patcher,
+                                    is_query_column=is_query_column,
                                     n_columns=n_col,
                                     n_repetitions=None,
                                 )
@@ -305,6 +311,7 @@ def main(args):
                                 for unpacker in unpackers
                                 for patcher in patchers
                             ],
+                            is_query_column=is_query_column,
                             is_multi_column=option,
                         )
                     ],

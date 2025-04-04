@@ -13,6 +13,7 @@
 #include "../alp/alp-bindings.cuh"
 #include "../alp/constants.hpp"
 #include "../fls/fls-bindings.hpp"
+#include "../flsgpu/flsgpu-api.cuh"
 
 #ifndef DATA_CUH
 #define DATA_CUH
@@ -134,17 +135,7 @@ T *map(LambdaT lambda, T *array, const size_t n_values) {
 }
 
 template <typename T>
-std::tuple<T *, bool> make_column_magic(T *data, const size_t n_values) {
-  auto generate_index = get_random_number_generator<size_t>(0, n_values - 1);
-  auto generate_presence = get_random_number_generator<size_t>(0, 100);
-
-  bool is_magic = generate_presence() < 50;
-  if (is_magic) { // 50% chance of being magic
-    data[generate_index()] = consts::as<T>::MAGIC_NUMBER;
-  }
-
-  return std::make_tuple(data, is_magic);
-}
+std::tuple<T *, bool> make_column_magic(T *data, const size_t n_values) {}
 
 template <typename T>
 T *generate_positions(T *positions, const T *counts, const size_t n_vecs) {
@@ -179,7 +170,8 @@ template <typename T> struct ValueRange {
       : min(std::numeric_limits<T>::min()), max(std::numeric_limits<T>::max()) {
   }
   ValueRange(const T a_value) : min(a_value), max(a_value) {}
-  ValueRange(const T a_start, const T a_end) : min(a_start), max(a_end) {}
+  ValueRange(const T a_start, const T a_end)
+      : min(a_start), max(std::max(a_start, a_end)) {}
 };
 
 namespace arrays {
@@ -259,7 +251,7 @@ T *generate_random_array(const size_t n_values, const vbw_t value_bit_width) {
 
 } // namespace arrays
 
-namespace fls_bindings {
+namespace bindings {
 
 template <typename T>
 flsgpu::host::BPColumn<T> compress(const T *array, const size_t n_values,
@@ -319,7 +311,16 @@ template <typename T> T *decompress(const flsgpu::host::FFORColumn<T> column) {
   return out_array;
 }
 
-} // namespace fls_bindings
+template <typename T> T *decompress(const flsgpu::host::ALPColumn<T> column) {
+  return alp::decode(column, new T[column.get_n_values()]);
+}
+
+template <typename T>
+T *decompress(const flsgpu::host::ALPExtendedColumn<T> column) {
+  return alp::decode(column, new T[column.get_n_values()]);
+}
+
+} // namespace bindings
 
 namespace columns {
 
@@ -331,7 +332,7 @@ generate_index_bp_column(const size_t n_values, const vbw_t value_bit_width) {
       n_vecs * utils::get_compressed_vector_size<T>(value_bit_width);
   T *array = arrays::generate_index_array<T>(n_values, value_bit_width);
 
-  auto column = fls_bindings::compress<T>(array, n_values, value_bit_width);
+  auto column = bindings::compress<T>(array, n_values, value_bit_width);
   delete[] array;
   return column;
 }
@@ -431,7 +432,7 @@ flsgpu::host::ALPColumn<T> generate_alp_column(
 
 template <typename T>
 void modify_alp_exception_count(flsgpu::host::ALPColumn<T> column,
-                                const ValueRange<int32_t> exceptions_per_vec) {
+                                const ValueRange<uint16_t> exceptions_per_vec) {
   const size_t n_values = column.ffor.bp.n_values;
   const size_t n_vecs = utils::get_n_vecs_from_size(n_values);
 
@@ -463,6 +464,35 @@ void modify_alp_value_bit_width(flsgpu::host::ALPColumn<T> column,
   column.ffor = generate_random_ffor_column<UINT_T>(column.ffor.bp.n_values,
                                                     bit_width_range, repeat,
                                                     ValueRange<UINT_T>(2, 20));
+}
+
+template <typename T, typename ColumnT>
+std::tuple<bool, T> get_value_to_query(const ColumnT column) {
+  // Returns: <column_contains_value, value>
+  // The chance is 50% that the column contains the value.
+  // To find a suitable value:
+  // 		50%) pick random value from column
+  // 		50%) use constant, check whether it exists in the column
+  T *decompressed = bindings::decompress(column);
+  T value = consts::as<T>::MAGIC_NUMBER;
+  bool column_does_not_contain_value = true;
+
+  auto generate_presence =
+      primitives::get_random_number_generator<size_t>(0, 100);
+  bool ensure_column_contains_value = generate_presence() < 50;
+  if (ensure_column_contains_value) {
+    auto generate_index = primitives::get_random_number_generator<size_t>(
+        0, column.get_n_values() - 1);
+    value = decompressed[generate_index()];
+    column_does_not_contain_value = false;
+  } else {
+    for (size_t i{0}; i < column.get_n_values(); ++i) {
+      column_does_not_contain_value &= value == decompressed[i];
+    }
+  }
+
+  delete decompressed;
+  return std::make_tuple(!column_does_not_contain_value, value);
 }
 
 } // namespace columns

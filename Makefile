@@ -43,6 +43,11 @@ SOURCE_FILES=obj/alp-bindings.o obj/enums.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BI
 test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES)
 	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/test.cu $(SOURCE_FILES)
 
+benchmark: src/benchmark.cu $(SOURCE_FILES) $(HEADER_FILES)
+	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/benchmark.cu $(SOURCE_FILES)
+
+all: test benchmark
+
 clean:
 	rm -f bin/*
 	rm -f obj/*

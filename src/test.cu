@@ -40,10 +40,10 @@ struct CLIArgs {
   CLIArgs(const int argc, char **argv) {
     constexpr int32_t CORRECT_ARG_COUNT = 13;
     if (argc != CORRECT_ARG_COUNT) {
-      std::invalid_argument("Wrong arg count.\n");
+      throw std::invalid_argument("Wrong arg count.\n");
     }
-    int32_t argcounter = 0;
 
+    int32_t argcounter = 0;
     data_type = argv[++argcounter];
     kernel = argv[++argcounter];
     unpack_n_vecs = std::stoul(argv[++argcounter]);

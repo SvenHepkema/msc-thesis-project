@@ -7,5 +7,5 @@ PATCHERS="stateless stateful naive naive-branchless prefetch-position prefetch-a
 VECTOR_COUNT=256
 
 LOG_FILE=/tmp/log
-parallel --progress --joblog $LOG_FILE ./bin/test {1} {2} {3} {4} {5} {6} 0 32 0 10 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS ::: $PATCHERS
+parallel --progress --joblog $LOG_FILE ./bin/test {1} {2} {3} {4} {5} {6} 0 16 0 10 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS ::: $PATCHERS
 ./print-joblog.sh

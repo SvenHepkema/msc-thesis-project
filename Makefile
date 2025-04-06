@@ -31,11 +31,14 @@ obj/alp-%.o: src/alp/%.cpp
 obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) src/engine/device-utils.cuh src/engine/kernels.cuh
 	nvcc $(word 1, $^) -c -o $@ $(CUDA_FLAGS) 
 
+obj/enums.o: src/engine/enums.cu src/engine/enums.cuh
+	nvcc $(word 1, $^) -c -o $@ $(CUDA_FLAGS) 
+
 obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/alp/alp-bindings.cu 
 
 # Executables
-SOURCE_FILES=obj/alp-bindings.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
+SOURCE_FILES=obj/alp-bindings.o obj/enums.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
 
 test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES)
 	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/test.cu $(SOURCE_FILES)

@@ -161,7 +161,7 @@ def get_if_statement(
         else ", magic_value" if is_query_column else ""
     )
     return (
-        f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == Unpacker::{unpacker} && patcher == Patcher::{patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
+        f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == enums::Unpacker::{unpacker} && patcher == enums::Patcher::{patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
         + "{"  # }
         f"return kernels::host::{function}<{data_type}, {n_vec}, {n_val}, {decompressor_t}, {column_t} {',' + str(n_repetitions) if n_repetitions else ''}>(column {extra_param});"
         "}"
@@ -181,7 +181,7 @@ def get_function(
     assert not (is_multi_column and is_compute_column)
     column_t = get_column_t(encoding, data_type)
     return (
-        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const Unpacker unpacker, const Patcher patcher {', const ' + data_type + ' magic_value' if is_query_column else ''}{', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
+        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const enums::Unpacker unpacker, const enums::Patcher patcher {', const ' + data_type + ' magic_value' if is_query_column else ''}{', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
         + "{"
         + "\n".join(content)
         + f'throw std::invalid_argument("Could not find correct binding in {name} {encoding}<{data_type}>");'

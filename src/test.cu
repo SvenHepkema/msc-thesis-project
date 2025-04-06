@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "engine/data.cuh"
@@ -11,35 +10,17 @@
 #include "flsgpu/flsgpu-api.cuh"
 #include "generated-bindings/kernel-bindings.cuh"
 
-enum class DataType {
-  U32,
-  U64,
-  F32,
-  F64,
-};
-
-enum class Kernel {
-  Decompress,
-  Query,
-};
-
-enum class Print {
-  PrintNothing,
-  PrintDebug,
-  PrintDebugExit0,
-};
-
 struct ProgramParameters {
-  DataType data_type;
-  Kernel kernel;
+  enums::DataType data_type;
+  enums::Kernel kernel;
   uint32_t unpack_n_vecs;
   uint32_t unpack_n_vals;
-  bindings::Unpacker unpacker;
-  bindings::Patcher patcher;
+  enums::Unpacker unpacker;
+  enums::Patcher patcher;
   data::ValueRange<vbw_t> bit_width_range;
   data::ValueRange<uint16_t> ec_range;
   size_t n_values;
-  Print print_option;
+  enums::Print print_option;
 };
 
 struct CLIArgs {
@@ -79,98 +60,20 @@ struct CLIArgs {
 
   ProgramParameters parse() {
     return ProgramParameters{
-        string_to_data_type(data_type),
-        string_to_kernel(kernel),
+        enums::string_to_data_type(data_type),
+        enums::string_to_kernel(kernel),
         unpack_n_vecs,
         unpack_n_vals,
-        string_to_unpacker(unpacker),
-        string_to_patcher(patcher),
+        enums::string_to_unpacker(unpacker),
+        enums::string_to_patcher(patcher),
         data::ValueRange<vbw_t>(start_vbw, end_vbw),
         data::ValueRange<uint16_t>(start_ec, end_ec),
         n_vecs * consts::VALUES_PER_VECTOR,
-        static_cast<Print>(print_debug),
+        static_cast<enums::Print>(print_debug),
     };
   }
 
 private:
-  DataType string_to_data_type(const std::string &str) {
-    static const std::unordered_map<std::string, DataType> mapping = {
-        {"u32", DataType::U32},
-        {"u64", DataType::U64},
-        {"f32", DataType::F32},
-        {"f64", DataType::F64},
-    };
-
-    auto it = mapping.find(str);
-    if (it != mapping.end()) {
-      return it->second;
-    }
-
-    throw std::invalid_argument("Unknown kernel type: " + str);
-  }
-
-  Kernel string_to_kernel(const std::string &str) {
-    static const std::unordered_map<std::string, Kernel> mapping = {
-        {"decompress", Kernel::Decompress},
-        {"query", Kernel::Query},
-    };
-
-    auto it = mapping.find(str);
-    if (it != mapping.end()) {
-      return it->second;
-    }
-
-    throw std::invalid_argument("Unknown kernel type: " + str);
-  }
-
-  bindings::Unpacker string_to_unpacker(const std::string &str) {
-    static const std::unordered_map<std::string, bindings::Unpacker> mapping = {
-        {"stateless", bindings::Unpacker::Stateless},
-        {"stateless-branchless", bindings::Unpacker::StatelessBranchless},
-        {"stateful-cache", bindings::Unpacker::StatefulCache},
-        {"stateful-local-1", bindings::Unpacker::StatefulLocal1},
-        {"stateful-local-2", bindings::Unpacker::StatefulLocal2},
-        {"stateful-local-4", bindings::Unpacker::StatefulLocal4},
-        {"stateful-register-1", bindings::Unpacker::StatefulRegister1},
-        {"stateful-register-2", bindings::Unpacker::StatefulRegister2},
-        {"stateful-register-4", bindings::Unpacker::StatefulRegister4},
-        {"stateful-register-branchless-1",
-         bindings::Unpacker::StatefulRegisterBranchless1},
-        {"stateful-register-branchless-2",
-         bindings::Unpacker::StatefulRegisterBranchless2},
-        {"stateful-register-branchless-4",
-         bindings::Unpacker::StatefulRegisterBranchless4},
-        {"stateful-branchless", bindings::Unpacker::StatefulBranchless},
-    };
-
-    auto it = mapping.find(str);
-    if (it != mapping.end()) {
-      return it->second;
-    }
-
-    throw std::invalid_argument("Unknown unpacker type: " + str);
-  }
-
-  bindings::Patcher string_to_patcher(const std::string &str) {
-    static const std::unordered_map<std::string, bindings::Patcher> mapping = {
-        {"none", bindings::Patcher::None},
-        {"dummy", bindings::Patcher::Dummy},
-        {"stateless", bindings::Patcher::Stateless},
-        {"stateful", bindings::Patcher::Stateful},
-        {"naive", bindings::Patcher::Naive},
-        {"naive-branchless", bindings::Patcher::NaiveBranchless},
-        {"prefetch-position", bindings::Patcher::PrefetchPosition},
-        {"prefetch-all", bindings::Patcher::PrefetchAll},
-        {"prefetch-all-branchless", bindings::Patcher::PrefetchAllBranchless},
-    };
-
-    auto it = mapping.find(str);
-    if (it != mapping.end()) {
-      return it->second;
-    }
-
-    throw std::invalid_argument("Unknown patcher type: " + str);
-  }
 };
 
 template <typename T, typename ColumnT>
@@ -211,9 +114,9 @@ template <typename T, typename ColumnT>
 verification::ExecutionResult<T>
 execute_kernel(const ColumnT column, const ProgramParameters params,
                const bool query_result, const T magic_value) {
-  if (params.kernel == Kernel::Decompress) {
+  if (params.kernel == enums::Kernel::Decompress) {
     return decompress_column<T, ColumnT>(column, params);
-  } else if (params.kernel == Kernel::Query) {
+  } else if (params.kernel == enums::Kernel::Query) {
     return query_column<T, ColumnT>(column, params, query_result, magic_value);
   } else {
     throw std::invalid_argument("Kernel not implemented yet.\n");
@@ -232,7 +135,7 @@ execute_ffor(const ProgramParameters params) {
     T magic_value = consts::as<T>::MAGIC_NUMBER;
     flsgpu::host::FFORColumn<T> column;
 
-    if (params.kernel == Kernel::Query) {
+    if (params.kernel == enums::Kernel::Query) {
       auto [_query_result, _column] =
           data::columns::generate_binary_ffor_column<T>(
               params.n_values, data::ValueRange<vbw_t>(vbw),
@@ -272,7 +175,7 @@ execute_alp(const ProgramParameters params) {
          ec += 10) {
       column = data::columns::modify_alp_exception_count(column, ec);
 
-      if (params.kernel == Kernel::Query) {
+      if (params.kernel == enums::Kernel::Query) {
         auto [_query_result, _magic_value] =
             data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
                 column);
@@ -280,9 +183,9 @@ execute_alp(const ProgramParameters params) {
         magic_value = _magic_value;
       }
 
-      if (params.patcher == bindings::Patcher::Dummy ||
-          params.patcher == bindings::Patcher::Stateless ||
-          params.patcher == bindings::Patcher::Stateful) {
+      if (params.patcher == enums::Patcher::Dummy ||
+          params.patcher == enums::Patcher::Stateless ||
+          params.patcher == enums::Patcher::Stateful) {
         results.push_back(execute_kernel<T, flsgpu::host::ALPColumn<T>>(
             column, params, query_result, magic_value));
       } else {
@@ -306,27 +209,27 @@ int main(int argc, char **argv) {
   ProgramParameters params = args.parse();
 
   int32_t exit_code = 0;
-  bool print_debug = params.print_option != Print::PrintNothing;
+  bool print_debug = params.print_option != enums::Print::PrintNothing;
   switch (params.data_type) {
-  case DataType::U32:
+  case enums::DataType::U32:
     exit_code = verification::process_results(execute_ffor<uint32_t>(params),
                                               print_debug);
     break;
-  case DataType::U64:
+  case enums::DataType::U64:
     exit_code = verification::process_results(execute_ffor<uint64_t>(params),
                                               print_debug);
     break;
-  case DataType::F32:
+  case enums::DataType::F32:
     exit_code =
         verification::process_results(execute_alp<float>(params), print_debug);
     break;
-  case DataType::F64:
+  case enums::DataType::F64:
     exit_code =
         verification::process_results(execute_alp<double>(params), print_debug);
     break;
   }
 
-  if (params.print_option == Print::PrintDebugExit0) {
+  if (params.print_option == enums::Print::PrintDebugExit0) {
     exit(0);
   }
 

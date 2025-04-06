@@ -65,6 +65,7 @@ BEST_UNPACKER = [
 
 PATCHERS = [
     "None",
+    "Dummy",
     "Stateless",
     "Stateful",
     "Naive",
@@ -312,7 +313,7 @@ def main(args):
                 )
 
     for encoding, patchers_per_encoding in zip(
-        ["ALP", "ALPExtended"], [PATCHERS[1:3], PATCHERS[3:]]
+        ["ALP", "ALPExtended"], [PATCHERS[1:4], PATCHERS[4:]]
     ):
         for data_type in ["float", "double"]:
             for binding, option, is_query_column, unpackers, patchers in zip(

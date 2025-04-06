@@ -39,17 +39,6 @@ struct Baseline : flsgpu::device::BitUnpackerBase<T> {
   }
 };
 
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
-struct DummyALPExceptionPatcher : flsgpu::device::ALPExceptionPatcherBase<T> {
-
-public:
-  void __device__ __forceinline__ patch_if_needed(T *out) override {}
-
-  __device__ __forceinline__
-  DummyALPExceptionPatcher(const flsgpu::device::ALPColumn<T> column,
-                           const vi_t vector_index, const lane_t lane) {}
-};
-
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename OutputProcessor>
 struct OldFLSAdjusted : flsgpu::device::BitUnpackerBase<T> {
@@ -212,8 +201,8 @@ template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
 __host__ bool query_column(const ColumnT column, const T magic_value) {
   size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
-  GPUArray<bool> device_out(1);
-  bool result;
+  bool result = false;
+  GPUArray<bool> device_out(1, &result);
 
   device::query_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
                        ColumnT>

@@ -200,9 +200,9 @@ query_column(const ColumnT column, const ProgramParameters params,
           params.unpacker, params.patcher, magic_value);
   flsgpu::host::free_column(column_device);
 
-  // Weird hack to circumvent refactor_
-  auto a = static_cast<T>(query_result);
-  auto b = static_cast<T>(answer);
+  // Weird hack to avoid refactor_
+  T a = query_result ? 1.0 : 0.0;
+  T b = answer ? 1.0 : 0.0;
 
   return verification::compare_data(&a, &b, 1);
 }

@@ -11,7 +11,7 @@ constexpr int32_t THREADS_PER_WARP = 32;
 
 template <class T>
 struct as {
-	static inline constexpr T MAGIC_NUMBER = 0;
+	static inline constexpr T MAGIC_NUMBER = 1;
 };
 
 template <>

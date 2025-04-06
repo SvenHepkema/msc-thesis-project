@@ -9,6 +9,7 @@
 #include <limits>
 #include <memory>
 #include <random>
+#include <tuple>
 
 #include "../alp/alp-bindings.cuh"
 #include "../alp/constants.hpp"
@@ -276,9 +277,8 @@ flsgpu::host::BPColumn<T> compress(const T *array, const size_t n_values,
       packed_array,
       primitives::fill_array_with_constant<vbw_t>(new vbw_t[n_vecs], n_vecs,
                                                   value_bit_width),
-      primitives::fill_array_with_sequence<size_t>(
-          new size_t[n_vecs], n_vecs, 0,
-          utils::get_compressed_vector_size<T>(value_bit_width)),
+      primitives::fill_array_with_sequence<size_t>(new size_t[n_vecs], n_vecs,
+                                                   0, compressed_vector_size),
   };
 }
 
@@ -384,6 +384,51 @@ flsgpu::host::FFORColumn<T> generate_random_ffor_column(
       primitives::fill_array_with_random_data<T>(new T[n_vecs], n_vecs, 1,
                                                  bases.min, bases.max),
   };
+}
+
+template <typename T>
+std::tuple<bool, flsgpu::host::BPColumn<T>>
+generate_binary_bp_column(const size_t n_values,
+                          const ValueRange<vbw_t> value_bit_width,
+                          const int32_t repeat = 1) {
+  T *data =
+      primitives::fill_array_with_constant<T>(new T[n_values], n_values, 0);
+
+  auto generate_presence =
+      primitives::get_random_number_generator<size_t>(0, 100);
+  bool contains_magic_value = false; // generate_presence() < 50;
+  if (contains_magic_value) {
+    auto index_generator =
+        primitives::get_random_number_generator<size_t>(0, n_values - 1);
+    data[index_generator()] = consts::as<T>::MAGIC_NUMBER;
+  }
+
+  auto column = bindings::compress(data, n_values, value_bit_width.max);
+  delete data;
+
+  return std::make_tuple(contains_magic_value, column);
+}
+
+template <typename T>
+std::tuple<bool, flsgpu::host::FFORColumn<T>>
+generate_binary_ffor_column(const size_t n_values,
+                            const ValueRange<vbw_t> value_bit_width,
+                            const int32_t repeat = 1) {
+  size_t n_vecs = utils::get_n_vecs_from_size(n_values);
+  auto [contains_magic_value, bp_column] =
+      generate_binary_bp_column<T>(n_values, value_bit_width, repeat);
+  T base = 0;
+
+  if (value_bit_width.max == 0) {
+    base = T{contains_magic_value};
+  }
+
+  return std::make_tuple(
+      contains_magic_value,
+      flsgpu::host::FFORColumn<T>{
+          bp_column,
+          primitives::fill_array_with_constant<T>(new T[n_vecs], n_vecs, base),
+      });
 }
 
 template <typename T>

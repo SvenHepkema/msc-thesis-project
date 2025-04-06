@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <stdexcept>
@@ -188,10 +189,9 @@ decompress_column(const ColumnT column, const ProgramParameters params) {
 }
 
 template <typename T, typename ColumnT>
-verification::ExecutionResult<T> query_column(const ColumnT column,
-                                              const ProgramParameters params) {
-  auto [correct_answer, magic_value] =
-      data::columns::get_value_to_query<T, ColumnT>(column);
+verification::ExecutionResult<T>
+query_column(const ColumnT column, const ProgramParameters params,
+             const bool query_result, const T magic_value) {
   auto column_device = column.copy_to_device();
   const bool answer =
       bindings::query_column<T, typename ColumnT::DeviceColumnT>(
@@ -200,7 +200,7 @@ verification::ExecutionResult<T> query_column(const ColumnT column,
   flsgpu::host::free_column(column_device);
 
   // Weird hack to circumvent refactor_
-  auto a = static_cast<T>(correct_answer);
+  auto a = static_cast<T>(query_result);
   auto b = static_cast<T>(answer);
 
   return verification::compare_data(&a, &b, 1);
@@ -208,11 +208,12 @@ verification::ExecutionResult<T> query_column(const ColumnT column,
 
 template <typename T, typename ColumnT>
 verification::ExecutionResult<T>
-execute_kernel(const ColumnT column, const ProgramParameters params) {
+execute_kernel(const ColumnT column, const ProgramParameters params,
+               const bool query_result, const T magic_value) {
   if (params.kernel == Kernel::Decompress) {
     return decompress_column<T, ColumnT>(column, params);
   } else if (params.kernel == Kernel::Query) {
-    return query_column<T, ColumnT>(column, params);
+    return query_column<T, ColumnT>(column, params, query_result, magic_value);
   } else {
     throw std::invalid_argument("Kernel not implemented yet.\n");
   }
@@ -226,11 +227,25 @@ execute_ffor(const ProgramParameters params) {
 
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
-    auto column = data::columns::generate_random_ffor_column<T>(
-        params.n_values, data::ValueRange<vbw_t>(0, vbw), data::ValueRange<T>(0, 100), params.unpack_n_vecs);
+    bool query_result = false;
+    T magic_value = consts::as<T>::MAGIC_NUMBER;
+    flsgpu::host::FFORColumn<T> column;
 
-    results.push_back(
-        execute_kernel<T, flsgpu::host::FFORColumn<T>>(column, params));
+    if (params.kernel == Kernel::Query) {
+      auto [_query_result, _column] =
+          data::columns::generate_binary_ffor_column<T>(
+              params.n_values, data::ValueRange<vbw_t>(vbw),
+              params.unpack_n_vecs);
+			query_result = _query_result;
+			column = _column;
+    } else {
+      column = data::columns::generate_random_ffor_column<T>(
+          params.n_values, data::ValueRange<vbw_t>(0, vbw),
+          data::ValueRange<T>(0, 100), params.unpack_n_vecs);
+    }
+
+    results.push_back(execute_kernel<T, flsgpu::host::FFORColumn<T>>(
+        column, params, query_result, magic_value));
 
     flsgpu::host::free_column(column);
   }
@@ -246,21 +261,32 @@ execute_alp(const ProgramParameters params) {
 
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
+    bool query_result = false;
+    T magic_value = consts::as<T>::MAGIC_NUMBER;
+
     auto column = data::columns::generate_alp_column<T>(
         params.n_values, data::ValueRange<vbw_t>(0, vbw),
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
     for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ++ec) {
       data::columns::modify_alp_exception_count(column, ec);
 
+      if (params.kernel == Kernel::Query) {
+        auto [_query_result, _magic_value] =
+            data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
+                column);
+				query_result = _query_result;
+				magic_value = _magic_value;
+      }
+
       if (params.patcher == bindings::Patcher::Stateless ||
           params.patcher == bindings::Patcher::Stateful) {
-        results.push_back(
-            execute_kernel<T, flsgpu::host::ALPColumn<T>>(column, params));
+        results.push_back(execute_kernel<T, flsgpu::host::ALPColumn<T>>(
+            column, params, query_result, magic_value));
       } else {
         auto column_extended = column.create_extended_column();
 
         results.push_back(execute_kernel<T, flsgpu::host::ALPExtendedColumn<T>>(
-            column_extended, params));
+            column_extended, params, query_result, magic_value));
 
         flsgpu::host::free_column(column_extended);
       }

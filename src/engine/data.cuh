@@ -445,15 +445,14 @@ flsgpu::host::ALPColumn<T> generate_alp_column(
       n_values, bit_width_range, ValueRange<UINT_T>(2, 20), repeat);
 
   // Note we halve the frac and fact because otherwise you
-  // will have integer overflow in the decoding for some combinations
-  int32_t frac_arr_size = sizeof(T) == 4 ? 11 : 21;
-  int32_t fact_arr_size = sizeof(T) == 4 ? 10 : 19;
-  column.fraction_indices = primitives::fill_array_with_random_data<uint8_t>(
-      new uint8_t[n_vecs], n_vecs, 1, 0,
-      static_cast<uint8_t>(frac_arr_size / 2));
+  // are more likely to have integer overflow in the decoding for some
+  // combinations of compression parameters
   column.factor_indices = primitives::fill_array_with_random_data<uint8_t>(
       new uint8_t[n_vecs], n_vecs, 1, 0,
-      static_cast<uint8_t>(fact_arr_size / 2));
+      static_cast<uint8_t>(consts::as<T>::FACT_ARR_COUNT / 2));
+  column.fraction_indices = primitives::fill_array_with_random_data<uint8_t>(
+      new uint8_t[n_vecs], n_vecs, 1, 0,
+      static_cast<uint8_t>(consts::as<T>::FRAC_ARR_COUNT / 2));
 
   column.counts = primitives::fill_array_with_random_data<uint16_t>(
       new uint16_t[n_vecs], n_vecs, 1, exceptions_per_vec.min,

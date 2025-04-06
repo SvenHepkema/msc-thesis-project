@@ -50,7 +50,6 @@ public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
 };
 
-
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct DummyALPExceptionPatcher : flsgpu::device::ALPExceptionPatcherBase<T> {
 
@@ -61,7 +60,6 @@ public:
   DummyALPExceptionPatcher(const flsgpu::device::ALPColumn<T> column,
                            const vi_t vector_index, const lane_t lane) {}
 };
-
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
@@ -108,11 +106,11 @@ public:
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       auto vec_index = first_vector_index + v;
-      exceptions_count[v] = column.counts[vec_index + v];
+      exceptions_count[v] = column.counts[vec_index];
       vec_exceptions_positions[v] =
-          column.positions + column.exceptions_offsets[vec_index + v];
+          column.positions + column.exceptions_offsets[vec_index];
       vec_exceptions[v] =
-          column.exceptions + column.exceptions_offsets[vec_index + v];
+          column.exceptions + column.exceptions_offsets[vec_index];
     }
   }
 };
@@ -162,11 +160,11 @@ public:
 #pragma unroll
     for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
       auto vec_index = first_vector_index + v;
-      exceptions_count[v] = column.counts[vec_index + v];
+      exceptions_count[v] = column.counts[vec_index];
       vec_exceptions_positions[v] =
-          column.positions + column.exceptions_offsets[vec_index + v];
+          column.positions + column.exceptions_offsets[vec_index];
       vec_exceptions[v] =
-          column.exceptions + column.exceptions_offsets[vec_index + v];
+          column.exceptions + column.exceptions_offsets[vec_index];
     }
   }
 };

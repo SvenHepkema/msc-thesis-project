@@ -210,7 +210,6 @@ template <typename T> struct ALPColumn {
   }
 
   device::ALPColumn<T> copy_to_device() const {
-    size_t branchless_and_prefetch_buffer = consts::MAX_UNPACK_N_VECS;
     return device::ALPColumn<T>{
         get_n_values(),
         ffor.copy_to_device(),
@@ -223,11 +222,8 @@ template <typename T> struct ALPColumn {
         GPUArray<uint8_t>(ffor.bp.get_n_vecs(), fraction_indices).release(),
         n_exceptions,
         GPUArray<size_t>(ffor.bp.get_n_vecs(), exceptions_offsets).release(),
-        GPUArray<T>(n_exceptions, branchless_and_prefetch_buffer, exceptions)
-            .release(),
-        GPUArray<uint16_t>(n_exceptions, branchless_and_prefetch_buffer,
-                           positions)
-            .release(),
+        GPUArray<T>(n_exceptions, exceptions).release(),
+        GPUArray<uint16_t>(n_exceptions, positions).release(),
         GPUArray<uint16_t>(ffor.bp.get_n_vecs(), counts).release(),
     };
   }

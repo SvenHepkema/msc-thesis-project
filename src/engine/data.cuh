@@ -476,8 +476,9 @@ flsgpu::host::ALPColumn<T> generate_alp_column(
 }
 
 template <typename T>
-void modify_alp_exception_count(flsgpu::host::ALPColumn<T> column,
-                                const ValueRange<uint16_t> exceptions_per_vec) {
+flsgpu::host::ALPColumn<T>
+modify_alp_exception_count(flsgpu::host::ALPColumn<T> column,
+                           const ValueRange<uint16_t> exceptions_per_vec) {
   const size_t n_values = column.ffor.bp.n_values;
   const size_t n_vecs = utils::get_n_vecs_from_size(n_values);
 
@@ -495,9 +496,11 @@ void modify_alp_exception_count(flsgpu::host::ALPColumn<T> column,
   column.exceptions_offsets =
       primitives::prefix_sum_array(column.counts, new size_t[n_vecs], n_vecs);
   column.exceptions = primitives::fill_array_with_random_bytes(
-      new T[column.n_exceptions], n_values);
+      new T[column.n_exceptions], column.n_exceptions);
   column.positions = primitives::generate_positions<uint16_t>(
       new uint16_t[column.n_exceptions], column.counts, n_vecs);
+
+  return column;
 }
 
 template <typename T>

@@ -268,7 +268,7 @@ execute_alp(const ProgramParameters params) {
         params.n_values, data::ValueRange<vbw_t>(0, vbw),
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
     for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ++ec) {
-      data::columns::modify_alp_exception_count(column, ec);
+      column = data::columns::modify_alp_exception_count(column, ec);
 
       if (params.kernel == Kernel::Query) {
         auto [_query_result, _magic_value] =

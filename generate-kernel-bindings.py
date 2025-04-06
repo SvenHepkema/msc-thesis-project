@@ -154,7 +154,11 @@ def get_if_statement(
     decompressor_t = get_decompressor_type(
         encoding, data_type, unpacker, patcher, n_vec, n_val
     )
-    extra_param = ',' + str(n_columns) if n_columns else ', magic_value' if is_query_column else '' 
+    extra_param = (
+        "," + str(n_columns)
+        if n_columns
+        else ", magic_value" if is_query_column else ""
+    )
     return (
         f"if (unpack_n_vectors == {n_vec} && unpack_n_values == {n_val} && unpacker == Unpacker::{unpacker} && patcher == Patcher::{patcher} {'&& n_columns == ' + str(n_columns) if n_columns else ''}) "
         + "{"  # }
@@ -193,6 +197,45 @@ def write_file(
         f.write("\n".join([FILE_HEADER] + functions + [FILE_FOOTER]))
 
 
+def get_if_statement_check_wrapper(
+    disable_unnecessary: bool,
+    encoding: str,
+    data_type: str,
+    function: str,
+    n_vec: int,
+    n_val: int,
+    unpacker: str,
+    patcher: str,
+    is_query_column: bool = False,
+    n_columns: int | None = None,
+    n_repetitions: int | None = None,
+) -> str:
+    is_necessary = (
+        encoding == "FFOR"
+        and data_type == "uint32_t"
+        and n_vec == 1
+        and unpacker == "Stateless"
+        and patcher == "None"
+    )
+
+    return (
+        get_if_statement(
+            encoding,
+            data_type,
+            function,
+            n_vec,
+            n_val,
+            unpacker,
+            patcher,
+            is_query_column,
+            n_columns,
+            n_repetitions,
+        )
+        if not disable_unnecessary or is_necessary
+        else ""
+    )
+
+
 def main(args):
     for encoding in ["BP", "FFOR"]:
         for data_type in ["uint32_t", "uint64_t"]:
@@ -208,7 +251,8 @@ def main(args):
                             binding,
                             "bool" if is_query_column else data_type + "*",
                             [
-                                get_if_statement(
+                                get_if_statement_check_wrapper(
+                                    args.disable_unnecessary,
                                     encoding,
                                     data_type,
                                     binding,
@@ -222,7 +266,7 @@ def main(args):
                                 for n_val in [1]
                                 for unpacker in UNPACKERS
                             ],
-                                    is_query_column=is_query_column,
+                            is_query_column=is_query_column,
                         )
                     ],
                 )
@@ -245,7 +289,8 @@ def main(args):
                             binding,
                             "bool",
                             [
-                                get_if_statement(
+                                get_if_statement_check_wrapper(
+                                    args.disable_unnecessary,
                                     encoding,
                                     data_type,
                                     binding,
@@ -253,7 +298,7 @@ def main(args):
                                     n_val,
                                     unpacker,
                                     "None",
-                                    n_repetitions=10
+                                    n_repetitions=10,
                                 )
                                 for n_vec in [1, 4]
                                 for n_val in [1]
@@ -274,7 +319,7 @@ def main(args):
                 # Reinsert when multcolumn is done
                 # ["decompress_column", "query_column", "query_multi_column"],
                 # [False, False, True],
-                #[None, "bool", "bool"],
+                # [None, "bool", "bool"],
                 # [UNPACKERS, UNPACKERS, BEST_UNPACKER],
                 # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
                 ["decompress_column", "query_column"],
@@ -293,7 +338,8 @@ def main(args):
                             binding,
                             "bool" if is_query_column else data_type + "*",
                             [
-                                get_if_statement(
+                                get_if_statement_check_wrapper(
+                                    args.disable_unnecessary,
                                     encoding,
                                     data_type,
                                     binding,
@@ -321,6 +367,13 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="program")
 
+    parser.add_argument(
+        "-du",
+        "--disable-unnecessary",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+    )
     parser.add_argument(
         "-ll",
         "--logging-level",

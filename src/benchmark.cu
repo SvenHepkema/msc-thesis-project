@@ -224,7 +224,7 @@ template <typename T> int32_t execute_alp(const ProgramParameters params) {
   if (params.read_data_from_file()) {
     auto [array, n_values] =
         data::arrays::read_file_as<T>(params.file, params.n_values);
-    auto column = alp::encode<T>(array, n_values);
+    auto column = alp::encode<T>(array, n_values, true);
     auto column_extended = column.create_extended_column();
     delete[] array;
 

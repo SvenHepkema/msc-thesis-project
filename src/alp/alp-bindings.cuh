@@ -31,8 +31,8 @@ template <typename T>
 bool is_compressable(const T *input_array, const size_t n_elements);
 
 template <typename T>
-flsgpu::host::ALPColumn<T> encode(const T *input_array,
-                                  const size_t n_elements);
+flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_elements,
+                                  const bool print_compression_info = false);
 
 template <typename T>
 T *decode(const flsgpu::host::ALPColumn<T> column, T *output_array);

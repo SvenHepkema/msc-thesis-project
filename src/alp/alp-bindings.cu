@@ -81,7 +81,8 @@ state<T> configure_alpstate(const T *input_array, const size_t n_values) {
 }
 
 template <typename T>
-flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values) {
+flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values,
+                                  const bool print_compression_info) {
   using INT_T = typename utils::same_width_int<T>::type;
   using UINT_T = typename utils::same_width_uint<T>::type;
 
@@ -110,11 +111,15 @@ flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values) {
   INT_T *encoded_array = new INT_T[consts::VALUES_PER_VECTOR];
   size_t exceptions_offset = 0;
   size_t vector_offset = 0;
+
+  size_t bit_widths_sum = 0;
   for (size_t vi{0}; vi < n_vecs; vi++) {
     alp::encoder<T>::encode(input_array, exceptions, positions, &counts[vi],
                             encoded_array, alpstate);
     alp::encoder<T>::analyze_ffor(encoded_array, bit_widths[vi],
                                   reinterpret_cast<INT_T *>(&bases[vi]));
+
+    bit_widths_sum += bit_widths[vi];
     fls::ffor(reinterpret_cast<UINT_T *>(encoded_array), packed_array,
               bit_widths[vi], &bases[vi]);
 
@@ -163,6 +168,21 @@ flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values) {
   std::memcpy(exceptions, v_exceptions.data(), v_exceptions.size() * sizeof(T));
   std::memcpy(positions, v_positions.data(),
               v_positions.size() * sizeof(uint16_t));
+
+  if (print_compression_info) {
+    const size_t input_size = n_values * sizeof(T);
+    fprintf(stderr,
+            "n_vecs: %zu, alp compression ratio: %f, alp_extended compression "
+            "ratio: %f, avg. bits/value: %f, avg. exceptions/vec: %f\n",
+            n_vecs,
+            static_cast<double>(input_size) /
+                static_cast<double>(compressed_alp_bytes_size),
+            static_cast<double>(input_size) /
+                static_cast<double>(compressed_alp_extended_bytes_size),
+            static_cast<double>(bit_widths_sum) / static_cast<double>(n_vecs),
+            static_cast<double>(v_exceptions.size()) /
+                static_cast<double>(n_vecs));
+  }
 
   return flsgpu::host::ALPColumn<T>{
       flsgpu::host::FFORColumn<UINT_T>{
@@ -220,7 +240,7 @@ T *decode(const flsgpu::host::ALPExtendedColumn<T> column, T *output_array) {
         c_output_array, column.ffor.bp.bit_widths[vi], &column.ffor.bases[vi],
         column.factor_indices[vi], column.fraction_indices[vi]);
 
-		// Reconstruct total count
+    // Reconstruct total count
     uint16_t count = 0;
     for (size_t offset_count_i{0}; offset_count_i < N_LANES; ++offset_count_i) {
       count += column.offsets_counts[vi * N_LANES + offset_count_i] >> 10;
@@ -239,10 +259,12 @@ T *decode(const flsgpu::host::ALPExtendedColumn<T> column, T *output_array) {
 template bool is_compressable(const float *input_array, const size_t n_values);
 template bool is_compressable(const double *input_array, const size_t n_values);
 
-template flsgpu::host::ALPColumn<float> encode(const float *input_array,
-                                               const size_t n_values);
-template flsgpu::host::ALPColumn<double> encode(const double *input_array,
-                                                const size_t n_values);
+template flsgpu::host::ALPColumn<float>
+encode(const float *input_array, const size_t n_values,
+       const bool print_compression_info);
+template flsgpu::host::ALPColumn<double>
+encode(const double *input_array, const size_t n_values,
+       const bool print_compression_info);
 
 template float *decode(const flsgpu::host::ALPColumn<float> column,
                        float *output_array);

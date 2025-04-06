@@ -267,7 +267,7 @@ execute_alp(const ProgramParameters params) {
     auto column = data::columns::generate_alp_column<T>(
         params.n_values, data::ValueRange<vbw_t>(0, vbw),
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
-    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ++ec) {
+    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ec += 10) {
       column = data::columns::modify_alp_exception_count(column, ec);
 
       if (params.kernel == Kernel::Query) {

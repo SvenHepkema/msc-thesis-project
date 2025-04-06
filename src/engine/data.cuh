@@ -487,7 +487,7 @@ std::tuple<bool, T> get_value_to_query(const ColumnT column) {
     column_does_not_contain_value = false;
   } else {
     for (size_t i{0}; i < column.get_n_values(); ++i) {
-      column_does_not_contain_value &= value == decompressed[i];
+      column_does_not_contain_value &= value != decompressed[i];
     }
   }
 

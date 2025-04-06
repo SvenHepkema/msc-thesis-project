@@ -227,7 +227,7 @@ execute_ffor(const ProgramParameters params) {
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
     auto column = data::columns::generate_random_ffor_column<T>(
-        params.n_values, data::ValueRange<vbw_t>(0, vbw), params.unpack_n_vecs);
+        params.n_values, data::ValueRange<vbw_t>(0, vbw), data::ValueRange<T>(0, 100), params.unpack_n_vecs);
 
     results.push_back(
         execute_kernel<T, flsgpu::host::FFORColumn<T>>(column, params));

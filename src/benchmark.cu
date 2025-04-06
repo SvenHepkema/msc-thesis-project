@@ -64,45 +64,121 @@ struct CLIArgs {
   }
 };
 
-template <typename T>
-void execute_ffor_decompress(flsgpu::device::FFORColumn<T> column_device) {
+template <typename T, typename KernelFunctor>
+int32_t iterate_decompressors(const flsgpu::host::FFORColumn<T> column,
+                              const KernelFunctor kernel_functor) {
   const unsigned unpack_n_values = 1;
   const std::vector<unsigned> unpack_n_vecs_set = {1, 4};
+
+  int32_t aggregator = 0;
+  auto column_device = column.copy_to_device();
+  for (const auto unpack_n_vecs : unpack_n_vecs_set) {
+    for (size_t u{0};
+         u < static_cast<size_t>(enums::Unpacker::StatefulBranchless); ++u) {
+      const auto unpacker = static_cast<enums::Unpacker>(u);
+
+      aggregator +=
+          kernel_functor(column_device, unpack_n_vecs, unpack_n_values,
+                         unpacker, enums::Patcher::None);
+    }
+  }
+  flsgpu::host::free_column(column_device);
+
+  return aggregator;
+}
+
+template <typename T, typename KernelFunctor>
+int32_t iterate_decompressors(const flsgpu::host::ALPColumn<T> column,
+                              const KernelFunctor kernel_functor) {
+  const unsigned unpack_n_values = 1;
+  const std::vector<unsigned> unpack_n_vecs_set = {1, 4};
+
+  int32_t aggregator = 0;
+  auto column_device = column.copy_to_device();
 
   for (const auto unpack_n_vecs : unpack_n_vecs_set) {
     for (size_t u{0};
          u < static_cast<size_t>(enums::Unpacker::StatefulBranchless); ++u) {
       const auto unpacker = static_cast<enums::Unpacker>(u);
-      const T *out =
-          bindings::decompress_column<T, flsgpu::device::FFORColumn<T>>(
-              column_device, unpack_n_vecs, unpack_n_values, unpacker,
-              enums::Patcher::None);
-      delete[] out;
+
+      for (size_t p{2}; p < static_cast<size_t>(enums::Patcher::Naive); ++p) {
+        const auto patcher = static_cast<enums::Patcher>(p);
+
+        aggregator += kernel_functor(column_device, unpack_n_vecs,
+                                     unpack_n_values, unpacker, patcher);
+      }
     }
   }
+
+  flsgpu::host::free_column(column_device);
+
+  return aggregator;
 }
-template <typename T>
-int32_t execute_ffor_query(flsgpu::device::FFORColumn<T> column_device,
-                           const bool column_contains_value,
-                           const T value_to_query) {
+
+template <typename T, typename KernelFunctor>
+int32_t iterate_decompressors(const flsgpu::host::ALPExtendedColumn<T> column,
+                              const KernelFunctor kernel_functor) {
   const unsigned unpack_n_values = 1;
   const std::vector<unsigned> unpack_n_vecs_set = {1, 4};
-  int32_t failed = 0;
+
+  int32_t aggregator = 0;
+  auto column_device = column.copy_to_device();
 
   for (const auto unpack_n_vecs : unpack_n_vecs_set) {
     for (size_t u{0};
          u < static_cast<size_t>(enums::Unpacker::StatefulBranchless); ++u) {
       const auto unpacker = static_cast<enums::Unpacker>(u);
-      const bool answer =
-          bindings::query_column<T, flsgpu::device::FFORColumn<T>>(
-              column_device, unpack_n_vecs, unpack_n_values, unpacker,
-              enums::Patcher::None, consts::as<T>::MAGIC_NUMBER);
-      failed += answer;
+
+      for (size_t p{4};
+           p < static_cast<size_t>(enums::Patcher::PrefetchAllBranchless);
+           ++p) {
+        const auto patcher = static_cast<enums::Patcher>(p);
+
+        aggregator += kernel_functor(column_device, unpack_n_vecs,
+                                    unpack_n_values, unpacker, patcher);
+      }
     }
   }
 
-  return failed;
+  flsgpu::host::free_column(column_device);
+
+  return aggregator;
 }
+
+template <typename T, typename ColumnT> struct DecompressFunctor {
+  using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  DecompressFunctor() {}
+
+  int32_t operator()(const DeviceColumnT column_device,
+                     const unsigned int unpack_n_vecs,
+                     const unsigned int unpack_n_values,
+                     const enums::Unpacker unpacker,
+                     const enums::Patcher patcher) const {
+    const T *out = bindings::decompress_column<T, DeviceColumnT>(
+        column_device, unpack_n_vecs, unpack_n_values, unpacker, patcher);
+    delete[] out;
+    return 0;
+  }
+};
+
+template <typename T, typename ColumnT> struct QueryFunctor {
+  using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  const bool query_result;
+  const T value_to_query;
+  QueryFunctor(const bool query_result, const T value_to_query)
+      : query_result(query_result), value_to_query(value_to_query) {}
+
+  int32_t operator()(const DeviceColumnT column_device,
+                     const unsigned int unpack_n_vecs,
+                     const unsigned int unpack_n_values,
+                     const enums::Unpacker unpacker,
+                     const enums::Patcher patcher) const {
+    return query_result ==
+           static_cast<int32_t>(bindings::query_column<T, DeviceColumnT>(
+               column_device, unpack_n_vecs, unpack_n_values, unpacker, patcher,
+               value_to_query));
+  }
+};
 
 template <typename T> int32_t execute_ffor(const ProgramParameters params) {
   using UINT_T = typename utils::same_width_uint<T>::type;
@@ -113,26 +189,25 @@ template <typename T> int32_t execute_ffor(const ProgramParameters params) {
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
     if (params.kernel == enums::Kernel::Query) {
-      auto [query_result, column] =
+      auto [_query_result, column] =
           data::columns::generate_binary_ffor_column<T>(
               params.n_values, data::ValueRange<vbw_t>(vbw),
               consts::MAX_UNPACK_N_VECS);
-      auto column_device = column.copy_to_device();
+      const bool query_result = _query_result;
 
-      failed += execute_ffor_query(column_device, query_result,
-                                   consts::as<T>::MAGIC_NUMBER);
+      failed += iterate_decompressors<T>(
+          column, QueryFunctor<T, flsgpu::host::FFORColumn<T>>(
+                      query_result, consts::as<T>::MAGIC_NUMBER));
 
-      flsgpu::host::free_column(column_device);
       flsgpu::host::free_column(column);
     } else if (params.kernel == enums::Kernel::Decompress) {
       auto column = data::columns::generate_random_ffor_column<T>(
           params.n_values, data::ValueRange<vbw_t>(vbw),
           data::ValueRange<T>(0, 100), consts::MAX_UNPACK_N_VECS);
-      auto column_device = column.copy_to_device();
 
-      execute_ffor_decompress(column_device);
+      iterate_decompressors<T>(
+          column, DecompressFunctor<T, flsgpu::host::FFORColumn<T>>());
 
-      flsgpu::host::free_column(column_device);
       flsgpu::host::free_column(column);
     }
   }
@@ -141,7 +216,49 @@ template <typename T> int32_t execute_ffor(const ProgramParameters params) {
 }
 
 template <typename T> int32_t execute_alp(const ProgramParameters params) {
-  return 0;
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  auto results = std::vector<verification::ExecutionResult<T>>();
+
+  int32_t failed = 0;
+
+  for (uint16_t ec{params.bit_width_range.min};
+       ec <= params.bit_width_range.max; ++ec) {
+    if (params.kernel == enums::Kernel::Query) {
+      auto column = data::columns::generate_alp_column<T>(
+          params.n_values, data::ValueRange<vbw_t>(0, 8),
+          data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
+      auto [query_result, magic_value] =
+          data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
+              column);
+      auto column_extended = column.create_extended_column();
+
+      failed += iterate_decompressors<T>(
+          column, QueryFunctor<T, flsgpu::host::ALPColumn<T>>(query_result,
+                                                              magic_value));
+      failed += iterate_decompressors<T>(
+          column_extended, QueryFunctor<T, flsgpu::host::ALPExtendedColumn<T>>(
+                               query_result, magic_value));
+
+      flsgpu::host::free_column(column_extended);
+      flsgpu::host::free_column(column);
+    } else if (params.kernel == enums::Kernel::Decompress) {
+      auto column = data::columns::generate_alp_column<T>(
+          params.n_values, data::ValueRange<vbw_t>(0, 8),
+          data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
+      auto column_extended = column.create_extended_column();
+
+      iterate_decompressors<T>(
+          column, DecompressFunctor<T, flsgpu::host::ALPColumn<T>>());
+      iterate_decompressors<T>(
+          column_extended,
+          DecompressFunctor<T, flsgpu::host::ALPExtendedColumn<T>>());
+
+      flsgpu::host::free_column(column_extended);
+      flsgpu::host::free_column(column);
+    }
+  }
+
+  return failed;
 }
 
 int main(int argc, char **argv) {
@@ -166,9 +283,9 @@ int main(int argc, char **argv) {
     break;
   }
 
-	if (print_debug) {
-		printf("Exit code: %d\n", exit_code);
-	}
+  if (print_debug) {
+    printf("Exit code: %d\n", exit_code);
+  }
 
   if (params.print_option == enums::Print::PrintDebugExit0) {
     exit(0);

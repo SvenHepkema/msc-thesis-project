@@ -135,7 +135,7 @@ int32_t iterate_decompressors(const flsgpu::host::ALPExtendedColumn<T> column,
         const auto patcher = static_cast<enums::Patcher>(p);
 
         aggregator += kernel_functor(column_device, unpack_n_vecs,
-                                    unpack_n_values, unpacker, patcher);
+                                     unpack_n_values, unpacker, patcher);
       }
     }
   }
@@ -221,16 +221,17 @@ template <typename T> int32_t execute_alp(const ProgramParameters params) {
 
   int32_t failed = 0;
 
-  for (uint16_t ec{params.bit_width_range.min};
-       ec <= params.bit_width_range.max; ++ec) {
+  if (params.read_data_from_file()) {
+    auto [array, n_values] =
+        data::arrays::read_file_as<T>(params.file, params.n_values);
+    auto column = alp::encode<T>(array, n_values);
+    auto column_extended = column.create_extended_column();
+    delete[] array;
+
     if (params.kernel == enums::Kernel::Query) {
-      auto column = data::columns::generate_alp_column<T>(
-          params.n_values, data::ValueRange<vbw_t>(0, 8),
-          data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
       auto [query_result, magic_value] =
           data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
               column);
-      auto column_extended = column.create_extended_column();
 
       failed += iterate_decompressors<T>(
           column, QueryFunctor<T, flsgpu::host::ALPColumn<T>>(query_result,
@@ -239,22 +240,52 @@ template <typename T> int32_t execute_alp(const ProgramParameters params) {
           column_extended, QueryFunctor<T, flsgpu::host::ALPExtendedColumn<T>>(
                                query_result, magic_value));
 
-      flsgpu::host::free_column(column_extended);
-      flsgpu::host::free_column(column);
     } else if (params.kernel == enums::Kernel::Decompress) {
-      auto column = data::columns::generate_alp_column<T>(
-          params.n_values, data::ValueRange<vbw_t>(0, 8),
-          data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
-      auto column_extended = column.create_extended_column();
-
       iterate_decompressors<T>(
           column, DecompressFunctor<T, flsgpu::host::ALPColumn<T>>());
       iterate_decompressors<T>(
           column_extended,
           DecompressFunctor<T, flsgpu::host::ALPExtendedColumn<T>>());
+    }
+    flsgpu::host::free_column(column_extended);
+    flsgpu::host::free_column(column);
+  } else {
+    for (uint16_t ec{params.bit_width_range.min};
+         ec <= params.bit_width_range.max; ++ec) {
+      if (params.kernel == enums::Kernel::Query) {
+        auto column = data::columns::generate_alp_column<T>(
+            params.n_values, data::ValueRange<vbw_t>(0, 8),
+            data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
+        auto [query_result, magic_value] =
+            data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
+                column);
+        auto column_extended = column.create_extended_column();
 
-      flsgpu::host::free_column(column_extended);
-      flsgpu::host::free_column(column);
+        failed += iterate_decompressors<T>(
+            column, QueryFunctor<T, flsgpu::host::ALPColumn<T>>(query_result,
+                                                                magic_value));
+        failed += iterate_decompressors<T>(
+            column_extended,
+            QueryFunctor<T, flsgpu::host::ALPExtendedColumn<T>>(query_result,
+                                                                magic_value));
+
+        flsgpu::host::free_column(column_extended);
+        flsgpu::host::free_column(column);
+      } else if (params.kernel == enums::Kernel::Decompress) {
+        auto column = data::columns::generate_alp_column<T>(
+            params.n_values, data::ValueRange<vbw_t>(0, 8),
+            data::ValueRange<uint16_t>(ec), consts::MAX_UNPACK_N_VECS);
+        auto column_extended = column.create_extended_column();
+
+        iterate_decompressors<T>(
+            column, DecompressFunctor<T, flsgpu::host::ALPColumn<T>>());
+        iterate_decompressors<T>(
+            column_extended,
+            DecompressFunctor<T, flsgpu::host::ALPExtendedColumn<T>>());
+
+        flsgpu::host::free_column(column_extended);
+        flsgpu::host::free_column(column);
+      }
     }
   }
 

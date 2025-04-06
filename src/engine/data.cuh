@@ -504,14 +504,16 @@ modify_alp_exception_count(flsgpu::host::ALPColumn<T> column,
 }
 
 template <typename T>
-void modify_alp_value_bit_width(flsgpu::host::ALPColumn<T> column,
-                                const ValueRange<vbw_t> bit_width_range,
-                                const unsigned repeat = 1) {
+flsgpu::host::ALPColumn<T>
+modify_alp_value_bit_width(flsgpu::host::ALPColumn<T> column,
+                           const ValueRange<vbw_t> bit_width_range,
+                           const unsigned repeat = 1) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   flsgpu::host::free_column(column.ffor);
   column.ffor = generate_random_ffor_column<UINT_T>(column.ffor.bp.n_values,
                                                     bit_width_range, repeat,
                                                     ValueRange<UINT_T>(2, 20));
+  return column;
 }
 
 template <typename T, typename ColumnT>

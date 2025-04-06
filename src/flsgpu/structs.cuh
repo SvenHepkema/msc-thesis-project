@@ -105,7 +105,7 @@ template <typename T> struct BPColumn {
         sizeof(T) * utils::get_n_lanes<T>() * 4;
     return device::BPColumn<T>{
         n_values, get_n_vecs(),
-        GPUArray<UINT_T>(n_packed_values + branchless_extra_access_buffer,
+        GPUArray<UINT_T>(n_packed_values, branchless_extra_access_buffer,
                          packed_array)
             .release(),
         GPUArray<vbw_t>(get_n_vecs(), bit_widths).release(),

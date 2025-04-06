@@ -20,6 +20,19 @@
     }                                                                          \
   } while (0)
 
+#define CUDA_SAFE_CALL_TRACED(call)                                            \
+  do {                                                                         \
+    fprintf(stderr, "Start CUDA_CALL ['%s': line %i\n", __FILE__, __LINE__);             \
+    cudaError_t err = call;                                                    \
+    fprintf(stderr, "End CUDA_CALL ['%s': line %i\n", __FILE__, __LINE__);               \
+    if (cudaSuccess != err) {                                                  \
+      fprintf(stderr, "Cuda error in file '%s' in line %i : %s.", __FILE__,    \
+              __LINE__, cudaGetErrorString(err));                              \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  } while (0)
+
+
 template <typename T> void free_device_pointer(T *&device_ptr) {
   if (device_ptr != nullptr) {
     CUDA_SAFE_CALL(cudaFree(device_ptr));

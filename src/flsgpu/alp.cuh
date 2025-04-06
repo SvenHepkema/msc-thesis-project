@@ -50,6 +50,19 @@ public:
   virtual void __device__ __forceinline__ patch_if_needed(T *out);
 };
 
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
+struct DummyALPExceptionPatcher : flsgpu::device::ALPExceptionPatcherBase<T> {
+
+public:
+  void __device__ __forceinline__ patch_if_needed(T *out) override {}
+
+  __device__ __forceinline__
+  DummyALPExceptionPatcher(const flsgpu::device::ALPColumn<T> column,
+                           const vi_t vector_index, const lane_t lane) {}
+};
+
+
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES>
 struct StatelessALPExceptionPatcher : ALPExceptionPatcherBase<T> {
   using INT_T = typename utils::same_width_int<T>::type;

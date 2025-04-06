@@ -154,6 +154,7 @@ private:
   bindings::Patcher string_to_patcher(const std::string &str) {
     static const std::unordered_map<std::string, bindings::Patcher> mapping = {
         {"none", bindings::Patcher::None},
+        {"dummy", bindings::Patcher::Dummy},
         {"stateless", bindings::Patcher::Stateless},
         {"stateful", bindings::Patcher::Stateful},
         {"naive", bindings::Patcher::Naive},
@@ -236,8 +237,8 @@ execute_ffor(const ProgramParameters params) {
           data::columns::generate_binary_ffor_column<T>(
               params.n_values, data::ValueRange<vbw_t>(vbw),
               params.unpack_n_vecs);
-			query_result = _query_result;
-			column = _column;
+      query_result = _query_result;
+      column = _column;
     } else {
       column = data::columns::generate_random_ffor_column<T>(
           params.n_values, data::ValueRange<vbw_t>(0, vbw),
@@ -267,18 +268,20 @@ execute_alp(const ProgramParameters params) {
     auto column = data::columns::generate_alp_column<T>(
         params.n_values, data::ValueRange<vbw_t>(0, vbw),
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
-    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ec += 10) {
+    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max;
+         ec += 10) {
       column = data::columns::modify_alp_exception_count(column, ec);
 
       if (params.kernel == Kernel::Query) {
         auto [_query_result, _magic_value] =
             data::columns::get_value_to_query<T, flsgpu::host::ALPColumn<T>>(
                 column);
-				query_result = _query_result;
-				magic_value = _magic_value;
+        query_result = _query_result;
+        magic_value = _magic_value;
       }
 
-      if (params.patcher == bindings::Patcher::Stateless ||
+      if (params.patcher == bindings::Patcher::Dummy ||
+          params.patcher == bindings::Patcher::Stateless ||
           params.patcher == bindings::Patcher::Stateful) {
         results.push_back(execute_kernel<T, flsgpu::host::ALPColumn<T>>(
             column, params, query_result, magic_value));

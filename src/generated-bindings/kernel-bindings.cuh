@@ -25,6 +25,7 @@ enum class Unpacker {
 
 enum class Patcher {
   None,
+	Dummy,
   Stateless,
   Stateful,
   Naive,

@@ -245,7 +245,7 @@ def get_profiler(args):
     return NCUProfiler() if args.profiler == "ncu" else NVVPProfiler()
 
 
-def bench_ffor_micros(output_dir: str, n_vecs: int, profiler):
+def bench_ffor(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
@@ -264,22 +264,21 @@ def bench_ffor_micros(output_dir: str, n_vecs: int, profiler):
         )
 
 
-def bench_alp_micros(output_dir: str, n_vecs: int, profiler):
+def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS, PATCHERS
     ):
         formatted_parameters = list(map(lambda x: x.replace('-', '_'), parameters))
+        ec = 30
         out = os.path.join(
-            output_dir, "alp-micro-" + "-".join(formatted_parameters) + f"-{n_vecs}"
+            output_dir, "alp-ec-" + "-".join(formatted_parameters) + f"-0-{ec}-{n_vecs}"
         )
-        vbw = 8
-        ec = (0, 50)
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"{vbw} {vbw} {ec[0]} {ec[1]} {n_vecs} 0",
+            + f" 0 0 0 {ec} {n_vecs} 0",
             out=out,
         )
 

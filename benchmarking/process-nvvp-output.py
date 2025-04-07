@@ -102,8 +102,8 @@ def convert_ffor_file_to_df(file: str) -> pl.DataFrame:
     return df
 
 
-def convert_alp_file_to_df(file: str) -> pl.DataFrame:
-    params = file.split("-")
+def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
+    params = os.path.basename(file).split("-")
 
     df = read_profiler_output_as_df(file).with_columns(
         pl.lit(params[0]).alias("encoding"),
@@ -113,9 +113,9 @@ def convert_alp_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[5]).alias("unpack_n_values"),
         pl.lit(params[6]).alias("unpacker"),
         pl.lit(params[7]).alias("patcher"),
-        pl.lit(params[8]).alias("vbw"),
-        pl.Series("ec", range(int(params[10]), int(params[11]))),
-        pl.lit(params[12]).alias("n_vecs"),
+        pl.lit("3-8").alias("vbw"),
+        pl.Series("ec", range(int(params[8]), int(params[9]) + 1)),
+        pl.lit(params[10]).alias("n_vecs"),
     )
 
     return df
@@ -128,15 +128,15 @@ def collect_files_into_df(
     return pl.concat(map(convertor_lambda, alp_micro_files))
 
 
-def process_ffor_micro(input_dir: str) -> tuple[str, pl.DataFrame]:
-    return "ffor-micro.csv", collect_files_into_df(
-        input_dir, "ffor-micro", convert_ffor_file_to_df
+def process_ffor(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "ffor.csv", collect_files_into_df(
+        input_dir, "ffor", convert_ffor_file_to_df
     )
 
 
-def process_alp_micro(input_dir: str) -> tuple[str, pl.DataFrame]:
-    return "alp-micro.csv", collect_files_into_df(
-        input_dir, "alp-micro", convert_alp_file_to_df
+def process_alp_ec(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "alp-ec.csv", collect_files_into_df(
+        input_dir, "alp-ec", convert_alp_ec_file_to_df
     )
 
 

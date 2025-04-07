@@ -123,7 +123,7 @@ def create_scatter_graph(
 
 
 def plot_ffor(input_dir: str, output_dir: str):
-    df = pl.read_csv(os.path.join(input_dir, "ffor-micro.csv"))
+    df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
     df = df.with_columns(
         ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
             "throughput"
@@ -179,7 +179,72 @@ def plot_ffor(input_dir: str, output_dir: str):
             graph_sources,
             "Value bit width",
             "Duration (us)",
-            os.path.join(output_dir, f"{name}.eps"),
+            os.path.join(output_dir, f"ffor-{name}.eps"),
+            y_lim=(0, y_lim),
+            legend_pos="lower left",
+        )
+
+
+def plot_alp_ec(input_dir: str, output_dir: str):
+    df = pl.read_csv(os.path.join(input_dir, "alp-ec.csv"))
+    df = df.with_columns(
+        ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
+            "throughput"
+        ),
+        (pl.col("duration (ns)") / 1000).alias("duration (us)"),
+    )
+
+    sources = [
+        GroupedDataSource(
+            label_data[0],
+            0,
+            label_data[1].get_column("ec").to_list(),
+            label_data[1].get_column("duration (us)").to_list(),
+        )
+        for label_data in df.group_by(
+            ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
+        )
+    ]
+
+    graph_groups = {
+        "stateless": list(
+            map(
+                lambda x: x.set_label(f"{x.g[3]}"),
+                filter(
+                    lambda x: x.g[0] == "f32"
+                    and x.g[1] == "query"
+                    and x.g[2] == 1
+                    and x.g[3] == "stateless"
+                    and x.g[4] == "stateless",
+                    sources,
+                ),
+            )
+        ),
+        "stateful_branchless_prefetch_all_f32-vs-f64": list(
+            map(
+                lambda x: x.set_label(f"{x.g[0]}"),
+                filter(
+                    lambda x: x.g[1] == "query"
+                    and x.g[2] == 1
+                    and x.g[3] == "stateful_branchless"
+                    and x.g[4] == "prefetch_all",
+                    sources,
+                ),
+            )
+        ),
+    }
+
+    for name, graph_sources in graph_groups.items():
+        y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
+
+        for i, source in enumerate(graph_sources):
+            source.color = i
+
+        create_scatter_graph(
+            graph_sources,
+            "Exception count",
+            "Duration (us)",
+            os.path.join(output_dir, f"alp-ec-{name}.eps"),
             y_lim=(0, y_lim),
             legend_pos="lower left",
         )

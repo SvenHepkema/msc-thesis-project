@@ -163,16 +163,16 @@ execute_alp(const ProgramParameters params) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   auto results = std::vector<verification::ExecutionResult<T>>();
 
-  for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
-       ++vbw) {
+  //for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max; ++vbw) {
+	{ 
     bool query_result = false;
     T magic_value = consts::as<T>::MAGIC_NUMBER;
 
     auto column = data::columns::generate_alp_column<T>(
-        params.n_values, data::ValueRange<vbw_t>(0, vbw),
+        params.n_values, data::ValueRange<vbw_t>(2, 8),
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
     for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max;
-         ec += 10) {
+         ++ec) {
       column = data::columns::modify_alp_exception_count(column, ec);
 
       if (params.kernel == enums::Kernel::Query) {

@@ -1,1 +1,0 @@
-SELECT unpacker, patcher, vbw, n_vecs, n_vals, execution_time FROM 'alp-data-vbw.csv' as t1 WHERE execution_time = (SELECT MIN(execution_time) FROM 'alp-data-vbw.csv' as t2 WHERE t1.vbw = t2.vbw and n_failed_runs == 0 and patcher != 'dummy' and n_vecs = 1) ORDER BY vbw;

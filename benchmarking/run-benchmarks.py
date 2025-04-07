@@ -17,7 +17,7 @@ MICROBENCHMARK_EXECUTABLE = "./bin/test"
 FLS_TYPES = ["u32", "u64"]
 ALP_TYPES = ["f32", "f64"]
 KERNELS = ["decompress", "query"]
-UNPACK_N_VECS = ["1 4"]
+UNPACK_N_VECS = ["1", "4"]
 UNPACK_N_VALS = ["1"]
 UNPACKERS = [
     "stateless",
@@ -245,32 +245,21 @@ def get_profiler(args):
     return NCUProfiler() if args.profiler == "ncu" else NVVPProfiler()
 
 
-def bench_test_micros(output_dir: str, n_vecs: int, profiler):
-    for data_type in FLS_TYPES:
-        out = os.path.join(output_dir, f"ffor-micro-{data_type}")
-        profiler.benchmark_command(
-            MICROBENCHMARK_EXECUTABLE
-            + " "
-            + data_type
-            + " query 1 1 stateless"
-            + " "
-            + f"none 0 {data_type[1:]} 0 0 {n_vecs} 0",
-            out=out,
-        )
-
-
 def bench_ffor_micros(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
-        out = os.path.join(output_dir, "ffor-micro-" + "-".join(parameters))
-        data_type = parameters[0]
+        formatted_parameters = list(map(lambda x: x.replace('-', '_'), parameters))
+        vbw = parameters[0][1:]
+        out = os.path.join(
+            output_dir, "ffor-micro-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}"
+        )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"none 0 {data_type[1:]} 0 0 {n_vecs} 0",
+            + f"none 0 {vbw} 0 0 {n_vecs} 0",
             out=out,
         )
 
@@ -279,7 +268,10 @@ def bench_alp_micros(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS, PATCHERS
     ):
-        out = os.path.join(output_dir, "alp-micro-" + "-".join(parameters))
+        formatted_parameters = list(map(lambda x: x.replace('-', '_'), parameters))
+        out = os.path.join(
+            output_dir, "alp-micro-" + "-".join(formatted_parameters) + f"-{n_vecs}"
+        )
         vbw = 8
         ec = (0, 50)
         profiler.benchmark_command(

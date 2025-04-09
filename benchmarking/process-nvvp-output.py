@@ -121,6 +121,50 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
     return df
 
 
+def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataFrame:
+    ARITHMETIC = "ARITHMETIC"
+    MEMORY = "MEMORY"
+    NONE = "NONE"
+    df = read_profiler_output_as_df(file).with_columns(
+        pl.Series(
+            "first_kernel",
+            [
+                ARITHMETIC,
+                MEMORY,
+                ARITHMETIC,
+                ARITHMETIC,
+                MEMORY,
+                MEMORY,
+            ],
+        ),
+        pl.Series(
+            "second_kernel",
+            [
+                NONE,
+                NONE,
+                ARITHMETIC,
+                MEMORY,
+                ARITHMETIC,
+                MEMORY,
+            ],
+        ),
+    )
+
+    return df
+
+
+def convert_ilp_experiment_file_to_df(file: str) -> pl.DataFrame:
+    df = read_profiler_output_as_df(file).with_columns(
+        pl.Series("ilp", [1, 2, 4, 8] * 32),
+        pl.Series(
+            "threads/block",
+            itertools.chain.from_iterable([[x] * 4 for x in range(32, 1024 + 1, 32)]),
+        ),
+    )
+
+    return df
+
+
 def collect_files_into_df(
     input_dir: str, prefix: str, convertor_lambda
 ) -> pl.DataFrame:
@@ -129,14 +173,26 @@ def collect_files_into_df(
 
 
 def process_ffor(input_dir: str) -> tuple[str, pl.DataFrame]:
-    return "ffor.csv", collect_files_into_df(
-        input_dir, "ffor", convert_ffor_file_to_df
-    )
+    return "ffor.csv", collect_files_into_df(input_dir, "ffor", convert_ffor_file_to_df)
 
 
 def process_alp_ec(input_dir: str) -> tuple[str, pl.DataFrame]:
     return "alp-ec.csv", collect_files_into_df(
         input_dir, "alp-ec", convert_alp_ec_file_to_df
+    )
+
+
+def process_hp_experiment(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "heterogeneous-pipelines-experiment.csv", collect_files_into_df(
+        input_dir,
+        "heterogeneous-pipelines-experiment",
+        convert_heterogeneous_pipelines_experiment_file_to_df,
+    )
+
+
+def process_ilp_experiment(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "ilp-experiment.csv", collect_files_into_df(
+        input_dir, "ilp-experiment", convert_ilp_experiment_file_to_df
     )
 
 

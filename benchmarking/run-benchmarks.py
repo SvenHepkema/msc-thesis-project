@@ -13,6 +13,8 @@ import subprocess
 from pathlib import Path
 
 MICROBENCHMARK_EXECUTABLE = "./bin/test"
+HETEROGENEOUS_PIPELINES_EXECUTABLE = "./bin/heterogeneous-pipelines-experiment"
+ILP_EXECUTABLE = "./bin/ilp-experiment"
 
 FLS_TYPES = ["u32", "u64"]
 ALP_TYPES = ["f32", "f64"]
@@ -249,10 +251,11 @@ def bench_ffor(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
-        formatted_parameters = list(map(lambda x: x.replace('-', '_'), parameters))
+        formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
         vbw = parameters[0][1:]
         out = os.path.join(
-            output_dir, "ffor-micro-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}"
+            output_dir,
+            "ffor-micro-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
@@ -268,7 +271,7 @@ def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS, PATCHERS
     ):
-        formatted_parameters = list(map(lambda x: x.replace('-', '_'), parameters))
+        formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
         ec = 30
         out = os.path.join(
             output_dir, "alp-ec-" + "-".join(formatted_parameters) + f"-0-{ec}-{n_vecs}"
@@ -281,6 +284,22 @@ def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
             + f" 0 0 0 {ec} {n_vecs} 0",
             out=out,
         )
+
+
+def bench_hp_experiment(output_dir: str, _: int, profiler):
+    out = os.path.join(output_dir, "heterogeneous-pipelines-experiment")
+    profiler.benchmark_command(
+        HETEROGENEOUS_PIPELINES_EXECUTABLE,
+        out=out,
+    )
+
+
+def bench_ilp_experiment(output_dir: str, _: int, profiler):
+    out = os.path.join(output_dir, "ilp-experiment")
+    profiler.benchmark_command(
+        ILP_EXECUTABLE,
+        out=out,
+    )
 
 
 def main(args):

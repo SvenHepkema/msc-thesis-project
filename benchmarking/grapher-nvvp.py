@@ -15,6 +15,7 @@ from pathlib import Path
 
 import polars as pl
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 import math
@@ -27,8 +28,6 @@ VECTOR_SIZE = 1024
 
 COLOR_SET = [
     "tab:blue",
-    "#66bf5c",  # Light green
-    "#177314",  # Darker green
     "tab:orange",
     "tab:red",
     "tab:purple",
@@ -89,6 +88,8 @@ def create_scatter_graph(
     octal_grid: bool = False,
     figsize: tuple[int, int] = (5, 5),
     legend_pos: str = "best",
+    add_lines: bool = False,
+    x_axis_percentage: bool = False,
 ):
     fig, ax = plt.subplots(figsize=figsize)
     x_min = min(data_sources[0].x_data)
@@ -104,7 +105,15 @@ def create_scatter_graph(
             c=COLOR_SET[source.color],
             label=source.label,
         )
+        if add_lines:
+            ax.plot(
+                source.x_data,
+                source.y_data,
+                c=COLOR_SET[source.color],
+            )
 
+    if x_axis_percentage:
+        ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     ax.set_xticks(range(math.floor(x_min), math.ceil(x_max)), minor=True)
     ax.tick_params(axis="x", which="minor", length=4, labelbottom=False)
     if octal_grid:
@@ -181,7 +190,7 @@ def plot_ffor(input_dir: str, output_dir: str):
             "Duration (us)",
             os.path.join(output_dir, f"ffor-{name}.eps"),
             y_lim=(0, y_lim),
-            legend_pos="lower left",
+            legend_pos="lower right",
         )
 
 
@@ -246,8 +255,58 @@ def plot_alp_ec(input_dir: str, output_dir: str):
             "Duration (us)",
             os.path.join(output_dir, f"alp-ec-{name}.eps"),
             y_lim=(0, y_lim),
-            legend_pos="lower left",
+            legend_pos="lower right",
         )
+
+
+def plot_ilp_experiment(input_dir: str, output_dir: str):
+    MAX_THREAD_BLOCK_SIZE = 1024
+    TOTAL_PTRS_CHASED = 100 * 10 * 1024 * 1024
+    df = pl.read_csv(os.path.join(input_dir, "ilp-experiment.csv"))
+    df = df.with_columns(
+        (TOTAL_PTRS_CHASED / pl.col("duration (ns)")).alias("throughput"),
+        (pl.col("duration (ns)") / 1000).alias("duration (us)"),
+        (pl.col("threads/block") / MAX_THREAD_BLOCK_SIZE).alias("occupancy"),
+    )
+
+    sources = [
+        DataSource(
+            f"{label_data[0][0]} concurrent ptrs/warp",
+            i,
+            label_data[1].get_column("occupancy").to_list(),
+            label_data[1].get_column("duration (us)").to_list(),
+        )
+        for i, label_data in enumerate(df.group_by(["ilp"], maintain_order=True))
+    ]
+
+    create_scatter_graph(
+        sources,
+        "Occupancy (%)",
+        "Duration (us)",
+        os.path.join(output_dir, "ilp-experiment-duration.eps"),
+        legend_pos="upper right",
+        add_lines=True,
+        x_axis_percentage=True,
+    )
+
+    sources = [
+        DataSource(
+            f"{label_data[0][0]} concurrent ptrs/warp",
+            i,
+            label_data[1].get_column("occupancy").to_list(),
+            label_data[1].get_column("throughput").to_list(),
+        )
+        for i, label_data in enumerate(df.group_by(["ilp"], maintain_order=True))
+    ]
+    create_scatter_graph(
+        sources,
+        "Occupancy (%)",
+        "Throughput (ptrs/ns)",
+        os.path.join(output_dir, "ilp-experiment-throughput.eps"),
+        legend_pos="lower right",
+        add_lines=True,
+        x_axis_percentage=True,
+    )
 
 
 def main(args):

@@ -46,7 +46,15 @@ test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES)
 benchmark: src/benchmark.cu $(SOURCE_FILES) $(HEADER_FILES)
 	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/benchmark.cu $(SOURCE_FILES)
 
-all: test benchmark
+heterogeneous-pipelines-experiment: experiments/heterogeneous-pipelines.cu experiments/utils.cuh
+	nvcc $(CUDA_FLAGS) -g -o bin/$@  experiments/heterogeneous-pipelines.cu 
+
+ilp-experiment: experiments/ilp.cu experiments/utils.cuh
+	nvcc $(CUDA_FLAGS) -g -o bin/$@  experiments/ilp.cu 
+
+experiments: heterogeneous-pipelines-experiment ilp-experiment
+
+all: test benchmark experiments
 
 clean:
 	rm -f bin/*

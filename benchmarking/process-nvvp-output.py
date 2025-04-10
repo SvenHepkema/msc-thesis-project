@@ -122,17 +122,19 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
 
 
 def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataFrame:
-    ARITHMETIC = "ARITHMETIC"
+    ARITHMETIC_32 = "ARITHMETIC_32"
+    ARITHMETIC_64 = "ARITHMETIC_64"
     MEMORY = "MEMORY"
     NONE = "NONE"
     df = read_profiler_output_as_df(file).with_columns(
         pl.Series(
             "first_kernel",
             [
-                ARITHMETIC,
+                ARITHMETIC_32,
+                ARITHMETIC_64,
                 MEMORY,
-                ARITHMETIC,
-                ARITHMETIC,
+                ARITHMETIC_32,
+                ARITHMETIC_32,
                 MEMORY,
                 MEMORY,
             ],
@@ -142,9 +144,10 @@ def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataF
             [
                 NONE,
                 NONE,
-                ARITHMETIC,
+                NONE,
+                ARITHMETIC_32,
                 MEMORY,
-                ARITHMETIC,
+                ARITHMETIC_32,
                 MEMORY,
             ],
         ),

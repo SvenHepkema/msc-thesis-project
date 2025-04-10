@@ -5,7 +5,8 @@
 constexpr int N_ARITHMETIC_INSTRUCTIONS = 940;
 constexpr int N_MEMORY_INSTRUCTIONS = 50;
 
-__device__ int arithmetic_throughput_bound(int value, const int zero) {
+template<typename T>
+__device__ T arithmetic_throughput_bound(T value, const T zero) {
 #pragma unroll
   for (int i{0}; i < (N_ARITHMETIC_INSTRUCTIONS / 2); ++i) {
     // Each of these instructions sets value to zero
@@ -16,8 +17,9 @@ __device__ int arithmetic_throughput_bound(int value, const int zero) {
   return value;
 }
 
-__device__ int cache_throughput_bound(int value, const int zero,
-                                      const int *ptr_to_zero) {
+template<typename T>
+__device__ T cache_throughput_bound(T value, const T zero,
+                                      const T *ptr_to_zero) {
   value *= zero; // Ensure value is set to zero at runtime
 
 #pragma unroll
@@ -29,16 +31,16 @@ __device__ int cache_throughput_bound(int value, const int zero,
   return value;
 }
 
-template <bool USE_ARITHMETIC_THROUGHPUT>
-__global__ void single_phase_kernel(const int *ptr_to_zero, int *out) {
-  const int zero = *ptr_to_zero;
-  int value = 1;
+template <bool USE_ARITHMETIC_THROUGHPUT, typename T=int>
+__global__ void single_phase_kernel(const T *ptr_to_zero, T *out) {
+  const T zero = *ptr_to_zero;
+  T value = 1;
 
   // Single phase
   if (USE_ARITHMETIC_THROUGHPUT) {
-    value = arithmetic_throughput_bound(value, zero);
+    value = arithmetic_throughput_bound<T>(value, zero);
   } else {
-    value = cache_throughput_bound(value, zero, ptr_to_zero);
+    value = cache_throughput_bound<T>(value, zero, ptr_to_zero);
   }
 
   if (value == 1) {
@@ -54,16 +56,16 @@ __global__ void two_phase_kernel(const int *ptr_to_zero, int *out) {
 
   // First phase
   if (FIRST_USE_ARITHMETIC_THROUGHPUT) {
-    value = arithmetic_throughput_bound(value, zero);
+    value = arithmetic_throughput_bound<int>(value, zero);
   } else {
-    value = cache_throughput_bound(value, zero, ptr_to_zero);
+    value = cache_throughput_bound<int>(value, zero, ptr_to_zero);
   }
 
   // Second phase
   if (SECOND_USE_ARITHMETIC_THROUGHPUT) {
-    value = arithmetic_throughput_bound(value, zero);
+    value = arithmetic_throughput_bound<int>(value, zero);
   } else {
-    value = cache_throughput_bound(value, zero, ptr_to_zero);
+    value = cache_throughput_bound<int>(value, zero, ptr_to_zero);
   }
 
   if (value == 1) {
@@ -77,21 +79,26 @@ int32_t main(const int32_t argc, const char **args) {
   constexpr int32_t BLOCK_SIZE = 2 * WARP_SIZE;
   constexpr int32_t GRID_SIZE = INPUT_SIZE / BLOCK_SIZE;
 
-  const int32_t zero = 0;
-  int32_t out = 0;
+  const int32_t zero_32 = 0;
+  const int64_t zero_64 = 0;
 
-  int32_t *d_zero = allocate_array<int32_t>(1, &zero);
-  int32_t *d_out = allocate_array<int32_t>(1);
+  int32_t *d_zero_32 = allocate_array<int32_t>(1, &zero_32);
+  int64_t *d_zero_64 = allocate_array<int64_t>(1, &zero_64);
+  int32_t *d_out_32 = allocate_array<int32_t>(1);
+  int64_t *d_out_64 = allocate_array<int64_t>(1);
 
-  single_phase_kernel<true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
-  single_phase_kernel<false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
-  two_phase_kernel<true, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
-  two_phase_kernel<true, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
-  two_phase_kernel<false, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
-  two_phase_kernel<false, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero, d_out);
+  single_phase_kernel<true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  single_phase_kernel<true, int64_t><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_64, d_out_64);
+  single_phase_kernel<false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  two_phase_kernel<true, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  two_phase_kernel<true, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  two_phase_kernel<false, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  two_phase_kernel<false, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
 
-  free_device_pointer(d_out);
-  free_device_pointer(d_zero);
+  free_device_pointer(d_out_32);
+  free_device_pointer(d_out_64);
+  free_device_pointer(d_zero_32);
+  free_device_pointer(d_zero_64);
 
-  return out == 10 ? 1 : 0;
+  return 0;
 }

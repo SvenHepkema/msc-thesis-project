@@ -5,7 +5,7 @@
 constexpr int N_ARITHMETIC_INSTRUCTIONS = 900;
 constexpr int N_MEMORY_INSTRUCTIONS = 60;
 
-template<typename T>
+template <typename T>
 __device__ T arithmetic_throughput_bound(T value, const T zero) {
 #pragma unroll
   for (int i{0}; i < (N_ARITHMETIC_INSTRUCTIONS / 2); ++i) {
@@ -17,9 +17,9 @@ __device__ T arithmetic_throughput_bound(T value, const T zero) {
   return value;
 }
 
-template<typename T>
+template <typename T>
 __device__ T cache_throughput_bound(T value, const T zero,
-                                      const T *ptr_to_zero) {
+                                    const T *ptr_to_zero) {
   value *= zero; // Ensure value is set to zero at runtime
 
 #pragma unroll
@@ -31,7 +31,7 @@ __device__ T cache_throughput_bound(T value, const T zero,
   return value;
 }
 
-template <bool USE_ARITHMETIC_THROUGHPUT, typename T=int>
+template <bool USE_ARITHMETIC_THROUGHPUT, typename T = int>
 __global__ void single_phase_kernel(const T *ptr_to_zero, T *out) {
   const T zero = *ptr_to_zero;
   T value = 1;
@@ -88,12 +88,21 @@ int32_t main(const int32_t argc, const char **args) {
   int64_t *d_out_64 = allocate_array<int64_t>(1);
 
   single_phase_kernel<true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
-  single_phase_kernel<true, int64_t><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_64, d_out_64);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  single_phase_kernel<true, int64_t>
+      <<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_64, d_out_64);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   single_phase_kernel<false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   two_phase_kernel<true, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   two_phase_kernel<true, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   two_phase_kernel<false, true><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
-  two_phase_kernel<false, false><<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  two_phase_kernel<false, false>
+      <<<GRID_SIZE, BLOCK_SIZE>>>(d_zero_32, d_out_32);
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   free_device_pointer(d_out_32);
   free_device_pointer(d_out_64);

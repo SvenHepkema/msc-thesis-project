@@ -87,7 +87,7 @@ T *fill_array_with_sequence(T *array, const size_t n_values) {
 
 int32_t main(const int32_t argc, const char **args) {
   constexpr int32_t TOTAL_THREADS = 10000 * 1024;
-  constexpr int32_t GLOBAL_ARRAY_SIZE = 10 * 1024 * 1024;
+  constexpr int32_t GLOBAL_ARRAY_SIZE = 10 * 1000 * 1000;
 
   // Create random permutation of indices
   std::random_device random_device;
@@ -107,12 +107,16 @@ int32_t main(const int32_t argc, const char **args) {
     const int32_t grid_size = TOTAL_THREADS / block_size;
     ptr_chasing_kernel<MAX_SHARED_MEM_PER_BLOCK, CHASE_N_PTRS, 1>
         <<<grid_size / 1, block_size>>>(d_array, GLOBAL_ARRAY_SIZE, d_out);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
     ptr_chasing_kernel<MAX_SHARED_MEM_PER_BLOCK, CHASE_N_PTRS, 2>
         <<<grid_size / 2, block_size>>>(d_array, GLOBAL_ARRAY_SIZE, d_out);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
     ptr_chasing_kernel<MAX_SHARED_MEM_PER_BLOCK, CHASE_N_PTRS, 4>
         <<<grid_size / 4, block_size>>>(d_array, GLOBAL_ARRAY_SIZE, d_out);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
     ptr_chasing_kernel<MAX_SHARED_MEM_PER_BLOCK, CHASE_N_PTRS, 8>
         <<<grid_size / 8, block_size>>>(d_array, GLOBAL_ARRAY_SIZE, d_out);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
   }
 
   free_device_pointer(d_out);

@@ -2,8 +2,8 @@
 
 #include "utils.cuh"
 
-constexpr int N_ARITHMETIC_INSTRUCTIONS = 940;
-constexpr int N_MEMORY_INSTRUCTIONS = 50;
+constexpr int N_ARITHMETIC_INSTRUCTIONS = 900;
+constexpr int N_MEMORY_INSTRUCTIONS = 60;
 
 template<typename T>
 __device__ T arithmetic_throughput_bound(T value, const T zero) {

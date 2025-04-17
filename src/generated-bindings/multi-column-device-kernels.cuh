@@ -38,7 +38,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -74,7 +74,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -112,7 +112,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -152,7 +152,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -194,7 +194,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -238,7 +238,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -284,7 +284,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -332,7 +332,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -382,7 +382,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 
@@ -434,7 +434,7 @@ all_columns_equal &= registers[va + v * UNPACK_N_VALUES] == value;
 }
 }
 
-if (!all_columns_equal) {
+if (all_columns_equal) {
 *out = true;
 }}
 

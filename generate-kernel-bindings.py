@@ -225,7 +225,8 @@ def get_if_statement_check_wrapper(
     n_repetitions: int | None = None,
 ) -> str:
     is_necessary = (
-        encoding == "FFOR"
+        data_type == "uint32_t" 
+        and function == "query_multi_column" 
         and n_vec == 1
         and unpacker in ["StatefulBranchless"]
         and patcher == "None"

@@ -67,7 +67,7 @@ def generate_global_function(n_cols: int):
             "}",
             "}",
             "",
-            "if (!all_columns_equal) {",
+            "if (all_columns_equal) {",
             "*out = true;",
             "}}",
         ]

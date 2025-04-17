@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -166,6 +167,12 @@ execute_ffor(const ProgramParameters params) {
           params.n_values, data::ValueRange<vbw_t>(0, vbw),
           data::ValueRange<T>(0, 100), params.unpack_n_vecs);
     }
+
+		if (params.kernel == enums::Kernel::QueryMultiColumn) {
+			// We do not want query multicolumn to ever find a full lane of the
+			// value to query to limit write bandwidth
+			magic_value = std::numeric_limits<T>::max();
+		}
 
     results.push_back(execute_kernel<T, flsgpu::host::FFORColumn<T>>(
         column, params, query_result, magic_value));

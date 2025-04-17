@@ -18,10 +18,11 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
     device_columns[c] = column.copy_to_device();
   }
 
-  GPUArray<bool> d_out(1);
+  bool result = false;
+  GPUArray<bool> d_out(1, &result);
   const ThreadblockMapping<float> mapping(UNPACK_N_VECS, column.get_n_vecs());
 
-  multi_column::query_multi_column_a<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                                DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], magic_value, d_out.get());
@@ -81,7 +82,6 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
     flsgpu::host::free_column(device_columns[c]);
   }
 
-  bool result;
   d_out.copy_to_host(&result);
   return result;
 }

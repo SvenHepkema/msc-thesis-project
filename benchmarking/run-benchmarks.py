@@ -343,7 +343,7 @@ if __name__ == "__main__":
         "-nv",
         "--n-vecs",
         type=int,
-        default=125 * 1000,  # 500 MB
+        default=125 * 1000 + 8,  # 500 MB, 8 is to make it divisible by 16
         help="N-vecs",
     )
     parser.add_argument(

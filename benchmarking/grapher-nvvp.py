@@ -6,6 +6,7 @@ import sys
 import argparse
 import logging
 import itertools
+import copy
 
 import inspect
 import types
@@ -149,13 +150,14 @@ def plot_ffor(input_dir: str, output_dir: str):
         )
         for label_data in df.group_by(
             ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
+            maintain_order=True
         )
     ]
 
     graph_groups = {
         "stateless": list(
             map(
-                lambda x: x.set_label(f"{x.g[3]}"),
+                lambda x: copy.copy(x.set_label(x.g[3])),
                 filter(
                     lambda x: x.g[0] == "u32"
                     and x.g[1] == "query"
@@ -165,9 +167,21 @@ def plot_ffor(input_dir: str, output_dir: str):
                 ),
             )
         ),
+        "switch_vs_stateful_branchless": list(
+            map(
+                lambda x: copy.copy(x.set_label(x.g[3])),
+                filter(
+                    lambda x: x.g[0] == "u32"
+                    and x.g[1] == "query"
+                    and x.g[2] == 1
+                    and (x.g[3] == "switch_case" or x.g[3] == "stateful_branchless"),
+                    sources,
+                ),
+            )
+        ),
         "stateful_branchless_u32-vs-u64": list(
             map(
-                lambda x: x.set_label(f"{x.g[0]}"),
+                lambda x: copy.copy(x.set_label(x.g[0])),
                 filter(
                     lambda x: x.g[1] == "query"
                     and x.g[2] == 1
@@ -190,7 +204,6 @@ def plot_ffor(input_dir: str, output_dir: str):
             "Duration (us)",
             os.path.join(output_dir, f"ffor-{name}.eps"),
             y_lim=(0, y_lim),
-            legend_pos="lower right",
         )
 
 
@@ -212,6 +225,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
         )
         for label_data in df.group_by(
             ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
+            maintain_order=True,
         )
     ]
 

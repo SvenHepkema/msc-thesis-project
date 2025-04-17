@@ -252,11 +252,17 @@ def bench_ffor(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
         FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
+        # For switch cace only single vec and value are supported
+        if parameters[4] == UNPACKERS[0] and (
+            int(parameters[2]) != 1 or int(parameters[3]) != 1
+        ):
+            continue
+
         formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
         vbw = parameters[0][1:]
         out = os.path.join(
             output_dir,
-            "ffor-micro-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}",
+            "ffor-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
@@ -270,7 +276,7 @@ def bench_ffor(output_dir: str, n_vecs: int, profiler):
 
 def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
     for parameters in itertools.product(
-        ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS, PATCHERS
+        ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[1:], PATCHERS
     ):
         formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
         ec = 30

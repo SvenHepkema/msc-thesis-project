@@ -90,13 +90,13 @@ def convert_ffor_file_to_df(file: str) -> pl.DataFrame:
 
     df = read_profiler_output_as_df(file).with_columns(
         pl.lit(params[0]).alias("encoding"),
-        pl.lit(params[2]).alias("data_type"),
-        pl.lit(params[3]).alias("kernel"),
-        pl.lit(params[4]).alias("unpack_n_vectors"),
-        pl.lit(params[5]).alias("unpack_n_values"),
-        pl.lit(params[6]).alias("unpacker"),
-        pl.Series("vbw", range(int(params[7]), int(params[8]) + 1)),
-        pl.lit(params[9]).alias("n_vecs"),
+        pl.lit(params[1]).alias("data_type"),
+        pl.lit(params[2]).alias("kernel"),
+        pl.lit(params[3]).alias("unpack_n_vectors"),
+        pl.lit(params[4]).alias("unpack_n_values"),
+        pl.lit(params[5]).alias("unpacker"),
+        pl.Series("vbw", range(int(params[6]), int(params[7]) + 1)),
+        pl.lit(params[8]).alias("n_vecs"),
     )
 
     return df

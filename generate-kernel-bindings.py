@@ -215,8 +215,18 @@ def get_if_statement_check_wrapper(
     is_necessary = (
         encoding == "FFOR"
         and n_vec == 1
-        and unpacker in ["SwitchCase", "StatefulBranchless"]
+        and unpacker in ["StatefulBranchless"]
         and patcher == "None"
+    )
+
+    # For switch cace only single vec and value are supported
+    disabled = (
+        unpacker == "SwitchCase" and (
+            n_vec != 1 or
+            n_val != 1 or 
+            function == "compute_column" or
+            function == "query_multi_column" 
+        )
     )
 
     return (
@@ -232,7 +242,7 @@ def get_if_statement_check_wrapper(
             n_columns,
             n_repetitions,
         )
-        if not disable_unnecessary or is_necessary
+        if not disabled or not disable_unnecessary or is_necessary
         else ""
     )
 

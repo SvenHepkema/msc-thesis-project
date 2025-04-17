@@ -15,6 +15,7 @@ enum class Kernel {
 };
 
 enum class Unpacker {
+	SwitchCase,
   Stateless,
   StatelessBranchless,
   StatefulCache,

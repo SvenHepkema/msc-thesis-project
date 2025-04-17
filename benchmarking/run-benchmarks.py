@@ -22,6 +22,7 @@ KERNELS = ["decompress", "query"]
 UNPACK_N_VECS = ["1", "4"]
 UNPACK_N_VALS = ["1"]
 UNPACKERS = [
+    "switch-case",
     "stateless",
     "stateless-branchless",
     "stateful-cache",

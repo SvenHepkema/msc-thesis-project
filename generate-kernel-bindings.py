@@ -44,6 +44,7 @@ ENCODINGS = [
 ]
 
 UNPACKERS = [
+    "SwitchCase",
     "Stateless",
     "StatelessBranchless",
     "StatefulCache",
@@ -213,9 +214,8 @@ def get_if_statement_check_wrapper(
 ) -> str:
     is_necessary = (
         encoding == "FFOR"
-        and data_type == "uint32_t"
         and n_vec == 1
-        and unpacker == "Stateless"
+        and unpacker in ["SwitchCase", "StatefulBranchless"]
         and patcher == "None"
     )
 
@@ -326,7 +326,7 @@ def main(args):
                 ["decompress_column", "query_column"],
                 [False, False],
                 [False, True],
-                [UNPACKERS, UNPACKERS],
+                [UNPACKERS[1:], UNPACKERS[1:]],
                 [patchers_per_encoding, patchers_per_encoding],
             ):
                 n_cols = range(1, 10 + 1) if option else [None]

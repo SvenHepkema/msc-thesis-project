@@ -35,6 +35,7 @@ Kernel string_to_kernel(const std::string &str) {
 
 Unpacker string_to_unpacker(const std::string &str) {
   static const std::unordered_map<std::string, Unpacker> mapping = {
+      {"switch-case", Unpacker::SwitchCase},
       {"stateless", Unpacker::Stateless},
       {"stateless-branchless", Unpacker::StatelessBranchless},
       {"stateful-cache", Unpacker::StatefulCache},

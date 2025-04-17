@@ -28,6 +28,11 @@ switch_leaf(const typename utils::same_width_uint<T>::type *__restrict in,
 
   UINT_T values[UNPACK_N_VECTORS];
 
+	// INFO Yes these lines contain if statements without constexpr
+	// INFO No this is not a problem, as you can check with a profiler 
+	// whether the compiler is able to emit the right SASS, and the SASS
+	// is correct, with no run time branches, only 5-8 instructions per case
+
 #pragma unroll
   for (int i = 0; i < UNPACK_N_VALUES; ++i) {
     if (masker.is_buffer_empty()) {

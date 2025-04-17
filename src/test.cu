@@ -89,6 +89,7 @@ decompress_column(const ColumnT column, const ProgramParameters params) {
   const T *correct_out = data::bindings::decompress(column);
   auto result = verification::compare_data(correct_out, out, params.n_values);
   delete correct_out;
+  delete out;
   return result;
 }
 

@@ -321,7 +321,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
 def plot_multi_column(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "multi-column.csv"))
     df = df.with_columns(
-        ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)") * pl.col("n_cols")).alias(
+        ((pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols")) / pl.col("duration (ns)") ).alias(
             "throughput"
         ),
     )
@@ -374,7 +374,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
             graph_sources,
             list(map(str, range(1, 10 + 1))),
             "Number of columns",
-            "Throughput (vectors/ns)",
+            "Throughput (vectors/ns/column)",
             os.path.join(output_dir, f"multi-column-throughput-{name}.eps"),
             y_lim=(0, y_lim),
         )

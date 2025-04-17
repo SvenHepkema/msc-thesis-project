@@ -1,0 +1,90 @@
+#include "../generated-bindings/multi-column-device-kernels.cuh"
+#include "device-utils.cuh"
+
+#ifndef MULTI_COLUMN_HOST_KERNELS_CUH
+#define MULTI_COLUMN_HOST_KERNELS_CUH
+
+namespace kernels {
+namespace host {
+
+template <typename T, unsigned UNPACK_N_VECS, unsigned UNPACK_N_VALUES,
+          typename DecompressorT, typename ColumnT>
+__host__ bool query_multi_column(const ColumnT column, const T magic_value) {
+  using DeviceColumnT = typename ColumnT::DeviceColumnT;
+  constexpr int32_t MAX_N_COLS = 10;
+  DeviceColumnT device_columns[MAX_N_COLS];
+
+  for (int32_t c{0}; c < MAX_N_COLS; ++c) {
+    device_columns[c] = column.copy_to_device();
+  }
+
+  GPUArray<bool> d_out(1);
+  const ThreadblockMapping<float> mapping(UNPACK_N_VECS, column.get_n_vecs());
+
+  multi_column::query_multi_column_a<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                               DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2], magic_value,
+          d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], device_columns[5], magic_value,
+          d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], device_columns[5],
+          device_columns[6], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], device_columns[5],
+          device_columns[6], device_columns[7], magic_value, d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], device_columns[5],
+          device_columns[6], device_columns[7], device_columns[8], magic_value,
+          d_out.get());
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
+                             DeviceColumnT>
+      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+          device_columns[0], device_columns[1], device_columns[2],
+          device_columns[3], device_columns[4], device_columns[5],
+          device_columns[6], device_columns[7], device_columns[8],
+          device_columns[9], magic_value, d_out.get());
+
+  for (int32_t c{0}; c < MAX_N_COLS; ++c) {
+    flsgpu::host::free_column(device_columns[c]);
+  }
+
+  bool result;
+  d_out.copy_to_host(&result);
+  return result;
+}
+} // namespace host
+} // namespace kernels
+#endif // MULTI_COLUMN_HOST_KERNELS_CUH

@@ -142,41 +142,6 @@ __global__ void compute_column(const ColumnT column, bool *__restrict out,
 
 namespace host {
 
-template <typename T> struct SingleVectorPerWarpThreadblockMapping {
-  static constexpr unsigned N_WARPS_PER_BLOCK =
-      std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
-  static constexpr unsigned N_THREADS_PER_BLOCK =
-      N_WARPS_PER_BLOCK * consts::THREADS_PER_WARP;
-  static constexpr unsigned N_CONCURRENT_VECTORS_PER_BLOCK =
-      N_THREADS_PER_BLOCK /
-      std::max(utils::get_n_lanes<T>(), consts::THREADS_PER_WARP);
-
-  const unsigned n_blocks;
-
-  SingleVectorPerWarpThreadblockMapping(const size_t unpack_n_vecs,
-                                        const size_t n_vecs)
-      : n_blocks(n_vecs / (unpack_n_vecs * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
-};
-template <typename T> struct FillWarpThreadblockMapping {
-  static constexpr unsigned N_WARPS_PER_BLOCK =
-      std::max(utils::get_n_lanes<T>() / consts::THREADS_PER_WARP, 2);
-  static constexpr unsigned N_THREADS_PER_BLOCK =
-      N_WARPS_PER_BLOCK * consts::THREADS_PER_WARP;
-  static constexpr unsigned N_CONCURRENT_VECTORS_PER_BLOCK =
-      N_THREADS_PER_BLOCK / utils::get_n_lanes<T>();
-
-  const unsigned n_blocks;
-
-  FillWarpThreadblockMapping(const size_t unpack_n_vecs, const size_t n_vecs)
-      : n_blocks(n_vecs / (unpack_n_vecs * N_CONCURRENT_VECTORS_PER_BLOCK)) {}
-};
-
-#ifdef SingleVectorMapping
-template <typename T>
-using ThreadblockMapping = SingleVectorPerWarpThreadblockMapping<T>;
-#else
-template <typename T> using ThreadblockMapping = FillWarpThreadblockMapping<T>;
-#endif
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>

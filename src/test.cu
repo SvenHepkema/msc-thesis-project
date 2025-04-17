@@ -113,12 +113,30 @@ query_column(const ColumnT column, const ProgramParameters params,
 
 template <typename T, typename ColumnT>
 verification::ExecutionResult<T>
+query_multi_column(const ColumnT column, const ProgramParameters params,
+             const bool query_result, const T magic_value) {
+  const bool answer =
+      bindings::query_multi_column<T, ColumnT>(
+          column, params.unpack_n_vecs, params.unpack_n_vals,
+          params.unpacker, params.patcher, magic_value);
+
+  // Weird hack to avoid refactor_
+  T a = query_result ? 1.0 : 0.0;
+  T b = answer ? 1.0 : 0.0;
+
+  return verification::compare_data(&a, &b, 1);
+}
+
+template <typename T, typename ColumnT>
+verification::ExecutionResult<T>
 execute_kernel(const ColumnT column, const ProgramParameters params,
                const bool query_result, const T magic_value) {
   if (params.kernel == enums::Kernel::Decompress) {
     return decompress_column<T, ColumnT>(column, params);
   } else if (params.kernel == enums::Kernel::Query) {
     return query_column<T, ColumnT>(column, params, query_result, magic_value);
+  } else if (params.kernel == enums::Kernel::QueryMultiColumn) {
+    return query_multi_column<T, ColumnT>(column, params, query_result, magic_value);
   } else {
     throw std::invalid_argument("Kernel not implemented yet.\n");
   }

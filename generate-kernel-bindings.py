@@ -13,6 +13,7 @@ FILE_HEADER = """
 
 #include "kernel-bindings.cuh"
 #include "../engine/kernels.cuh"
+#include "../engine/multi-column-host-kernels.cuh"
 
 namespace bindings{
 """
@@ -59,6 +60,7 @@ UNPACKERS = [
     "StatefulRegisterBranchless4",
     "StatefulBranchless",
 ]
+MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[13]]
 BEST_UNPACKER = [
     "StatefulBranchless",
 ]
@@ -75,12 +77,19 @@ PATCHERS = [
     "PrefetchAll",
     "PrefetchAllBranchless",
 ]
+MULTI_COLUMN_PATCHERS = [
+    PATCHERS[0],
+    PATCHERS[4],
+    PATCHERS[5],
+    PATCHERS[7],
+    PATCHERS[8],
+]
 BEST_PATCHER = [
     "PrefetchAllBranchless",
 ]
 
 
-def get_column_t(encoding: str, data_type: str) -> str:
+def get_column_t(encoding: str, data_type: str, function: str, for_decompressor: bool=False) -> str:
     column_t = f"BPColumn<{data_type}>"
     if "FFOR" in encoding:
         column_t = f"FFORColumn<{data_type}>"
@@ -88,18 +97,21 @@ def get_column_t(encoding: str, data_type: str) -> str:
         column_t = f"ALPExtendedColumn<{data_type}>"
     elif "ALP" in encoding:
         column_t = f"ALPColumn<{data_type}>"
-    return "flsgpu::device::" + column_t
+    return (
+        "flsgpu::device::" if function != "query_multi_column" or for_decompressor else "flsgpu::host::"
+    ) + column_t
 
 
 def get_decompressor_type(
     encoding: str,
     data_type: str,
+    function: str,
     unpacker: str,
     patcher: str,
     n_vec: int,
     n_val: int,
 ) -> str:
-    column_t = get_column_t(encoding, data_type)
+    column_t = get_column_t(encoding, data_type, function, True)
     functor = f"BPFunctor<{data_type}>"
     patcher_t = f""
     decompressor_t = f"{encoding}Decompressor"
@@ -152,9 +164,9 @@ def get_if_statement(
     assert unpacker in UNPACKERS
     assert patcher in PATCHERS
 
-    column_t = get_column_t(encoding, data_type)
+    column_t = get_column_t(encoding, data_type, function)
     decompressor_t = get_decompressor_type(
-        encoding, data_type, unpacker, patcher, n_vec, n_val
+        encoding, data_type, function, unpacker, patcher, n_vec, n_val
     )
     extra_param = (
         "," + str(n_columns)
@@ -172,7 +184,7 @@ def get_if_statement(
 def get_function(
     encoding: str,
     data_type: str,
-    name: str,
+    function: str,
     return_type: str,
     content: list[str],
     is_query_column: bool = False,
@@ -180,12 +192,12 @@ def get_function(
     is_compute_column: bool = False,
 ) -> str:
     assert not (is_multi_column and is_compute_column)
-    column_t = get_column_t(encoding, data_type)
+    column_t = get_column_t(encoding, data_type, function)
     return (
-        f"template<> {return_type} {name}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const enums::Unpacker unpacker, const enums::Patcher patcher {', const ' + data_type + ' magic_value' if is_query_column else ''}{', const unsigned n_columns' if is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
+        f"template<> {return_type} {function}<{data_type},{column_t}>(const {column_t} column, const unsigned unpack_n_vectors, const unsigned unpack_n_values, const enums::Unpacker unpacker, const enums::Patcher patcher {', const ' + data_type + ' magic_value' if is_query_column or is_multi_column else ''}{', const unsigned n_repetitions' if is_compute_column else ''})"
         + "{"
         + "\n".join(content)
-        + f'throw std::invalid_argument("Could not find correct binding in {name} {encoding}<{data_type}>");'
+        + f'throw std::invalid_argument("Could not find correct binding in {function} {encoding}<{data_type}>");'
         + "}"
     )
 
@@ -218,19 +230,26 @@ def get_if_statement_check_wrapper(
         and unpacker in ["StatefulBranchless"]
         and patcher == "None"
     )
+    if disable_unnecessary and not is_necessary:
+        return ""
 
-    # For switch cace only single vec and value are supported
-    disabled = (
-        unpacker == "SwitchCase" and (
-            n_vec != 1 or
-            n_val != 1 or 
-            function == "compute_column" or
-            function == "query_multi_column" 
+    switch_case_filter = (
+        unpacker == "SwitchCase"
+        and (n_vec != 1 or n_val != 1 or function == "compute_column")
+    ) 
+    multi_column_filter = (
+        function == "query_multi_column"
+        and (
+            unpacker not in MULTI_COLUMN_UNPACKERS
+            or patcher not in MULTI_COLUMN_PATCHERS
         )
     )
 
-    return (
-        get_if_statement(
+    is_filtered = switch_case_filter or multi_column_filter
+    if is_filtered:
+        return ""
+
+    return get_if_statement(
             encoding,
             data_type,
             function,
@@ -242,9 +261,6 @@ def get_if_statement_check_wrapper(
             n_columns,
             n_repetitions,
         )
-        if not disabled or not disable_unnecessary or is_necessary
-        else ""
-    )
 
 
 def main(args):
@@ -284,13 +300,9 @@ def main(args):
 
     for encoding in ["FFOR"]:
         for data_type in ["uint32_t", "uint64_t"]:
-            for binding, options in zip(
-                # Reinsert when multcolumn is done
-                # ["query_multi_column", "compute_column"],
-                # [(True, False), (False, True)]
-                ["compute_column"],
-                [(False, True)],
-            ):
+            for binding in ["query_multi_column", "compute_column"]:
+                is_compute_column = binding == "compute_column"
+                is_multi_column = binding == "query_multi_column"
                 write_file(
                     f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
                     [
@@ -309,15 +321,15 @@ def main(args):
                                     n_val,
                                     unpacker,
                                     "None",
-                                    n_repetitions=10,
+                                    n_repetitions=10 if is_compute_column else None,
+                                    is_query_column=is_multi_column,
                                 )
                                 for n_vec in [1, 4]
                                 for n_val in [1]
                                 for unpacker in UNPACKERS
                             ],
-                            is_query_column=False,
-                            is_multi_column=options[0],
-                            is_compute_column=options[1],
+                            is_multi_column=is_multi_column,
+                            is_compute_column=is_compute_column,
                         )
                     ],
                 )
@@ -326,20 +338,9 @@ def main(args):
         ["ALP", "ALPExtended"], [PATCHERS[1:4], PATCHERS[4:]]
     ):
         for data_type in ["float", "double"]:
-            for binding, option, is_query_column, unpackers, patchers in zip(
-                # Reinsert when multcolumn is done
-                # ["decompress_column", "query_column", "query_multi_column"],
-                # [False, False, True],
-                # [None, "bool", "bool"],
-                # [UNPACKERS, UNPACKERS, BEST_UNPACKER],
-                # [patchers_per_encoding, patchers_per_encoding, BEST_PATCHER],
-                ["decompress_column", "query_column"],
-                [False, False],
-                [False, True],
-                [UNPACKERS[1:], UNPACKERS[1:]],
-                [patchers_per_encoding, patchers_per_encoding],
-            ):
-                n_cols = range(1, 10 + 1) if option else [None]
+            for binding in ["decompress_column", "query_column", "query_multi_column"]:
+                is_query_column = binding == "query_column"
+                is_multi_column = binding == "query_multi_column"
                 write_file(
                     f"{encoding.lower()}-{data_type}-{binding}-bindings.cu",
                     [
@@ -347,7 +348,7 @@ def main(args):
                             encoding,
                             data_type,
                             binding,
-                            "bool" if is_query_column else data_type + "*",
+                            "bool" if is_query_column or is_multi_column else data_type + "*",
                             [
                                 get_if_statement_check_wrapper(
                                     args.disable_unnecessary,
@@ -358,18 +359,16 @@ def main(args):
                                     n_val,
                                     unpacker,
                                     patcher,
-                                    is_query_column=is_query_column,
-                                    n_columns=n_col,
+                                    is_query_column=is_query_column or is_multi_column,
                                     n_repetitions=None,
                                 )
                                 for n_vec in [1, 4]
                                 for n_val in [1]
-                                for n_col in n_cols
-                                for unpacker in unpackers
-                                for patcher in patchers
+                                for unpacker in UNPACKERS
+                                for patcher in patchers_per_encoding
                             ],
                             is_query_column=is_query_column,
-                            is_multi_column=option,
+                            is_multi_column=is_multi_column,
                         )
                     ],
                 )

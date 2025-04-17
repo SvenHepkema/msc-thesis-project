@@ -12,6 +12,7 @@ enum class DataType {
 enum class Kernel {
   Decompress,
   Query,
+  QueryMultiColumn,
 };
 
 enum class Unpacker {

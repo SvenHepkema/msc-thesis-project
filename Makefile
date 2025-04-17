@@ -28,7 +28,7 @@ obj/fls-%.o: src/fls/%.cpp
 obj/alp-%.o: src/alp/%.cpp
 	clang++ $^  -c -o $@ $(CLANG_FLAGS)
 
-obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) src/engine/device-utils.cuh src/engine/kernels.cuh
+obj/generated-bindings-%.o: src/generated-bindings/%.cu $(FLSGPU_HEADER_FILES) src/generated-bindings/multi-column-device-kernels.cuh src/engine/device-utils.cuh src/engine/kernels.cuh src/engine/multi-column-host-kernels.cuh
 	nvcc $(word 1, $^) -c -o $@ $(CUDA_FLAGS) 
 
 obj/enums.o: src/engine/enums.cu src/engine/enums.cuh
@@ -53,6 +53,10 @@ ilp-experiment: experiments/ilp.cu experiments/utils.cuh
 	nvcc $(CUDA_FLAGS) -g -o bin/$@  experiments/ilp.cu 
 
 experiments: heterogeneous-pipelines-experiment ilp-experiment
+
+generate: 
+	./generate-multicolumn-kernels.py
+	./generate-kernel-bindings.py
 
 all: test benchmark experiments
 

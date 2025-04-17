@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 import math
 
+from pyarrow import DataType
+
 FLOAT_BYTES = 4
 GB_BYTES = 1024 * 1024 * 1024
 MS_IN_S = 1000
@@ -127,6 +129,50 @@ def create_scatter_graph(
     ax.set_ylim(y_lim)
 
     ax.legend(loc=legend_pos)
+
+    fig.savefig(out, dpi=300, format="eps", bbox_inches="tight")
+    plt.close(fig)
+
+
+def create_multi_bar_graph(
+    data_sources: list[DataSource],
+    bargroup_labels: list[str]|None,
+    x_label: str,
+    y_label: str,
+    out: str,
+    y_lim: tuple[int, int]|None=None,
+    colors: list[int]|None=None,
+):
+    n_bars = len(data_sources)
+    n_groups = len(data_sources[0].x_data)
+    assert all(len(x.x_data) == n_groups for x in data_sources)
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    bar_width = 0.8 / n_bars
+    indices = np.arange(n_groups)
+    for i, source in enumerate(data_sources):
+        bar_label = source.label
+        bar_data = source.y_data
+
+        positions = indices + (i - n_bars / 2 + 0.5) * bar_width
+        ax.bar(
+            positions, bar_data, bar_width, label=bar_label, color=COLOR_SET[colors[i]] if colors else COLOR_SET[i],
+        )
+
+    if bargroup_labels:
+        ax.set_xticks(indices)
+        ax.set_xticklabels(bargroup_labels)
+    else:
+        plt.tick_params(
+            axis='x',          
+            which='both',     
+            bottom=False,    
+            top=False,      
+            labelbottom=False) 
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_ylim(y_lim)
+    ax.legend()
 
     fig.savefig(out, dpi=300, format="eps", bbox_inches="tight")
     plt.close(fig)
@@ -270,6 +316,67 @@ def plot_alp_ec(input_dir: str, output_dir: str):
             os.path.join(output_dir, f"alp-ec-{name}.eps"),
             y_lim=(0, y_lim),
             legend_pos="lower right",
+        )
+
+def plot_multi_column(input_dir: str, output_dir: str):
+    df = pl.read_csv(os.path.join(input_dir, "multi-column.csv"))
+    df = df.with_columns(
+        ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)") * pl.col("n_cols")).alias(
+            "throughput"
+        ),
+    )
+
+    sources = [
+        GroupedDataSource(
+            label_data[0],
+            0,
+            label_data[1].get_column("n_cols").to_list(),
+            label_data[1].get_column("throughput").to_list(),
+        )
+        for label_data in df.group_by(
+            ["data_type", "unpack_n_vectors", "unpacker", "patcher"],
+            maintain_order=True,
+        )
+    ]
+
+    graph_groups = {
+        "ffor": list(
+            map(
+                lambda x: x.set_label(f"{x.g[2]}-{x.g[1]}-vecs"),
+                filter(
+                    lambda x: x.g[0] == "u32"
+                    and x.g[2] == "stateful_branchless"
+                    and x.g[3] == "none",
+                    sources,
+                ),
+            )
+        ),
+        "alp": list(
+            sorted(map(
+                lambda x: x.set_label(f"{x.g[3]}-{x.g[1]}-vecs"),
+                filter(
+                    lambda x: x.g[0] == "f32"
+                    and x.g[2] == "stateful_branchless"
+                    and "prefetch_all" in x.g[3],
+                    sources,
+                ),
+                ), key=lambda x: x.label)
+        ),
+    }
+
+    for name, graph_sources in graph_groups.items():
+        y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
+
+        for i, source in enumerate(graph_sources):
+            source.color = i
+
+        create_multi_bar_graph(
+            graph_sources,
+            list(map(str, range(1, 10 + 1))),
+            "Number of columns",
+            "Throughput (vectors/ns)",
+            os.path.join(output_dir, f"multi-column-throughput-{name}.eps"),
+            y_lim=(0, y_lim),
         )
 
 

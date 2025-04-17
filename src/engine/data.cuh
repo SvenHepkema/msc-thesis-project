@@ -173,6 +173,11 @@ template <typename T> struct ValueRange {
   ValueRange(const T a_value) : min(a_value), max(a_value) {}
   ValueRange(const T a_start, const T a_end)
       : min(a_start), max(std::max(a_start, a_end)) {}
+
+  ValueRange<T> operator=(const ValueRange& other) {
+		return ValueRange<T>(min, max);
+	}
+      
 };
 
 namespace arrays {

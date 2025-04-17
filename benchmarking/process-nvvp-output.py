@@ -121,6 +121,27 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
     return df
 
 
+def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
+    n_cols = 10
+    params = os.path.basename(file).split("-")
+
+    df = read_profiler_output_as_df(file).with_columns(
+        pl.lit("FFOR" if "u" in params[2] else "ALP").alias("encoding"),
+        pl.lit(params[2]).alias("data_type"),
+        pl.lit(params[3]).alias("kernel"),
+        pl.lit(params[4]).alias("unpack_n_vectors"),
+        pl.lit(params[5]).alias("unpack_n_values"),
+        pl.lit(params[6]).alias("unpacker"),
+        pl.lit(params[7]).alias("patcher"),
+        pl.lit(f"{params[8]}-{params[9]}").alias("vbw"),
+        pl.lit(params[10]).alias("ec"),
+        pl.Series("n_cols", range(1, n_cols + 1)),
+        pl.lit(params[11]).alias("n_vecs"),
+    )
+
+    return df
+
+
 def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataFrame:
     ARITHMETIC_32 = "ARITHMETIC_32"
     ARITHMETIC_64 = "ARITHMETIC_64"
@@ -182,6 +203,11 @@ def process_ffor(input_dir: str) -> tuple[str, pl.DataFrame]:
 def process_alp_ec(input_dir: str) -> tuple[str, pl.DataFrame]:
     return "alp-ec.csv", collect_files_into_df(
         input_dir, "alp-ec", convert_alp_ec_file_to_df
+    )
+
+def process_multi_column(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "multi-column.csv", collect_files_into_df(
+        input_dir, "multi-column", convert_multi_column_file_to_df
     )
 
 

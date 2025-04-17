@@ -37,7 +37,9 @@ UNPACKERS = [
     "stateful-register-branchless-4",
     "stateful-branchless",
 ]
+MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[13]]
 PATCHERS = [
+    "none",
     "stateless",
     "stateful",
     "naive",
@@ -45,6 +47,13 @@ PATCHERS = [
     "prefetch-position",
     "prefetch-all",
     "prefetch-all-branchless",
+]
+MULTI_COLUMN_PATCHERS = [
+    PATCHERS[0],
+    PATCHERS[3],
+    PATCHERS[4],
+    PATCHERS[6],
+    PATCHERS[7],
 ]
 
 NVVP_PATH = "/usr/local/cuda-12.5/bin/nvprof"
@@ -275,8 +284,10 @@ def bench_ffor(output_dir: str, n_vecs: int, profiler):
 
 
 def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
+    print("Check the vbws, the binary does not what is expected now")
+    exit(0)
     for parameters in itertools.product(
-        ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[1:], PATCHERS
+            ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[1:], PATCHERS[1:]
     ):
         formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
         ec = 30
@@ -291,6 +302,29 @@ def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
             + f" 0 0 0 {ec} {n_vecs} 0",
             out=out,
         )
+
+
+def bench_multi_column(output_dir: str, n_vecs: int, profiler):
+    for o_parameters in itertools.product(
+        ["query-multi-column"], UNPACK_N_VECS, UNPACK_N_VALS, MULTI_COLUMN_UNPACKERS, MULTI_COLUMN_PATCHERS
+    ):
+        for data_type in ([FLS_TYPES[0]] if o_parameters[4] == "none" else [ALP_TYPES[0]]):
+            parameters = (data_type, *o_parameters)
+            formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
+            vbw = 8
+            ec = 20
+            out = os.path.join(
+                output_dir,
+                "multi-column-" + "-".join(formatted_parameters) + f"-0-{vbw}-{ec}-{n_vecs}",
+            )
+            profiler.benchmark_command(
+                MICROBENCHMARK_EXECUTABLE
+                + " "
+                + " ".join(parameters)
+                + " "
+                + f"0 {vbw} {ec} {ec} {n_vecs} 0",
+                out=out,
+            )
 
 
 def bench_hp_experiment(output_dir: str, _: int, profiler):

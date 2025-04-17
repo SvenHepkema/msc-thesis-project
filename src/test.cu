@@ -151,6 +151,10 @@ execute_ffor(const ProgramParameters params) {
 
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
+		auto vbw_range = data::ValueRange<vbw_t>(vbw);
+		if (params.kernel == enums::Kernel::QueryMultiColumn) {
+			vbw_range = params.bit_width_range;
+		}
     bool query_result = false;
     T magic_value = consts::as<T>::MAGIC_NUMBER;
     flsgpu::host::FFORColumn<T> column;
@@ -158,13 +162,13 @@ execute_ffor(const ProgramParameters params) {
     if (params.kernel == enums::Kernel::Query) {
       auto [_query_result, _column] =
           data::columns::generate_binary_ffor_column<T>(
-              params.n_values, data::ValueRange<vbw_t>(vbw),
+              params.n_values, vbw_range,
               params.unpack_n_vecs);
       query_result = _query_result;
       column = _column;
     } else {
       column = data::columns::generate_random_ffor_column<T>(
-          params.n_values, data::ValueRange<vbw_t>(0, vbw),
+          params.n_values, vbw_range,
           data::ValueRange<T>(0, 100), params.unpack_n_vecs);
     }
 
@@ -178,6 +182,10 @@ execute_ffor(const ProgramParameters params) {
         column, params, query_result, magic_value));
 
     flsgpu::host::free_column(column);
+
+		if (params.kernel == enums::Kernel::QueryMultiColumn) {
+			break;
+		}
   }
 
   return results;
@@ -195,7 +203,7 @@ execute_alp(const ProgramParameters params) {
     T magic_value = consts::as<T>::MAGIC_NUMBER;
 
     auto column = data::columns::generate_alp_column<T>(
-        params.n_values, data::ValueRange<vbw_t>(2, 8),
+        params.n_values, params.bit_width_range,
         data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
     for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max;
          ++ec) {

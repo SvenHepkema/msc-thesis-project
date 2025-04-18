@@ -26,43 +26,51 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
                                DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2], magic_value,
           d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5], magic_value,
           d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], device_columns[7], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
@@ -70,6 +78,7 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], device_columns[7], device_columns[8], magic_value,
           d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                              DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
@@ -77,6 +86,7 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], device_columns[7], device_columns[8],
           device_columns[9], magic_value, d_out.get());
+  CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
   for (int32_t c{0}; c < MAX_N_COLS; ++c) {
     flsgpu::host::free_column(device_columns[c]);

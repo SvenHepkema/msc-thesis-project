@@ -20,6 +20,7 @@ echo "============================================="
 echo "Switch-case decompressors"
 echo "============================================="
 parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} 1 {3} switch-case none 0 {1} 0 0 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VALS 
+./print-joblog.sh
 echo "============================================="
 echo "Main decompressors"
 echo "============================================="

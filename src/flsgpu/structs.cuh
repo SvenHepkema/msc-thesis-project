@@ -346,6 +346,7 @@ template <typename T> void free_column(ALPColumn<T> column) {
   free_column(column.ffor);
   delete[] column.factor_indices;
   delete[] column.fraction_indices;
+  delete[] column.exceptions_offsets;
   delete[] column.exceptions;
   delete[] column.positions;
   delete[] column.counts;
@@ -355,6 +356,7 @@ template <typename T> void free_column(ALPExtendedColumn<T> column) {
   free_column(column.ffor);
   delete[] column.factor_indices;
   delete[] column.fraction_indices;
+  delete[] column.exceptions_offsets;
   delete[] column.exceptions;
   delete[] column.positions;
   delete[] column.offsets_counts;
@@ -379,6 +381,7 @@ template <typename T> void free_column(device::ALPColumn<T> column) {
   free_device_pointer(column.fractions);
   free_device_pointer(column.factor_indices);
   free_device_pointer(column.fraction_indices);
+  free_device_pointer(column.exceptions_offsets);
   free_device_pointer(column.exceptions);
   free_device_pointer(column.positions);
   free_device_pointer(column.counts);
@@ -390,6 +393,7 @@ template <typename T> void free_column(device::ALPExtendedColumn<T> column) {
   free_device_pointer(column.fractions);
   free_device_pointer(column.factor_indices);
   free_device_pointer(column.fraction_indices);
+  free_device_pointer(column.exceptions_offsets);
   free_device_pointer(column.exceptions);
   free_device_pointer(column.positions);
   free_device_pointer(column.offsets_counts);

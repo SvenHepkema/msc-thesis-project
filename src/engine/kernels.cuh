@@ -2,7 +2,6 @@
 
 #include "../flsgpu/flsgpu-api.cuh"
 #include "device-utils.cuh"
-#include "old-fls.cuh"
 
 #ifndef FLS_GLOBAL_CUH
 #define FLS_GLOBAL_CUH
@@ -10,56 +9,6 @@
 namespace kernels {
 
 namespace device {
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor>
-struct Baseline : flsgpu::device::BitUnpackerBase<T> {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  const UINT_T *in;
-
-  __device__ __forceinline__
-  Baseline(const UINT_T *__restrict a_in, const lane_t lane,
-           [[maybe_unused]] const vbw_t value_bit_width,
-           [[maybe_unused]] OutputProcessor processor)
-      : in(a_in + lane){};
-
-  __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
-
-#pragma unroll
-    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
-#pragma unroll
-      for (int j = 0; j < UNPACK_N_VALUES; ++j) {
-        out[v * UNPACK_N_VALUES + j] =
-            in[v * consts::VALUES_PER_VECTOR + j * N_LANES];
-      }
-    }
-
-    in += UNPACK_N_VALUES * N_LANES;
-  }
-};
-
-template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
-          typename OutputProcessor>
-struct OldFLSAdjusted : flsgpu::device::BitUnpackerBase<T> {
-  using UINT_T = typename utils::same_width_uint<T>::type;
-
-  const UINT_T *in;
-  const vbw_t value_bit_width;
-
-  __device__ __forceinline__ OldFLSAdjusted(
-      const UINT_T *__restrict a_in, const lane_t lane,
-      const vbw_t a_value_bit_width, [[maybe_unused]] OutputProcessor processor)
-      : in(a_in + lane), value_bit_width(a_value_bit_width) {
-    static_assert(UNPACK_N_VECTORS == 1, "Old FLS can only unpack 1 at a time");
-    static_assert(UNPACK_N_VALUES == utils::get_values_per_lane<T>(),
-                  "Old FLS can only unpack entire lanes");
-  };
-
-  __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    oldfls::adjusted::unpack(in, out, value_bit_width);
-  }
-};
 
 template <typename T, int UNPACK_N_VECTORS, int UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
@@ -141,7 +90,6 @@ __global__ void compute_column(const ColumnT column, bool *__restrict out,
 } // namespace device
 
 namespace host {
-
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>

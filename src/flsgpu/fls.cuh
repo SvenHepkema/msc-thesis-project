@@ -4,6 +4,7 @@
 #include <type_traits>
 
 #include "device-types.cuh"
+#include "old-fls.cuh"
 #include "structs.cuh"
 #include "utils.cuh"
 
@@ -46,6 +47,65 @@ const UINT_T *__restrict in, const lane_t lane,
 const vbw_t value_bit_width, OutputProcessor processor)
   */
   virtual __device__ __forceinline__ void unpack_next_into(T *__restrict out);
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename OutputProcessor>
+struct BitUnpackerDummy : flsgpu::device::BitUnpackerBase<T> {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  const UINT_T *in;
+  OutputProcessor processor;
+
+  __device__ __forceinline__ BitUnpackerDummy(
+      const UINT_T *__restrict a_in, const lane_t lane,
+      [[maybe_unused]] const vbw_t value_bit_width, OutputProcessor processor)
+      : in(a_in + lane), processor(processor){};
+
+  __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
+    constexpr int32_t N_LANES = utils::get_n_lanes<UINT_T>();
+
+#pragma unroll
+    for (int v = 0; v < UNPACK_N_VECTORS; ++v) {
+#pragma unroll
+      for (int j = 0; j < UNPACK_N_VALUES; ++j) {
+        out[v * UNPACK_N_VALUES + j] =
+            processor(in[v * consts::VALUES_PER_VECTOR + j * N_LANES], 0);
+      }
+    }
+
+    in += UNPACK_N_VALUES * N_LANES;
+  }
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
+          typename OutputProcessor>
+struct BitUnpackerOldFls : flsgpu::device::BitUnpackerBase<T> {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+
+  const UINT_T *in;
+  const vbw_t value_bit_width;
+  OutputProcessor processor;
+
+  __device__ __forceinline__ BitUnpackerOldFls(const UINT_T *__restrict a_in,
+                                               const lane_t lane,
+                                               const vbw_t a_value_bit_width,
+                                               OutputProcessor processor)
+      : in(a_in + lane), value_bit_width(a_value_bit_width),
+        processor(processor) {
+    static_assert(UNPACK_N_VECTORS == 1, "Old FLS can only unpack 1 at a time");
+    static_assert(UNPACK_N_VALUES == utils::get_values_per_lane<T>(),
+                  "Old FLS can only unpack entire lanes");
+  };
+
+  __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
+    oldfls::adjusted::unpack(in, reinterpret_cast<UINT_T *>(out),
+                             value_bit_width);
+
+    for (int32_t i{0}; i < UNPACK_N_VALUES; ++i) {
+      out[i] = processor(out[i], 0);
+    }
+  }
 };
 
 template <typename T> struct LoaderBase {

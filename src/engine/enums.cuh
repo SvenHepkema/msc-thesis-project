@@ -16,6 +16,8 @@ enum class Kernel {
 };
 
 enum class Unpacker {
+	Dummy,
+	OldFls,
 	SwitchCase,
   Stateless,
   StatelessBranchless,

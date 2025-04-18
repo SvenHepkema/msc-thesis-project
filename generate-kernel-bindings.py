@@ -45,6 +45,8 @@ ENCODINGS = [
 ]
 
 UNPACKERS = [
+    "Dummy",
+    "OldFls",
     "SwitchCase",
     "Stateless",
     "StatelessBranchless",
@@ -63,7 +65,7 @@ UNPACKERS = [
     "StatefulRegisterBranchless4",
     "StatefulBranchless",
 ]
-MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[16]]
+MULTI_COLUMN_UNPACKERS = [UNPACKERS[1], UNPACKERS[16]]
 BEST_UNPACKER = [
     "StatefulBranchless",
 ]
@@ -82,6 +84,7 @@ PATCHERS = [
 ]
 MULTI_COLUMN_PATCHERS = [
     PATCHERS[0],
+    PATCHERS[1],
     PATCHERS[4],
     PATCHERS[5],
     PATCHERS[7],
@@ -229,6 +232,14 @@ def get_if_statement_check_wrapper(
     n_columns: int | None = None,
     n_repetitions: int | None = None,
 ) -> str:
+    if args.disable_multi_column and function == "query_multi_column":
+        return ""
+    if unpacker == "OldFls":
+        n_val = 32
+
+        if n_vec != 1 or data_type not in ["uint32_t", "float"]:
+            return ""
+
     is_necessary = (
         data_type == "uint32_t" 
         and function == "decompress_column" 
@@ -385,6 +396,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-du",
         "--disable-unnecessary",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
+        "-dmc",
+        "--disable-multi-column",
         type=bool,
         default=False,
         action=argparse.BooleanOptionalAction,

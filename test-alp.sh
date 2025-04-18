@@ -2,7 +2,7 @@ TYPES="f32 f64"
 KERNELS="decompress query"
 UNPACK_N_VECS="1 4"
 UNPACK_N_VALS="1"
-UNPACKERS="stateless stateless-branchless stateful-cache stateful-local-1 stateful-local-2 stateful-local-4 stateful-register-1 stateful-register-2 stateful-register-4 stateful-register-branchless-1 stateful-register-branchless-2 stateful-register-branchless-4 stateful-branchless"
+UNPACKERS="stateless stateless-branchless stateful-cache stateful-local-1 stateful-local-2 stateful-local-4 stateful-shared-1 stateful-shared-2 stateful-shared-4 stateful-register-1 stateful-register-2 stateful-register-4 stateful-register-branchless-1 stateful-register-branchless-2 stateful-register-branchless-4 stateful-branchless"
 PATCHERS="stateless stateful naive naive-branchless prefetch-position prefetch-all prefetch-all-branchless"
 VECTOR_COUNT=256
 

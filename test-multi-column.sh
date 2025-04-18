@@ -5,20 +5,24 @@ UNPACK_N_VALS="1"
 UNPACKERS="stateful-register-2 stateful-register-branchless-2 stateful-branchless"
 PATCHERS="dummy naive naive-branchless prefetch-all prefetch-all-branchless"
 VECTOR_COUNT=256
+VBW_START=0
+VBW_END=8
+EC_START=20
+EC_END=20
 
 LOG_FILE=/tmp/log
 echo "============================================="
 echo "Old-fls decompressor"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test u32 query-multi-column 1 32 old-fls none 0 32 0 0 $VECTOR_COUNT {} ::: 0
+parallel --progress --joblog $LOG_FILE ./bin/test u32 query-multi-column 1 32 old-fls none $VBW_START $VBW_END 0 0 $VECTOR_COUNT {} ::: 0
 ./print-joblog.sh
-parallel --progress --joblog $LOG_FILE ./bin/test f32 query-multi-column 1 32 old-fls {1} 0 16 0 10 $VECTOR_COUNT 0 ::: $PATCHERS
+parallel --progress --joblog $LOG_FILE ./bin/test f32 query-multi-column 1 32 old-fls {1} $VBW_START $VBW_END $EC_START $EC_END $VECTOR_COUNT 0 ::: $PATCHERS
 ./print-joblog.sh
 
 echo "============================================="
 echo "Main kernels"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test {1} query-multi-column {2} {3} {4} none 0 32 0 0 $VECTOR_COUNT 0 ::: $U_TYPES ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS 
+parallel --progress --joblog $LOG_FILE ./bin/test {1} query-multi-column {2} {3} {4} none $VBW_START $VBW_END 0 0 $VECTOR_COUNT 0 ::: $U_TYPES ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS 
 ./print-joblog.sh
-parallel --progress --joblog $LOG_FILE ./bin/test {1} query-multi-column {2} {3} {4} {5} 0 16 0 10 $VECTOR_COUNT 0 ::: $F_TYPES ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS ::: $PATCHERS
+parallel --progress --joblog $LOG_FILE ./bin/test {1} query-multi-column {2} {3} {4} {5} $VBW_START $VBW_END $EC_START $EC_END $VECTOR_COUNT 0 ::: $F_TYPES ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS ::: $PATCHERS
 ./print-joblog.sh

@@ -20,7 +20,7 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
 
   bool result = false;
   GPUArray<bool> d_out(1, &result);
-  const ThreadblockMapping<float> mapping(UNPACK_N_VECS, column.get_n_vecs());
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECS, column.get_n_vecs());
 
   multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
                                DeviceColumnT>

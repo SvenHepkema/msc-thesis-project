@@ -1,4 +1,5 @@
 #include "../generated-bindings/multi-column-device-kernels.cuh"
+#include "data.cuh"
 #include "device-utils.cuh"
 
 #ifndef MULTI_COLUMN_HOST_KERNELS_CUH
@@ -15,6 +16,10 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
   DeviceColumnT device_columns[MAX_N_COLS];
 
   for (int32_t c{0}; c < MAX_N_COLS; ++c) {
+    // INFO: Bitwidths are shuffled to ensure that the vectors that
+    // are unpacked in the same loop do not have an identical bitwidth,
+    // as this might benefit branched unpackers
+    data::columns::shuffle_bit_widths(column);
     device_columns[c] = column.copy_to_device();
   }
 
@@ -22,65 +27,65 @@ __host__ bool query_multi_column(const ColumnT column, const T magic_value) {
   GPUArray<bool> d_out(1, &result);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECS, column.get_n_vecs());
 
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                               DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2], magic_value,
           d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5], magic_value,
           d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], device_columns[7], magic_value, d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],
           device_columns[6], device_columns[7], device_columns[8], magic_value,
           d_out.get());
   CUDA_SAFE_CALL(cudaDeviceSynchronize());
-  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES, DecompressorT,
-                             DeviceColumnT>
+  multi_column::query_multi_column<T, UNPACK_N_VECS, UNPACK_N_VALUES,
+                                   DecompressorT, DeviceColumnT>
       <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
           device_columns[0], device_columns[1], device_columns[2],
           device_columns[3], device_columns[4], device_columns[5],

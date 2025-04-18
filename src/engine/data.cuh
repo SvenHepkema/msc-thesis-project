@@ -174,10 +174,9 @@ template <typename T> struct ValueRange {
   ValueRange(const T a_start, const T a_end)
       : min(a_start), max(std::max(a_start, a_end)) {}
 
-  ValueRange<T> operator=(const ValueRange& other) {
-		return ValueRange<T>(min, max);
-	}
-      
+  ValueRange<T> operator=(const ValueRange &other) {
+    return ValueRange<T>(min, max);
+  }
 };
 
 namespace arrays {
@@ -372,9 +371,10 @@ generate_random_bp_column(const size_t n_values,
       primitives::fill_array_with_random_bytes<T>(new T[n_packed_values],
                                                   n_packed_values),
       bit_widths,
-      primitives::map(
-          [](const T value) { return value * utils::get_n_lanes<T>(); },
-          primitives::prefix_sum_array(bit_widths, new size_t[n_vecs], n_vecs),
+      primitives::map<size_t>(
+          [](const size_t value) { return value * utils::get_n_lanes<T>(); },
+          primitives::prefix_sum_array<vbw_t, size_t>(
+              bit_widths, new size_t[n_vecs], n_vecs),
           n_vecs),
   };
 }
@@ -518,6 +518,34 @@ modify_alp_value_bit_width(flsgpu::host::ALPColumn<T> column,
                                                     bit_width_range, repeat,
                                                     ValueRange<UINT_T>(2, 20));
   return column;
+}
+
+template <typename T>
+void shuffle_bit_widths(flsgpu::host::BPColumn<T> column) {
+  std::random_device random_device;
+  auto rng = std::default_random_engine(random_device());
+  std::shuffle(column.bit_widths, column.bit_widths + column.get_n_vecs(), rng);
+
+  column.vector_offsets = primitives::map<size_t>(
+      [](const vbw_t value) { return value * utils::get_n_lanes<T>(); },
+      primitives::prefix_sum_array<vbw_t, size_t>(
+          column.bit_widths, column.vector_offsets, column.get_n_vecs()),
+      column.get_n_vecs());
+}
+
+template <typename T>
+void shuffle_bit_widths(flsgpu::host::FFORColumn<T> column) {
+  shuffle_bit_widths(column.bp);
+}
+
+template <typename T>
+void shuffle_bit_widths(flsgpu::host::ALPColumn<T> column) {
+  shuffle_bit_widths(column.ffor.bp);
+}
+
+template <typename T>
+void shuffle_bit_widths(flsgpu::host::ALPExtendedColumn<T> column) {
+  shuffle_bit_widths(column.ffor.bp);
 }
 
 template <typename T, typename ColumnT>

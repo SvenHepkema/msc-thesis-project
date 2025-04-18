@@ -7,5 +7,18 @@ PATCHERS="stateless stateful naive naive-branchless prefetch-position prefetch-a
 VECTOR_COUNT=256
 
 LOG_FILE=/tmp/log
+echo "============================================="
+echo "Old-fls decompressor"
+echo "============================================="
+parallel --progress --joblog $LOG_FILE ./bin/test f32 {1} 1 32 old-fls {2} 0 16 0 10 $VECTOR_COUNT 0 ::: $KERNELS ::: $PATCHERS
+./print-joblog.sh
+echo "============================================="
+echo "Dummy patcher"
+echo "============================================="
+parallel --progress --joblog $LOG_FILE ./bin/test {1} {2} {3} {4} {5} dummy 0 16 0 0 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS 
+./print-joblog.sh
+echo "============================================="
+echo "Main decompressors"
+echo "============================================="
 parallel --progress --joblog $LOG_FILE ./bin/test {1} {2} {3} {4} {5} {6} 0 16 0 10 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS ::: $PATCHERS
 ./print-joblog.sh

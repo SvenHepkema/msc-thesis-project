@@ -70,7 +70,7 @@ struct BitUnpackerDummy : flsgpu::device::BitUnpackerBase<T> {
 #pragma unroll
       for (int j = 0; j < UNPACK_N_VALUES; ++j) {
         out[v * UNPACK_N_VALUES + j] =
-            processor(in[v * consts::VALUES_PER_VECTOR + j * N_LANES], 0);
+            processor(in[v * consts::VALUES_PER_VECTOR + j * N_LANES], v);
       }
     }
 
@@ -99,11 +99,12 @@ struct BitUnpackerOldFls : flsgpu::device::BitUnpackerBase<T> {
   };
 
   __device__ __forceinline__ void unpack_next_into(T *__restrict out) override {
-    oldfls::adjusted::unpack(in, reinterpret_cast<UINT_T *>(out),
+		UINT_T* u_out = reinterpret_cast<UINT_T *>(out);
+    oldfls::adjusted::unpack(in, u_out,
                              value_bit_width);
 
     for (int32_t i{0}; i < UNPACK_N_VALUES; ++i) {
-      out[i] = processor(out[i], 0);
+      out[i] = processor(u_out[i], 0);
     }
   }
 };

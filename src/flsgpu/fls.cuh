@@ -118,6 +118,52 @@ struct LocalMemoryLoader : LoaderBase<T> {
 };
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned BUFFER_SIZE>
+struct SharedMemoryLoader : LoaderBase<T> {
+  using UINT_T = typename utils::same_width_uint<T>::type;
+  // No syncthreads are needed as threads only read and write their own section
+  // Shared memory is allocated per block, so this also depends on block config
+  // 4 divide by 32 bits/lanes, multiply by number of warps per block
+  const UINT_T *in;
+  int32_t vector_offset;
+  int32_t buffer_index = BUFFER_SIZE;
+  UINT_T *buffers;
+
+  __device__ __forceinline__ SharedMemoryLoader(const UINT_T *in,
+                                                const int32_t vector_offset)
+      : in(in), vector_offset(vector_offset) {
+    constexpr uint32_t N_LANES = utils::get_n_lanes<T>();
+    __shared__ UINT_T shared_ptr[N_LANES * BUFFER_SIZE * UNPACK_N_VECTORS *
+                                 (sizeof(T) / 4 * 2)];
+    buffers = shared_ptr + threadIdx.x * BUFFER_SIZE * UNPACK_N_VECTORS;
+    next_line();
+  };
+
+  __device__ __forceinline__ void load_next_into(UINT_T *out) override {
+#pragma unroll
+    for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+      out[v] = buffers[v * BUFFER_SIZE + buffer_index];
+    }
+  }
+
+  __device__ __forceinline__ void next_line() override {
+    if (buffer_index >= BUFFER_SIZE - 1) {
+#pragma unroll
+      for (int v{0}; v < UNPACK_N_VECTORS; ++v) {
+#pragma unroll
+        for (int b{0}; b < BUFFER_SIZE; ++b) {
+          buffers[v * BUFFER_SIZE + b] =
+              *(in + v * vector_offset + b * utils::get_n_lanes<T>());
+        }
+      }
+      in += BUFFER_SIZE * utils::get_n_lanes<T>();
+      buffer_index = 0;
+    } else {
+      ++buffer_index;
+    }
+  }
+};
+
+template <typename T, unsigned UNPACK_N_VECTORS, unsigned BUFFER_SIZE>
 struct RegisterLoader : LoaderBase<T> {
   using UINT_T = typename utils::same_width_uint<T>::type;
   UINT_T buffers[UNPACK_N_VECTORS * BUFFER_SIZE];

@@ -52,6 +52,9 @@ UNPACKERS = [
     "StatefulLocal1",
     "StatefulLocal2",
     "StatefulLocal4",
+    "StatefulShared1",
+    "StatefulShared2",
+    "StatefulShared4",
     "StatefulRegister1",
     "StatefulRegister2",
     "StatefulRegister4",
@@ -60,7 +63,7 @@ UNPACKERS = [
     "StatefulRegisterBranchless4",
     "StatefulBranchless",
 ]
-MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[13]]
+MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[16]]
 BEST_UNPACKER = [
     "StatefulBranchless",
 ]
@@ -132,6 +135,8 @@ def get_decompressor_type(
             loader_t += f"CacheLoader<{data_type}, {n_vec}>"
         elif "Local" in unpacker:
             loader_t += f"LocalMemoryLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
+        elif "Shared" in unpacker:
+            loader_t += f"SharedMemoryLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
         elif "RegisterBranchless" in unpacker:
             loader_t += (
                 f"RegisterBranchlessLoader<{data_type}, {n_vec}, {unpacker[-1]}>"
@@ -226,9 +231,8 @@ def get_if_statement_check_wrapper(
 ) -> str:
     is_necessary = (
         data_type == "uint32_t" 
-        and function == "query_multi_column" 
-        and n_vec == 1
-        and unpacker in ["StatefulBranchless"]
+        and function == "decompress_column" 
+        and "Local" in unpacker or "Shared" in unpacker
         and patcher == "None"
     )
     if disable_unnecessary and not is_necessary:

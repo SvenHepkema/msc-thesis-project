@@ -136,12 +136,12 @@ def create_scatter_graph(
 
 def create_multi_bar_graph(
     data_sources: list[DataSource],
-    bargroup_labels: list[str]|None,
+    bargroup_labels: list[str] | None,
     x_label: str,
     y_label: str,
     out: str,
-    y_lim: tuple[int, int]|None=None,
-    colors: list[int]|None=None,
+    y_lim: tuple[int, int] | None = None,
+    colors: list[int] | None = None,
 ):
     n_bars = len(data_sources)
     n_groups = len(data_sources[0].x_data)
@@ -156,7 +156,11 @@ def create_multi_bar_graph(
 
         positions = indices + (i - n_bars / 2 + 0.5) * bar_width
         ax.bar(
-            positions, bar_data, bar_width, label=bar_label, color=COLOR_SET[colors[i]] if colors else COLOR_SET[i],
+            positions,
+            bar_data,
+            bar_width,
+            label=bar_label,
+            color=COLOR_SET[colors[i]] if colors else COLOR_SET[i],
         )
 
     if bargroup_labels:
@@ -164,11 +168,8 @@ def create_multi_bar_graph(
         ax.set_xticklabels(bargroup_labels)
     else:
         plt.tick_params(
-            axis='x',          
-            which='both',     
-            bottom=False,    
-            top=False,      
-            labelbottom=False) 
+            axis="x", which="both", bottom=False, top=False, labelbottom=False
+        )
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_ylim(y_lim)
@@ -188,38 +189,43 @@ def average_samples(df: pl.DataFrame, columns_to_avg: list[str]) -> pl.DataFrame
     reference_columns = [col for col in df.columns if col != "sample_run"]
     group_by_cols = [col for col in df.columns if col not in columns_to_avg]
 
-    df = df.group_by(group_by_cols, maintain_order=True).agg([
-        pl.col(col).mean().alias(col) for col in columns_to_avg
-    ])
+    df = df.group_by(group_by_cols, maintain_order=True).agg(
+        [pl.col(col).mean().alias(col) for col in columns_to_avg]
+    )
 
     df = reorder_columns(df, reference_columns)
     return df
+
+
+def create_grouped_data_sources(
+    df: pl.DataFrame, group_by_columns: list[str], x_column: str, y_column: str
+) -> list[GroupedDataSource]:
+    return [
+        GroupedDataSource(
+            label,
+            0,
+            data.get_column(x_column).to_list(),
+            data.get_column(y_column).to_list(),
+        )
+        for label, data in df.group_by(group_by_columns, maintain_order=True)
+    ]
 
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
 
     df = average_samples(df, ["duration (ns)"])
-    
+
     df = df.with_columns(
-        ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
-            "throughput"
-        ),
         (pl.col("duration (ns)") / 1000).alias("duration (us)"),
     )
 
-    sources = [
-        GroupedDataSource(
-            label,
-            0,
-            data.get_column("vbw").to_list(),
-            data.get_column("duration (us)").to_list(),
-        )
-        for label, data in df.group_by(
-            ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
-            maintain_order=True
-        )
-    ]
+    sources = create_grouped_data_sources(
+        df,
+        ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
+        "vbw",
+        "duration (us)",
+    )
 
     graph_groups = {
         "stateless": list(
@@ -278,24 +284,15 @@ def plot_alp_ec(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "alp-ec.csv"))
     df = average_samples(df, ["duration (ns)"])
     df = df.with_columns(
-        ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
-            "throughput"
-        ),
         (pl.col("duration (ns)") / 1000).alias("duration (us)"),
     )
 
-    sources = [
-        GroupedDataSource(
-            label_data[0],
-            0,
-            label_data[1].get_column("ec").to_list(),
-            label_data[1].get_column("duration (us)").to_list(),
-        )
-        for label_data in df.group_by(
-            ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
-            maintain_order=True,
-        )
-    ]
+    sources = create_grouped_data_sources(
+        df,
+        ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
+        "ec",
+        "duration (us)",
+    )
 
     graph_groups = {
         "stateless": list(
@@ -340,27 +337,23 @@ def plot_alp_ec(input_dir: str, output_dir: str):
             legend_pos="lower right",
         )
 
+
 def plot_multi_column(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "multi-column.csv"))
     df = average_samples(df, ["duration (ns)"])
     df = df.with_columns(
-        ((pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols")) / pl.col("duration (ns)") ).alias(
-            "throughput"
-        ),
+        (
+            (pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols"))
+            / pl.col("duration (ns)")
+        ).alias("throughput"),
     )
 
-    sources = [
-        GroupedDataSource(
-            label_data[0],
-            0,
-            label_data[1].get_column("n_cols").to_list(),
-            label_data[1].get_column("throughput").to_list(),
-        )
-        for label_data in df.group_by(
-            ["data_type", "unpack_n_vectors", "unpacker", "patcher"],
-            maintain_order=True,
-        )
-    ]
+    sources = create_grouped_data_sources(
+        df,
+        ["data_type", "unpack_n_vectors", "unpacker", "patcher"],
+        "n_cols",
+        "throughput",
+    )
 
     graph_groups = {
         "ffor": list(
@@ -375,15 +368,18 @@ def plot_multi_column(input_dir: str, output_dir: str):
             )
         ),
         "alp": list(
-            sorted(map(
-                lambda x: x.set_label(f"{x.g[3]}-{x.g[1]}-vecs"),
-                filter(
-                    lambda x: x.g[0] == "f32"
-                    and x.g[2] == "stateful_branchless"
-                    and "prefetch_all" in x.g[3],
-                    sources,
+            sorted(
+                map(
+                    lambda x: x.set_label(f"{x.g[3]}-{x.g[1]}-vecs"),
+                    filter(
+                        lambda x: x.g[0] == "f32"
+                        and x.g[2] == "stateful_branchless"
+                        and "prefetch_all" in x.g[3],
+                        sources,
+                    ),
                 ),
-                ), key=lambda x: x.label)
+                key=lambda x: x.label,
+            )
         ),
     }
 

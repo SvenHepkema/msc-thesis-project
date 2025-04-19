@@ -1,4 +1,3 @@
-#include <__clang_cuda_runtime_wrapper.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>

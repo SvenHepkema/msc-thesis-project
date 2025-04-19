@@ -11,15 +11,20 @@ NVCC_IGNORE_ERR_NUMBERS=3033,3356
 CUDA_WARNING_FLAGS=-Wno-c++17-extensions
 COMPUTE_CAPABILITY = 61
 #CUSTOM_FLAGS = -DSingleVectorMapping
-CUDA_FLAGS = --std c++17 -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS) $(CUSTOM_FLAGS)
+NVCOMP_INC ?= /usr/include/nvcomp_12/
+NVCOMP_LIB ?= /usr/lib/x86_64-linux-gnu/nvcomp/12
+CUDA_FLAGS = --std=c++17 -ccbin /usr/bin/clang++-14 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS) $(CUSTOM_FLAGS)
+GCC_CUDA_FLAGS = --std=c++17 -ccbin /usr/bin/g++-12 $(OPTIMIZATION_LEVEL) --resource-usage  -arch=sm_$(COMPUTE_CAPABILITY) -I $(CUDA_LIBRARY_PATH)/include -I. -L $(CUDA_LIBRARY_PATH)/lib64 -lcudart -lcurand -lcuda -lineinfo $(INC) $(LIB) --expt-relaxed-constexpr  -Xcompiler "$(CUDA_WARNING_FLAGS)" -diag-suppress $(NVCC_IGNORE_ERR_NUMBERS) $(CUSTOM_FLAGS)
 
 ENGINE_HEADER_FILES=$(wildcard src/engine/*.cuh)
 FLSGPU_HEADER_FILES=$(wildcard src/flsgpu/*.cuh)
+NVCOMP_HEADER_FILES=$(wildcard src/flsgpu/*.cuh)
 HEADER_FILES=src/alp/alp-bindings.cuh $(wildcard src/flsgpu/*.cuh) $(wildcard src/engine/*.cuh)
 
 FLS_OBJ := $(patsubst src/fls/%.cpp, obj/fls-%.o, $(wildcard src/fls/*.cpp))
 ALP_OBJ := $(patsubst src/alp/%.cpp, obj/alp-%.o, $(wildcard src/alp/*.cpp))
 GENERATED_BINDINGS_OBJ := $(patsubst src/generated-bindings/%.cu, obj/generated-bindings-%.o, $(wildcard src/generated-bindings/*.cu))
+NVCOMP_OBJ := $(patsubst src/nvcomp/%.cu, obj/nvcomp-%.o, $(wildcard src/nvcomp/*.cu))
 
 # OBJ Files
 obj/fls-%.o: src/fls/%.cpp
@@ -37,14 +42,17 @@ obj/enums.o: src/engine/enums.cu src/engine/enums.cuh
 obj/alp-bindings.o: src/alp/alp-bindings.cu $(ALP_OBJ) 
 	nvcc $(CUDA_FLAGS) -c -o $@ src/alp/alp-bindings.cu 
 
+obj/nvcomp-%.o: src/nvcomp/%.cu $(NVCOMP_HEADER_FILES) 
+	nvcc $(word 1, $^) -c -o $@ $(GCC_CUDA_FLAGS) -I$(NVCOMP_INC) -L$(NVCOMP_LIB) -lnvcomp 
+
 # Executables
-SOURCE_FILES=obj/alp-bindings.o obj/enums.o $(FLS_OBJ) $(ALP_OBJ) $(GENERATED_BINDINGS_OBJ)
+SOURCE_FILES=obj/alp-bindings.o obj/enums.o $(FLS_OBJ) $(ALP_OBJ) 
 
-test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES)
-	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/test.cu $(SOURCE_FILES)
+test: src/test.cu $(SOURCE_FILES) $(HEADER_FILES) $(GENERATED_BINDINGS_OBJ)
+	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/test.cu $(SOURCE_FILES) $(GENERATED_BINDINGS_OBJ)
 
-benchmark: src/benchmark.cu $(SOURCE_FILES) $(HEADER_FILES)
-	nvcc $(CUDA_FLAGS) -g -o bin/$@ src/benchmark.cu $(SOURCE_FILES)
+bench-compressors: src/bench-compressors.cu $(SOURCE_FILES) $(HEADER_FILES) $(NVCOMP_OBJ)
+	nvcc $(GCC_CUDA_FLAGS) -g -I$(NVCOMP_INC) -L$(NVCOMP_LIB) -lnvcomp -o bin/$@ src/bench-compressors.cu $(SOURCE_FILES) $(NVCOMP_OBJ)
 
 heterogeneous-pipelines-experiment: experiments/heterogeneous-pipelines.cu experiments/utils.cuh
 	nvcc $(CUDA_FLAGS) -g -o bin/$@  experiments/heterogeneous-pipelines.cu 
@@ -58,7 +66,7 @@ generate:
 	./generate-multicolumn-kernels.py
 	./generate-kernel-bindings.py
 
-all: test benchmark experiments
+all: test experiments bench-compressors
 
 clean:
 	rm -f bin/*

@@ -1,6 +1,9 @@
 #include <stdexcept>
 #include <string>
 
+#ifndef ENUMS_CUH
+#define ENUMS_CUH
+
 namespace enums {
 enum class DataType {
   U32,
@@ -16,9 +19,9 @@ enum class Kernel {
 };
 
 enum class Unpacker {
-	Dummy,
-	OldFls,
-	SwitchCase,
+  Dummy,
+  OldFls,
+  SwitchCase,
   Stateless,
   StatelessBranchless,
   StatefulCache,
@@ -61,3 +64,31 @@ Unpacker string_to_unpacker(const std::string &str);
 Patcher string_to_patcher(const std::string &str);
 
 } // namespace enums
+
+namespace enums_nvcomp {
+enum ComparisonType {
+  DECOMPRESSION,
+  DECOMPRESSION_QUERY,
+};
+
+ComparisonType string_to_comparison_type(const std::string &str);
+std::string comparison_type_to_string(const ComparisonType type);
+
+enum CompressionType {
+  THRUST,
+  ALP,
+  GALP,
+  BITCOMP,
+  BITCOMP_SPARSE,
+  LZ4,
+  ZSTD,
+  DEFLATE,
+  GDEFLATE,
+  SNAPPY,
+};
+
+CompressionType string_to_compression_type(const std::string &str);
+std::string compression_type_to_string(const CompressionType type);
+} // namespace enums_nvcomp
+
+#endif // ENUMS_CUH

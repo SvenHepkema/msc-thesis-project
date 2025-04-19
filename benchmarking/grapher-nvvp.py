@@ -69,9 +69,9 @@ class DataSource:
 @dataclass
 class GroupedDataSource:
     group_by_column_values: tuple
-    color: int
     x_data: list[Any]
     y_data: list[Any]
+    color: int = 0
     label: str | None = None
 
     def set_label(self, label: str):
@@ -80,7 +80,7 @@ class GroupedDataSource:
 
 
 def create_scatter_graph(
-    data_sources: list[DataSource],
+    data_sources: list[DataSource | GroupedDataSource],
     x_label: str,
     y_label: str,
     out: str,
@@ -132,7 +132,7 @@ def create_scatter_graph(
 
 
 def create_multi_bar_graph(
-    data_sources: list[DataSource],
+    data_sources: list[DataSource | GroupedDataSource],
     bargroup_labels: list[str] | None,
     x_label: str,
     y_label: str,
@@ -200,7 +200,6 @@ def create_grouped_data_sources(
     return [
         GroupedDataSource(
             group_by_column_values,
-            0,
             data.get_column(x_column).to_list(),
             data.get_column(y_column).to_list(),
         )
@@ -237,11 +236,22 @@ def define_graph(
     return sorted(list(labelled), key=lambda x: x.label)
 
 
+def calculate_common_y_lim(sources: list[DataSource | GroupedDataSource]) -> float:
+    return max([max(source.y_data) for source in sources]) * 1.1
+
+
+def assign_colors(
+    sources: list[DataSource | GroupedDataSource],
+) -> list[DataSource | GroupedDataSource]:
+    for i, source in enumerate(sources):
+        source.color = i
+
+    return sources
+
+
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
-
     df = average_samples(df, ["duration (ns)"])
-
     df = df.with_columns(
         (pl.col("duration (ns)") / 1000).alias("duration (us)"),
     )
@@ -268,17 +278,14 @@ def plot_ffor(input_dir: str, output_dir: str):
     }
 
     for name, graph_sources in graphs.items():
-        y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
-
-        for i, source in enumerate(graph_sources):
-            source.color = i
+        graph_sources = assign_colors(graph_sources)
 
         create_scatter_graph(
             graph_sources,
             "Value bit width",
             "Duration (us)",
             os.path.join(output_dir, f"ffor-{name}.eps"),
-            y_lim=(0, y_lim),
+            y_lim=(0, calculate_common_y_lim(graph_sources)),
         )
 
 
@@ -322,17 +329,14 @@ def plot_alp_ec(input_dir: str, output_dir: str):
     }
 
     for name, graph_sources in graphs.items():
-        y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
-
-        for i, source in enumerate(graph_sources):
-            source.color = i
+        graph_sources = assign_colors(graph_sources)
 
         create_scatter_graph(
             graph_sources,
             "Exception count",
             "Duration (us)",
             os.path.join(output_dir, f"alp-ec-{name}.eps"),
-            y_lim=(0, y_lim),
+            y_lim=(0, calculate_common_y_lim(graph_sources)),
             legend_pos="lower right",
         )
 
@@ -378,10 +382,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
     }
 
     for name, graph_sources in graphs.items():
-        y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
-
-        for i, source in enumerate(graph_sources):
-            source.color = i
+        graph_sources = assign_colors(graph_sources)
 
         create_multi_bar_graph(
             graph_sources,
@@ -389,7 +390,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
             "Number of columns",
             "Throughput (vectors/ns/column)",
             os.path.join(output_dir, f"multi-column-throughput-{name}.eps"),
-            y_lim=(0, y_lim),
+            y_lim=(0, calculate_common_y_lim(graph_sources)),
         )
 
 

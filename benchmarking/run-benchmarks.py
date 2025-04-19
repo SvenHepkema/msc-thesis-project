@@ -11,6 +11,7 @@ import inspect
 import types
 import subprocess
 from pathlib import Path
+from typing import Any
 
 MICROBENCHMARK_EXECUTABLE = "./bin/test"
 HETEROGENEOUS_PIPELINES_EXECUTABLE = "./bin/heterogeneous-pipelines-experiment"
@@ -19,9 +20,11 @@ ILP_EXECUTABLE = "./bin/ilp-experiment"
 FLS_TYPES = ["u32", "u64"]
 ALP_TYPES = ["f32", "f64"]
 KERNELS = ["decompress", "query"]
-UNPACK_N_VECS = ["1", "4"]
-UNPACK_N_VALS = ["1"]
+UNPACK_N_VECS = [1, 4]
+UNPACK_N_VALS = [1]
 UNPACKERS = [
+    "dummy",
+    "old-fls",
     "switch-case",
     "stateless",
     "stateless-branchless",
@@ -29,6 +32,9 @@ UNPACKERS = [
     "stateful-local-1",
     "stateful-local-2",
     "stateful-local-4",
+    "stateful-shared-1",
+    "stateful-shared-2",
+    "stateful-shared-4",
     "stateful-register-1",
     "stateful-register-2",
     "stateful-register-4",
@@ -37,9 +43,12 @@ UNPACKERS = [
     "stateful-register-branchless-4",
     "stateful-branchless",
 ]
-MULTI_COLUMN_UNPACKERS = [UNPACKERS[2], UNPACKERS[13]]
+MULTI_COLUMN_UNPACKERS = [UNPACKERS[1], UNPACKERS[13], UNPACKERS[16], UNPACKERS[18]]
+ALP_UNPACKERS = [UNPACKERS[1]] + UNPACKERS[3:]
+
 PATCHERS = [
     "none",
+    "dummy",
     "stateless",
     "stateful",
     "naive",
@@ -50,10 +59,11 @@ PATCHERS = [
 ]
 MULTI_COLUMN_PATCHERS = [
     PATCHERS[0],
-    PATCHERS[3],
+    PATCHERS[1],
     PATCHERS[4],
-    PATCHERS[6],
+    PATCHERS[5],
     PATCHERS[7],
+    PATCHERS[8],
 ]
 
 NVVP_PATH = "/usr/local/cuda-12.5/bin/nvprof"
@@ -207,20 +217,30 @@ def get_benchmarking_functions() -> list[tuple[str, types.FunctionType]]:
     )
     return list(stripped_prefixes_from_name)
 
+def does_file_exist(file_path: str) -> bool:
+    return os.path.isfile(file_path)
 
 def execute_command(command: str, out: str, save_stderr: bool = False) -> str:
     if args.dry_run:
         print(command, file=sys.stderr)
         return ""
 
+    if args.only_new_runs and does_file_exist(out):
+        logging.debug(f"Skipping command, output file exists already: {out}")
+        return ""
+
     logging.info(f"Executing: {command}")
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
-        logging.critical(f"Exited with code {result.returncode}: {command}")
         logging.critical(f"STDOUT: {result.stdout}")
         logging.critical(f"STDERR: {result.stderr}")
-        exit(0)
+        logging.critical(f"Exited with code {result.returncode}: {command}")
+
+        if args.exit_non_zero_exit_code:
+            exit(0)
+        else:
+            return ""
 
     if out:
         with open(out, "w") as f:
@@ -257,74 +277,174 @@ def get_profiler(args):
     return NCUProfiler() if args.profiler == "ncu" else NVVPProfiler()
 
 
-def bench_ffor(output_dir: str, n_vecs: int, profiler):
-    for parameters in itertools.product(
+def format_file_parameter(parameter: str) -> str:
+    return parameter.replace("-", "_")
+
+
+def convert_list_to_str(values: list[Any]) -> list[str]:
+    return list(map(str, values))
+
+
+def bench_ffor(output_dir: str, data_n_vecs: int, profiler):
+    for data_type, kernel, n_vecs, n_vals, unpacker in itertools.product(
         FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
-        # For switch cace only single vec and value are supported
-        if parameters[4] == UNPACKERS[0] and (
-            int(parameters[2]) != 1 or int(parameters[3]) != 1
-        ):
+        # For switch cace only single vec and single value are supported
+        if unpacker == UNPACKERS[2] and (n_vecs != 1 or n_vals != 1):
             continue
+        # For OldFls only single vec and 32 values are supported
+        if unpacker == UNPACKERS[1]:
+            if n_vecs != 1 or n_vals != 1 or "32" not in data_type:
+                continue
+            n_vals = 32
 
-        formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
-        vbw = parameters[0][1:]
+        parameters = convert_list_to_str([data_type, kernel, n_vecs, n_vals, unpacker])
+
+        vbw_start = 0
+        vbw_end = data_type[1:]
+
+        # If the unpacker is of type dummy, only max bit width is supported
+        if unpacker == "dummy":
+            vbw_start = data_type[1:]
+
         out = os.path.join(
             output_dir,
-            "ffor-" + "-".join(formatted_parameters) + f"-0-{vbw}-{n_vecs}",
+            "ffor-"
+            + "-".join(map(format_file_parameter, parameters))
+            + f"-{vbw_start}-{vbw_end}-{data_n_vecs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"none 0 {vbw} 0 0 {n_vecs} 0",
+            + f"none {vbw_start} {vbw_end} 0 0 {data_n_vecs} 0",
             out=out,
         )
 
 
-def bench_alp_ec(output_dir: str, n_vecs: int, profiler):
-    print("Check the vbws, the binary does not what is expected now")
-    exit(0)
-    for parameters in itertools.product(
-            ALP_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[1:], PATCHERS[1:]
+def bench_alp_ec(output_dir: str, data_n_vecs: int, profiler):
+    for data_type, kernel, n_vecs, n_vals, unpacker, patcher in itertools.product(
+        ALP_TYPES,
+        KERNELS,
+        UNPACK_N_VECS,
+        UNPACK_N_VALS,
+        ALP_UNPACKERS[1:],
+        PATCHERS[1:],
     ):
-        formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
-        ec = 30
+        # For OldFls only single vec and 32 values are supported
+        if unpacker == UNPACKERS[1]:
+            if n_vecs != 1 or n_vals != 1 or "32" not in data_type:
+                continue
+            n_vals = 32
+
+        parameters = convert_list_to_str(
+            [data_type, kernel, n_vecs, n_vals, unpacker, patcher]
+        )
+
+        vbw_start = 3
+        vbw_end = 8
+        ec_start = 0
+        ec_end = 50
+
+        # If the patcher is of type dummy only 0 exceptions is supported
+        if patcher == "dummy":
+            ec_end = 0
+
         out = os.path.join(
-            output_dir, "alp-ec-" + "-".join(formatted_parameters) + f"-0-{ec}-{n_vecs}"
+            output_dir,
+            "alp-ec-"
+            + "-".join(map(format_file_parameter, parameters))
+            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{data_n_vecs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f" 0 0 0 {ec} {n_vecs} 0",
+            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {data_n_vecs} 0",
             out=out,
         )
 
 
-def bench_multi_column(output_dir: str, n_vecs: int, profiler):
-    for o_parameters in itertools.product(
-        ["query-multi-column"], UNPACK_N_VECS, UNPACK_N_VALS, MULTI_COLUMN_UNPACKERS, MULTI_COLUMN_PATCHERS
+def bench_multi_column(output_dir: str, data_n_vecs: int, profiler):
+    kernel = "query-multi-column"
+
+    # Test ffor multicolumn
+    for data_type, n_vecs, n_vals, unpacker in itertools.product(
+        FLS_TYPES, UNPACK_N_VECS, UNPACK_N_VALS, MULTI_COLUMN_UNPACKERS
     ):
-        for data_type in ([FLS_TYPES[0]] if o_parameters[4] == "none" else [ALP_TYPES[0]]):
-            parameters = (data_type, *o_parameters)
-            formatted_parameters = list(map(lambda x: x.replace("-", "_"), parameters))
-            vbw = 8
-            ec = 20
-            out = os.path.join(
-                output_dir,
-                "multi-column-" + "-".join(formatted_parameters) + f"-0-{vbw}-{ec}-{n_vecs}",
-            )
-            profiler.benchmark_command(
-                MICROBENCHMARK_EXECUTABLE
-                + " "
-                + " ".join(parameters)
-                + " "
-                + f"0 {vbw} {ec} {ec} {n_vecs} 0",
-                out=out,
-            )
+        # For OldFls only single vec and 32 values are supported
+        if unpacker == UNPACKERS[1]:
+            if n_vecs != 1 or n_vals != 1 or "32" not in data_type:
+                continue
+            n_vals = 32
+
+        patcher = PATCHERS[0]
+        parameters = convert_list_to_str(
+            [data_type, kernel, n_vecs, n_vals, unpacker, patcher]
+        )
+
+        vbw_start = 0
+        vbw_end = data_type[1:]
+
+        out = os.path.join(
+            output_dir,
+            "multi-column-"
+            + "-".join(map(format_file_parameter, parameters))
+            + f"-{vbw_start}-{vbw_end}-0-0-{data_n_vecs}",
+        )
+        profiler.benchmark_command(
+            MICROBENCHMARK_EXECUTABLE
+            + " "
+            + " ".join(parameters)
+            + " "
+            + f"{vbw_start} {vbw_end} 0 0 {data_n_vecs} 0",
+            out=out,
+        )
+
+    # Test ALP multicolumn
+    for data_type, n_vecs, n_vals, unpacker, patcher in itertools.product(
+        ALP_TYPES,
+        UNPACK_N_VECS,
+        UNPACK_N_VALS,
+        MULTI_COLUMN_UNPACKERS,
+        MULTI_COLUMN_PATCHERS[1:],
+    ):
+        # For OldFls only single vec and 32 values are supported
+        if unpacker == UNPACKERS[1]:
+            if n_vecs != 1 or n_vals != 1 or "32" not in data_type:
+                continue
+            n_vals = 32
+
+        parameters = convert_list_to_str(
+            [data_type, kernel, n_vecs, n_vals, unpacker, patcher]
+        )
+
+        vbw_start = 3
+        vbw_end = 8
+        ec_start = 20
+        ec_end = 20
+
+        # If the patcher is of type dummy only 0 exceptions is supported
+        if patcher == "dummy":
+            ec_start = 0
+            ec_end = 0
+
+        out = os.path.join(
+            output_dir,
+            "multi-column-"
+            + "-".join(map(format_file_parameter, parameters))
+            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{data_n_vecs}",
+        )
+        profiler.benchmark_command(
+            MICROBENCHMARK_EXECUTABLE
+            + " "
+            + " ".join(parameters)
+            + " "
+            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {data_n_vecs} 0",
+            out=out,
+        )
 
 
 def bench_hp_experiment(output_dir: str, _: int, profiler):
@@ -381,6 +501,22 @@ if __name__ == "__main__":
         help="N-vecs",
     )
     parser.add_argument(
+        "-onr",
+        "--only-new-runs",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Only runs new runs. If the filename already exists in the output, the run is skipped",
+    )
+    parser.add_argument(
+        "-enzec",
+        "--exit-non-zero-exit-code",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Exit when a command return a non zero statuscode",
+    )
+    parser.add_argument(
         "-dr",
         "--dry-run",
         type=bool,
@@ -406,8 +542,8 @@ if __name__ == "__main__":
     )
 
     if args.benchmarking_function == "all":
-        args.benchmarking_function = lambda out_dir, n_vecs: list(
-            func(out_dir, n_vecs) for func in benchmarking_functions.values()
+        args.benchmarking_function = lambda out_dir, n_vecs, profiler: list(
+            func(out_dir, n_vecs, profiler) for func in benchmarking_functions.values()
         )
     else:
         args.benchmarking_function = benchmarking_functions[args.benchmarking_function]

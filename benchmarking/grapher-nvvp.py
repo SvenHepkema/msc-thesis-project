@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
+from collections.abc import Callable
 import os
 import sys
 
 import argparse
 import logging
-import itertools
 import copy
 
 import inspect
 import types
 from typing import Any
-import subprocess
 from pathlib import Path
 
 import polars as pl
@@ -20,8 +19,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 import math
-
-from pyarrow import DataType
 
 FLOAT_BYTES = 4
 GB_BYTES = 1024 * 1024 * 1024
@@ -71,7 +68,7 @@ class DataSource:
 
 @dataclass
 class GroupedDataSource:
-    g: tuple
+    group_by_column_values: tuple
     color: int
     x_data: list[Any]
     y_data: list[Any]
@@ -202,13 +199,42 @@ def create_grouped_data_sources(
 ) -> list[GroupedDataSource]:
     return [
         GroupedDataSource(
-            label,
+            group_by_column_values,
             0,
             data.get_column(x_column).to_list(),
             data.get_column(y_column).to_list(),
         )
-        for label, data in df.group_by(group_by_columns, maintain_order=True)
+        for group_by_column_values, data in df.group_by(
+            group_by_columns, maintain_order=True
+        )
     ]
+
+
+def define_graph(
+    sources: list[GroupedDataSource],
+    filters: list[list[Any] | Any],
+    label_func: Callable[[tuple], str],
+) -> list[GroupedDataSource]:
+    assert len(sources[0].group_by_column_values) == len(
+        filters
+    ), "Mismatch filter length and group by length"
+    filter_lists = list(map(lambda x: x if isinstance(x, list) else [x], filters))
+
+    filtered = filter(
+        lambda source: all(
+            [
+                source.group_by_column_values[i] in filter or len(filter) == 0
+                for i, filter in enumerate(filter_lists)
+            ]
+        ),
+        sources,
+    )
+
+    labelled = map(
+        lambda x: copy.copy(x.set_label(label_func(x.group_by_column_values))), filtered
+    )
+
+    return sorted(list(labelled), key=lambda x: x.label)
 
 
 def plot_ffor(input_dir: str, output_dir: str):
@@ -227,45 +253,21 @@ def plot_ffor(input_dir: str, output_dir: str):
         "duration (us)",
     )
 
-    graph_groups = {
-        "stateless": list(
-            map(
-                lambda x: copy.copy(x.set_label(x.g[3])),
-                filter(
-                    lambda x: x.g[0] == "u32"
-                    and x.g[1] == "query"
-                    and x.g[2] == 1
-                    and x.g[3] == "stateless",
-                    sources,
-                ),
-            )
+    graphs = {
+        "stateless": define_graph(
+            sources, ["u32", "query", 1, "stateless"], lambda x: x[3]
         ),
-        "switch_vs_stateful_branchless": list(
-            map(
-                lambda x: copy.copy(x.set_label(x.g[3])),
-                filter(
-                    lambda x: x.g[0] == "u32"
-                    and x.g[1] == "query"
-                    and x.g[2] == 1
-                    and (x.g[3] == "switch_case" or x.g[3] == "stateful_branchless"),
-                    sources,
-                ),
-            )
+        "switch_vs_stateful_branchless": define_graph(
+            sources,
+            ["u32", "query", 1, ["switch_case", "stateful_branchless"]],
+            lambda x: x[3],
         ),
-        "stateful_branchless_u32-vs-u64": list(
-            map(
-                lambda x: copy.copy(x.set_label(x.g[0])),
-                filter(
-                    lambda x: x.g[1] == "query"
-                    and x.g[2] == 1
-                    and x.g[3] == "stateful_branchless",
-                    sources,
-                ),
-            )
+        "stateful_branchless_u32-vs-u64": define_graph(
+            sources, [["u32", "u64"], "query", 1, "stateful_branchless"], lambda x: x[0]
         ),
     }
 
-    for name, graph_sources in graph_groups.items():
+    for name, graph_sources in graphs.items():
         y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
 
         for i, source in enumerate(graph_sources):
@@ -294,35 +296,32 @@ def plot_alp_ec(input_dir: str, output_dir: str):
         "duration (us)",
     )
 
-    graph_groups = {
-        "stateless": list(
-            map(
-                lambda x: x.set_label(f"{x.g[3]}"),
-                filter(
-                    lambda x: x.g[0] == "f32"
-                    and x.g[1] == "query"
-                    and x.g[2] == 1
-                    and x.g[3] == "stateless"
-                    and x.g[4] == "stateless",
-                    sources,
-                ),
-            )
+    graphs = {
+        "stateless": define_graph(
+            sources,
+            [
+                "f32",
+                "query",
+                1,
+                "stateless",
+                "stateless",
+            ],
+            lambda x: x[3],
         ),
-        "stateful_branchless_prefetch_all_f32-vs-f64": list(
-            map(
-                lambda x: x.set_label(f"{x.g[0]}"),
-                filter(
-                    lambda x: x.g[1] == "query"
-                    and x.g[2] == 1
-                    and x.g[3] == "stateful_branchless"
-                    and x.g[4] == "prefetch_all",
-                    sources,
-                ),
-            )
+        "stateful_branchless_prefetch_all_f32-vs-f64": define_graph(
+            sources,
+            [
+                ["f32", "f64"],
+                "query",
+                1,
+                "stateful_branchless",
+                "prefetch_all",
+            ],
+            lambda x: x[0],
         ),
     }
 
-    for name, graph_sources in graph_groups.items():
+    for name, graph_sources in graphs.items():
         y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
 
         for i, source in enumerate(graph_sources):
@@ -355,35 +354,30 @@ def plot_multi_column(input_dir: str, output_dir: str):
         "throughput",
     )
 
-    graph_groups = {
-        "ffor": list(
-            map(
-                lambda x: x.set_label(f"{x.g[2]}-{x.g[1]}-vecs"),
-                filter(
-                    lambda x: x.g[0] == "u32"
-                    and x.g[2] == "stateful_branchless"
-                    and x.g[3] == "none",
-                    sources,
-                ),
-            )
+    graphs = {
+        "ffor": define_graph(
+            sources,
+            [
+                "u32",
+                [1, 4],
+                "stateful_branchless",
+                "none",
+            ],
+            lambda x: f"{x[2]}-{x[1]}-vecs",
         ),
-        "alp": list(
-            sorted(
-                map(
-                    lambda x: x.set_label(f"{x.g[3]}-{x.g[1]}-vecs"),
-                    filter(
-                        lambda x: x.g[0] == "f32"
-                        and x.g[2] == "stateful_branchless"
-                        and "prefetch_all" in x.g[3],
-                        sources,
-                    ),
-                ),
-                key=lambda x: x.label,
-            )
+        "alp": define_graph(
+            sources,
+            [
+                "f32",
+                [1, 4],
+                "stateful_branchless",
+                ["prefetch_all", "prefetch_all_branchless"],
+            ],
+            lambda x: f"{x[3]}-{x[1]}-vecs",
         ),
     }
 
-    for name, graph_sources in graph_groups.items():
+    for name, graph_sources in graphs.items():
         y_lim = max([max(source.y_data) for source in graph_sources]) * 1.1
 
         for i, source in enumerate(graph_sources):

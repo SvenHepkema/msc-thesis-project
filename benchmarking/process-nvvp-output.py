@@ -97,6 +97,7 @@ def convert_ffor_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[5]).alias("unpacker"),
         pl.Series("vbw", range(int(params[6]), int(params[7]) + 1)),
         pl.lit(params[8]).alias("n_vecs"),
+        pl.lit(params[9]).alias("sample_run"),
     )
 
     return df
@@ -113,9 +114,11 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[5]).alias("unpack_n_values"),
         pl.lit(params[6]).alias("unpacker"),
         pl.lit(params[7]).alias("patcher"),
-        pl.lit("3-8").alias("vbw"),
-        pl.Series("ec", range(int(params[8]), int(params[9]) + 1)),
-        pl.lit(params[10]).alias("n_vecs"),
+        pl.lit(params[8]).alias("start_vbw"),
+        pl.lit(params[9]).alias("end_vbw"),
+        pl.Series("ec", range(int(params[10]), int(params[11]) + 1)),
+        pl.lit(params[12]).alias("n_vecs"),
+        pl.lit(params[13]).alias("sample_run"),
     )
 
     return df
@@ -133,10 +136,13 @@ def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[5]).alias("unpack_n_values"),
         pl.lit(params[6]).alias("unpacker"),
         pl.lit(params[7]).alias("patcher"),
-        pl.lit(f"{params[8]}-{params[9]}").alias("vbw"),
-        pl.lit(params[10]).alias("ec"),
+        pl.lit(params[8]).alias("start_vbw"),
+        pl.lit(params[9]).alias("end_vbw"),
+        pl.lit(params[10]).alias("start_ec"),
+        pl.lit(params[11]).alias("end_ec"),
         pl.Series("n_cols", range(1, n_cols + 1)),
-        pl.lit(params[11]).alias("n_vecs"),
+        pl.lit(params[12]).alias("n_vecs"),
+        pl.lit(params[13]).alias("sample_run"),
     )
 
     return df
@@ -192,8 +198,8 @@ def convert_ilp_experiment_file_to_df(file: str) -> pl.DataFrame:
 def collect_files_into_df(
     input_dir: str, prefix: str, convertor_lambda
 ) -> pl.DataFrame:
-    alp_micro_files = get_all_files_with_prefix_in_dir(input_dir, prefix)
-    return pl.concat(map(convertor_lambda, alp_micro_files))
+    files = get_all_files_with_prefix_in_dir(input_dir, prefix)
+    return pl.concat(map(convertor_lambda, files))
 
 
 def process_ffor(input_dir: str) -> tuple[str, pl.DataFrame]:

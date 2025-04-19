@@ -220,36 +220,37 @@ def get_benchmarking_functions() -> list[tuple[str, types.FunctionType]]:
 def does_file_exist(file_path: str) -> bool:
     return os.path.isfile(file_path)
 
-def execute_command(command: str, out: str, save_stderr: bool = False) -> str:
-    if args.dry_run:
-        print(command, file=sys.stderr)
-        return ""
+def execute_command(command: str, file_out: str, save_stderr: bool = False):
+    for n in range(1, args.number_sampling_runs + 1):
+        out = f"{file_out}-{n}"
 
-    if args.only_new_runs and does_file_exist(out):
-        logging.debug(f"Skipping command, output file exists already: {out}")
-        return ""
+        if args.only_new_runs and does_file_exist(out):
+            logging.debug(f"Skipping command, output file exists already: {out}")
+            continue
 
-    logging.info(f"Executing: {command}")
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        if args.dry_run:
+            print(n, command, file=sys.stderr)
+            continue
 
-    if result.returncode != 0:
-        logging.critical(f"STDOUT: {result.stdout}")
-        logging.critical(f"STDERR: {result.stderr}")
-        logging.critical(f"Exited with code {result.returncode}: {command}")
+        logging.info(f"Executing {n}: {command}")
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
-        if args.exit_non_zero_exit_code:
-            exit(0)
-        else:
-            return ""
+        if result.returncode != 0:
+            logging.critical(f"STDOUT: {result.stdout}")
+            logging.critical(f"STDERR: {result.stderr}")
+            logging.critical(f"Exited with code {result.returncode}: {command}")
 
-    if out:
-        with open(out, "w") as f:
-            if save_stderr:
-                f.write(result.stderr)
-            else:
-                f.write(result.stdout)
+            if args.exit_non_zero_exit_code:
+                exit(0)
+            continue
 
-    return result.stdout
+        if out:
+            with open(out, "w") as f:
+                if save_stderr:
+                    f.write(result.stderr)
+                else:
+                    f.write(result.stdout)
+
 
 
 class NCUProfiler:
@@ -499,6 +500,13 @@ if __name__ == "__main__":
         type=int,
         default=125 * 1000 + 8,  # 500 MB, 8 is to make it divisible by 16
         help="N-vecs",
+    )
+    parser.add_argument(
+        "-nsr",
+        "--number-sampling-runs",
+        type=int,
+        default=1,
+        help="Executes commands multiple times"
     )
     parser.add_argument(
         "-onr",

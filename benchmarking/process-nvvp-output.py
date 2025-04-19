@@ -149,6 +149,7 @@ def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
 
 
 def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataFrame:
+    params = os.path.basename(file).split("-")
     ARITHMETIC_32 = "ARITHMETIC_32"
     ARITHMETIC_64 = "ARITHMETIC_64"
     MEMORY = "MEMORY"
@@ -178,18 +179,21 @@ def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataF
                 MEMORY,
             ],
         ),
+        pl.lit(params[-1]).alias("sample_run"),
     )
 
     return df
 
 
 def convert_ilp_experiment_file_to_df(file: str) -> pl.DataFrame:
+    params = os.path.basename(file).split("-")
     df = read_profiler_output_as_df(file).with_columns(
         pl.Series("ilp", [1, 2, 4, 8] * 32),
         pl.Series(
             "threads/block",
             itertools.chain.from_iterable([[x] * 4 for x in range(32, 1024 + 1, 32)]),
         ),
+        pl.lit(params[-1]).alias("sample_run"),
     )
 
     return df

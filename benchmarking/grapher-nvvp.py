@@ -178,8 +178,29 @@ def create_multi_bar_graph(
     plt.close(fig)
 
 
+def reorder_columns(df: pl.DataFrame, reference_columns: list[str]) -> pl.DataFrame:
+    ordered_columns = [col for col in reference_columns if col in df.columns]
+    return df.select(ordered_columns)
+
+
+def average_samples(df: pl.DataFrame, columns_to_avg: list[str]) -> pl.DataFrame:
+    df = df.drop("sample_run")
+    reference_columns = [col for col in df.columns if col != "sample_run"]
+    group_by_cols = [col for col in df.columns if col not in columns_to_avg]
+
+    df = df.group_by(group_by_cols, maintain_order=True).agg([
+        pl.col(col).mean().alias(col) for col in columns_to_avg
+    ])
+
+    df = reorder_columns(df, reference_columns)
+    return df
+
+
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
+
+    df = average_samples(df, ["duration (ns)"])
+    
     df = df.with_columns(
         ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
             "throughput"
@@ -189,12 +210,12 @@ def plot_ffor(input_dir: str, output_dir: str):
 
     sources = [
         GroupedDataSource(
-            label_data[0],
+            label,
             0,
-            label_data[1].get_column("vbw").to_list(),
-            label_data[1].get_column("duration (us)").to_list(),
+            data.get_column("vbw").to_list(),
+            data.get_column("duration (us)").to_list(),
         )
-        for label_data in df.group_by(
+        for label, data in df.group_by(
             ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
             maintain_order=True
         )
@@ -255,6 +276,7 @@ def plot_ffor(input_dir: str, output_dir: str):
 
 def plot_alp_ec(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "alp-ec.csv"))
+    df = average_samples(df, ["duration (ns)"])
     df = df.with_columns(
         ((pl.col("n_vecs") * VECTOR_SIZE) / pl.col("duration (ns)")).alias(
             "throughput"
@@ -320,6 +342,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
 
 def plot_multi_column(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "multi-column.csv"))
+    df = average_samples(df, ["duration (ns)"])
     df = df.with_columns(
         ((pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols")) / pl.col("duration (ns)") ).alias(
             "throughput"
@@ -384,6 +407,7 @@ def plot_ilp_experiment(input_dir: str, output_dir: str):
     MAX_THREAD_BLOCK_SIZE = 1024
     TOTAL_PTRS_CHASED = 100 * 10 * 1024 * 1024
     df = pl.read_csv(os.path.join(input_dir, "ilp-experiment.csv"))
+    df = average_samples(df, ["duration (ns)"])
     df = df.with_columns(
         (TOTAL_PTRS_CHASED / pl.col("duration (ns)")).alias("throughput"),
         (pl.col("duration (ns)") / 1000).alias("duration (us)"),

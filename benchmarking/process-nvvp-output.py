@@ -81,7 +81,7 @@ def read_profiler_output_as_df(file: str) -> pl.DataFrame:
     durations = list(map(parse_duration, kernel_lines))
 
     return pl.DataFrame(
-        {"kernel_index": list(range(0, len(durations))), "duration (ns)": durations}
+        {"kernel_index": list(range(0, len(durations))), "duration_ns": durations}
     )
 
 

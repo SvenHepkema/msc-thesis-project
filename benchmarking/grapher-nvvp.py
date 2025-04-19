@@ -251,9 +251,9 @@ def assign_colors(
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
-    df = average_samples(df, ["duration (ns)"])
+    df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (pl.col("duration (ns)") / 1000).alias("duration (us)"),
+        (pl.col("duration_ns") / 1000).alias("duration (us)"),
     )
 
     sources = create_grouped_data_sources(
@@ -291,9 +291,9 @@ def plot_ffor(input_dir: str, output_dir: str):
 
 def plot_alp_ec(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "alp-ec.csv"))
-    df = average_samples(df, ["duration (ns)"])
+    df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (pl.col("duration (ns)") / 1000).alias("duration (us)"),
+        (pl.col("duration_ns") / 1000).alias("duration (us)"),
     )
 
     sources = create_grouped_data_sources(
@@ -343,11 +343,11 @@ def plot_alp_ec(input_dir: str, output_dir: str):
 
 def plot_multi_column(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "multi-column.csv"))
-    df = average_samples(df, ["duration (ns)"])
+    df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (
             (pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols"))
-            / pl.col("duration (ns)")
+            / pl.col("duration_ns")
         ).alias("throughput"),
     )
 
@@ -398,10 +398,10 @@ def plot_ilp_experiment(input_dir: str, output_dir: str):
     MAX_THREAD_BLOCK_SIZE = 1024
     TOTAL_PTRS_CHASED = 100 * 10 * 1024 * 1024
     df = pl.read_csv(os.path.join(input_dir, "ilp-experiment.csv"))
-    df = average_samples(df, ["duration (ns)"])
+    df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (TOTAL_PTRS_CHASED / pl.col("duration (ns)")).alias("throughput"),
-        (pl.col("duration (ns)") / 1000).alias("duration (us)"),
+        (TOTAL_PTRS_CHASED / pl.col("duration_ns")).alias("throughput"),
+        (pl.col("duration_ns") / 1000).alias("duration (us)"),
         (pl.col("threads/block") / MAX_THREAD_BLOCK_SIZE).alias("occupancy"),
     )
 

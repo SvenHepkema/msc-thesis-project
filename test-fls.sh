@@ -9,20 +9,20 @@ LOG_FILE=/tmp/log
 echo "============================================="
 echo "Dummy decompressor"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} {3} {4} dummy none {1} {1} 0 0 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS 
+parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} {3} {4} dummy none {1} {1} 0 0 $VECTOR_COUNT 1 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS 
 ./print-joblog.sh
 echo "============================================="
 echo "Old-fls decompressor"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test u32 {1} 1 32 old-fls none 0 32 0 0 $VECTOR_COUNT 0 ::: $KERNELS 
+parallel --progress --joblog $LOG_FILE ./bin/test u32 {1} 1 32 old-fls none 0 32 0 0 $VECTOR_COUNT 1 0 ::: $KERNELS 
 ./print-joblog.sh
 echo "============================================="
 echo "Switch-case decompressors"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} 1 {3} switch-case none 0 {1} 0 0 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VALS 
+parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} 1 {3} switch-case none 0 {1} 0 0 $VECTOR_COUNT 1 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VALS 
 ./print-joblog.sh
 echo "============================================="
 echo "Main decompressors"
 echo "============================================="
-parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} {3} {4} {5} none 0 {1} 0 0 $VECTOR_COUNT 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS
+parallel --progress --joblog $LOG_FILE ./bin/test u{1} {2} {3} {4} {5} none 0 {1} 0 0 $VECTOR_COUNT 1 0 ::: $TYPES ::: $KERNELS ::: $UNPACK_N_VECS ::: $UNPACK_N_VALS ::: $UNPACKERS
 ./print-joblog.sh

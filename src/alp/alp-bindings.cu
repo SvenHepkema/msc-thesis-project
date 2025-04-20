@@ -171,9 +171,7 @@ flsgpu::host::ALPColumn<T> encode(const T *input_array, const size_t n_values,
 
   if (print_compression_info) {
     const size_t input_size = n_values * sizeof(T);
-    fprintf(stderr,
-            "n_vecs: %zu, alp compression ratio: %f, alp_extended compression "
-            "ratio: %f, avg. bits/value: %f, avg. exceptions/vec: %f\n",
+    printf("ALP_COMPRESSION_PARAMETERS,%zu,%f,%f,%f,%f\n",
             n_vecs,
             static_cast<double>(input_size) /
                 static_cast<double>(compressed_alp_bytes_size),

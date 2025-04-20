@@ -143,9 +143,9 @@ benchmark_alp(const enums_nvcomp::ComparisonType comparison_type,
     }
     execution_time_ms = stopwatch.stop();
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
+    compression_ratio = column_extended.get_compression_ratio();
     flsgpu::host::free_column(column_extended);
     flsgpu::host::free_column(d_column);
-    compression_ratio = column.get_compression_ratio();
   } break;
   default:
     throw std::invalid_argument("Could not parse decompressor enum for alp\n");
@@ -169,7 +169,7 @@ benchmark_alp(const enums_nvcomp::ComparisonType comparison_type,
               const enums_nvcomp::CompressionType decompressor_enum,
               const T *input, const size_t value_count,
               const T value_to_search_for) {
-  flsgpu::host::ALPColumn<T> column = alp::encode(input, value_count);
+  flsgpu::host::ALPColumn<T> column = alp::encode(input, value_count, true);
   auto result = benchmark_alp(comparison_type, decompressor_enum, input, column,
                               value_to_search_for);
   flsgpu::host::free_column(column);

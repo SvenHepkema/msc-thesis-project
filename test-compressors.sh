@@ -1,8 +1,8 @@
-FLOAT_FILES=$(ls data-input/floats/*.bin)
-DOUBLE_FILES=$(ls data-input/doubles/*.bin)
+FLOAT_FILES="$(ls data-input/floats/alp-dataset/*.bin) $(ls data-input/floats/fc-bench/*.bin)"
+DOUBLE_FILES="$(ls data-input/doubles/alp-dataset/*.bin) $(ls data-input/doubles/fc-bench/*.bin)"
 COMPARISON="decompression decompression_query"
 COMPRESSORS="ALP GALP Bitcomp BitcompSparse LZ4 zstd Deflate GDeflate Snappy"
-VECTOR_COUNT=256
+VECTOR_COUNT=25600
 
 LOG_FILE=/tmp/log
 echo "============================================="

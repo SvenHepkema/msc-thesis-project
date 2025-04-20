@@ -18,8 +18,7 @@ import time
 GTX_1060_TOTAL_WARPS = 1280
 TARGET_WAVES = 10
 MAX_CONCURRENT_VECTORS_PER_WARP = 8
-DATA_N_VECS=GTX_1060_TOTAL_WARPS * MAX_CONCURRENT_VECTORS_PER_WARP * TARGET_WAVES
-DATA_N_VECS=512
+DATA_N_VECS = GTX_1060_TOTAL_WARPS * MAX_CONCURRENT_VECTORS_PER_WARP * TARGET_WAVES
 
 MICROBENCHMARK_EXECUTABLE = "./bin/test"
 HETEROGENEOUS_PIPELINES_EXECUTABLE = "./bin/heterogeneous-pipelines-experiment"
@@ -73,6 +72,26 @@ MULTI_COLUMN_PATCHERS = [
     PATCHERS[7],
     PATCHERS[8],
 ]
+
+# ===========
+# Compressors
+# ===========
+COMPRESSORS_EXECUTABLE = "./bin/bench-compressors"
+COMPARISON_KERNELS = ["decompression", "decompression_query"]
+COMPRESSORS = [
+    "Thrust",
+    "ALP",
+    "GALP",
+    "Bitcomp",
+    "BitcompSparse",
+    "LZ4",
+    "zstd",
+    "Deflate",
+    "GDeflate",
+    "Snappy",
+]
+DECOMPRESSION_COMPRESSORS = COMPRESSORS[1:]
+DECOMPRESSION_QUERY_COMPRESSORS = COMPRESSORS[0:]
 
 NVVP_PATH = "/usr/local/cuda-12.5/bin/nvprof"
 NVVP_METRICS = {
@@ -242,10 +261,14 @@ def get_benchmarking_functions() -> list[tuple[str, types.FunctionType]]:
     )
     return list(stripped_prefixes_from_name)
 
+
 def does_file_exist(file_path: str) -> bool:
     return os.path.isfile(file_path)
 
-def execute_command(command: str, out: str, save_stderr: bool = False):
+
+def execute_command(
+    command: str, out: str, save_stderr: bool = False, append_signal: bool = False
+):
     if args.only_new_runs and does_file_exist(out):
         logging.debug(f"Skipping command, output file exists already: {out}")
         return
@@ -268,17 +291,28 @@ def execute_command(command: str, out: str, save_stderr: bool = False):
         return
 
     if out:
+        to_write = result.stderr if save_stderr else result.stdout
+        if append_signal:
+            # signal is a negative return code
+            to_write += f"\nRETURN_CODE,{abs(result.returncode)}"
         with open(out, "w") as f:
-            if save_stderr:
-                f.write(result.stderr)
-            else:
-                f.write(result.stdout)
-
+            f.write(to_write)
 
 
 class NCUProfiler:
-    def benchmark_command(self, command: str, out: str) -> None:
-        execute_command(f"ncu --csv {command}", out)
+    def benchmark_command(
+        self,
+        command: str,
+        out: str,
+        save_stderr: bool = False,
+        append_signal: bool = False,
+    ) -> None:
+        execute_command(
+            f"ncu --csv {command}",
+            out,
+            save_stderr=save_stderr,
+            append_signal=append_signal,
+        )
 
 
 class NVVPProfiler:
@@ -286,15 +320,24 @@ class NVVPProfiler:
         assert all([m in NVVP_METRICS for m in metrics])
         return "--metrics " + ",".join(metrics) + " "
 
-    def benchmark_command(self, command: str, out: str) -> None:
+    def benchmark_command(
+        self,
+        command: str,
+        out: str,
+        save_stderr: bool = False,
+        append_signal: bool = False,
+    ) -> None:
         command = f"{NVVP_PATH} --print-gpu-trace {command}"
         metrics = None
         if metrics is not None:
             execute_command(
-                "sudo " + command + self._create_metrics_parameter(metrics), out, True
+                "sudo " + command + self._create_metrics_parameter(metrics),
+                out,
+                save_stderr,
+                append_signal=append_signal,
             )
         else:
-            execute_command(command, out, True)
+            execute_command(command, out, save_stderr, append_signal=append_signal)
 
 
 def get_profiler(args):
@@ -302,7 +345,7 @@ def get_profiler(args):
 
 
 def format_file_parameter(parameter: str) -> str:
-    return parameter.replace("-", "_")
+    return parameter.replace("-", "_").replace(".", "_")
 
 
 def convert_list_to_str(values: list[Any]) -> list[str]:
@@ -311,7 +354,7 @@ def convert_list_to_str(values: list[Any]) -> list[str]:
 
 def bench_ffor(output_dir: str, profiler):
     for data_type, kernel, n_vecs, n_vals, unpacker in itertools.product(
-            FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[-2:]
+        FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[-2:]
     ):
         # For switch cace only single vec and single value are supported
         if unpacker == UNPACKERS[2] and (n_vecs != 1 or n_vals != 1):
@@ -344,6 +387,7 @@ def bench_ffor(output_dir: str, profiler):
             + " "
             + f"none {vbw_start} {vbw_end} 0 0 {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
+            save_stderr=True,
         )
 
 
@@ -388,6 +432,7 @@ def bench_alp_ec(output_dir: str, profiler):
             + " "
             + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
+            save_stderr=True,
         )
 
 
@@ -425,6 +470,7 @@ def bench_multi_column(output_dir: str, profiler):
             + " "
             + f"{vbw_start} {vbw_end} 0 0 {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
+            save_stderr=True,
         )
 
     # Test ALP multicolumn
@@ -468,7 +514,52 @@ def bench_multi_column(output_dir: str, profiler):
             + " "
             + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
+            save_stderr=True,
         )
+
+
+def bench_compressors(output_dir: str, profiler):
+    compressor_n_vecs = 25600
+    float_files = get_all_files_in_dir(
+        "data-input/floats/alp-dataset"
+    ) + get_all_files_in_dir("data-input/floats/fc-bench")
+    double_files = get_all_files_in_dir(
+        "data-input/doubles/alp-dataset"
+    ) + get_all_files_in_dir("data-input/doubles/fc-bench")
+
+    for data_type, files in zip(ALP_TYPES, [float_files, double_files]):
+        for kernel, compressors in [
+            [
+                COMPARISON_KERNELS[0],
+                DECOMPRESSION_COMPRESSORS,
+            ],
+            [COMPARISON_KERNELS[1], DECOMPRESSION_QUERY_COMPRESSORS],
+        ]:
+            for compressor, file in itertools.product(compressors, files):
+                for i in range(1, args.number_sampling_runs + 1):
+                    out_parameters = convert_list_to_str(
+                        [
+                            data_type,
+                            kernel,
+                            compressor,
+                            os.path.basename(file),
+                            compressor_n_vecs,
+                        ]
+                    )
+                    out = os.path.join(
+                        output_dir,
+                        "compressors-"
+                        + "-".join(map(format_file_parameter, out_parameters))
+                        + f"-{i}",
+                    )
+                    bin_parameters = convert_list_to_str(
+                        [data_type, kernel, compressor, file, compressor_n_vecs]
+                    )
+                    profiler.benchmark_command(
+                        COMPRESSORS_EXECUTABLE + " " + " ".join(bin_parameters),
+                        out=out,
+                        append_signal=True,
+                    )
 
 
 def bench_hp_experiment(output_dir: str, profiler):
@@ -476,6 +567,7 @@ def bench_hp_experiment(output_dir: str, profiler):
     profiler.benchmark_command(
         HETEROGENEOUS_PIPELINES_EXECUTABLE,
         out=out,
+        save_stderr=True,
     )
 
 
@@ -484,6 +576,7 @@ def bench_ilp_experiment(output_dir: str, profiler):
     profiler.benchmark_command(
         ILP_EXECUTABLE,
         out=out,
+        save_stderr=True,
     )
 
 
@@ -522,7 +615,7 @@ if __name__ == "__main__":
         "--number-sampling-runs",
         type=int,
         default=5,
-        help="Executes commands multiple times"
+        help="Executes commands multiple times",
     )
     parser.add_argument(
         "-onr",

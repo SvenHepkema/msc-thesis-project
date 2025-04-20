@@ -85,6 +85,48 @@ def read_profiler_output_as_df(file: str) -> pl.DataFrame:
     )
 
 
+def read_compressors_output_as_df(file: str) -> pl.DataFrame:
+    lines = []
+
+    with open(file, "r") as f:
+        lines = f.readlines()
+
+    return_code = int(lines[-1].split(",")[-1])
+    avg_bits_per_value = ""
+    avg_exceptions_per_vector = ""
+    line_counter = 0
+    if "ALP_COMPRESSION_PARAMETERS" in lines[0]:
+        (
+            _,
+            _,
+            _,
+            _,
+            avg_bits_per_value,
+            avg_exceptions_per_vector,
+        ) = lines[
+            0
+        ].split(",")
+        line_counter += 1
+
+    kernel, compressor, file, _, n_bytes, duration_ms, compression_ratio = lines[
+        line_counter
+    ].split(",")
+
+    return pl.DataFrame(
+        {
+            "return_code": [return_code],
+            "avg_bits_per_value": [avg_bits_per_value],
+            "avg_exceptions_per_vector": [avg_exceptions_per_vector.strip()],
+            "kernel": [kernel],
+            "compressor": [compressor],
+            "file": [file],
+            "n_bytes": [n_bytes],
+            "duration_ms": [duration_ms],
+            "compression_ratio": [compression_ratio.strip()],
+        }
+    )
+
+
 def duplicate_each(collection: Iterable, repeat_n_times: int) -> list:
     return [x for x in collection for _ in range(repeat_n_times)]
 
@@ -93,7 +135,7 @@ def add_sample_run_column(df: pl.DataFrame, n_samples: int) -> pl.DataFrame:
     assert df.height % n_samples == 0, "Number of samples is not divisible by n_samples"
     n_unique_kernels = df.height // n_samples
     return df.with_columns(
-        pl.Series("sampling_run", list(range(1, n_samples + 1)) * n_unique_kernels),
+        pl.Series("sample_run", list(range(1, n_samples + 1)) * n_unique_kernels),
     )
 
 
@@ -170,6 +212,19 @@ def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
     return df
 
 
+def convert_compressors_file_to_df(file: str) -> pl.DataFrame:
+    params = os.path.basename(file).split("-")
+
+    df = read_compressors_output_as_df(file)
+    df = df.with_columns(
+        pl.lit(params[1]).alias("data_type"),
+        pl.lit(params[-2]).alias("n_vecs"),
+        pl.lit(params[-1]).alias("sample_run"),
+    )
+
+    return df
+
+
 def convert_heterogeneous_pipelines_experiment_file_to_df(file: str) -> pl.DataFrame:
     params = os.path.basename(file).split("-")
     ARITHMETIC_32 = "ARITHMETIC_32"
@@ -241,6 +296,12 @@ def process_alp_ec(input_dir: str) -> tuple[str, pl.DataFrame]:
 def process_multi_column(input_dir: str) -> tuple[str, pl.DataFrame]:
     return "multi-column.csv", collect_files_into_df(
         input_dir, "multi-column", convert_multi_column_file_to_df
+    )
+
+
+def process_compressors(input_dir: str) -> tuple[str, pl.DataFrame]:
+    return "compressors.csv", collect_files_into_df(
+        input_dir, "compressors", convert_compressors_file_to_df
     )
 
 

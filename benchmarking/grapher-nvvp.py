@@ -346,8 +346,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (
-            (pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols"))
-            / pl.col("duration_ns")
+            (pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols")) / pl.col("duration_ns")
         ).alias("throughput"),
     )
 
@@ -391,6 +390,62 @@ def plot_multi_column(input_dir: str, output_dir: str):
             "Throughput (vectors/ns/column)",
             os.path.join(output_dir, f"multi-column-throughput-{name}.eps"),
             y_lim=(0, calculate_common_y_lim(graph_sources)),
+        )
+
+
+def plot_compressors(input_dir: str, output_dir: str):
+    df = pl.read_csv(os.path.join(input_dir, "compressors.csv"))
+    df = average_samples(
+        df,
+        [
+            "duration_ms",
+            "avg_bits_per_value",
+            "avg_exceptions_per_vector",
+            "compression_ratio",
+        ],
+    )
+    df = df.with_columns(
+        (pl.col("n_bytes") / pl.col("duration_ms")).alias("throughput")
+    )
+
+    sources = create_grouped_data_sources(
+        df,
+        ["kernel", "compressor", "data_type"],
+        "compression_ratio",
+        "throughput",
+    )
+
+    graphs = {
+        "scatter-compression-vs-throughput-f32": define_graph(
+            sources,
+            [
+                "decompression_query",
+                [],
+                "f32",
+            ],
+            lambda x: f"{x[1]}",
+        ),
+        "scatter-compression-vs-throughput-f64": define_graph(
+            sources,
+            [
+                "decompression_query",
+                [],
+                "f64",
+            ],
+            lambda x: f"{x[1]}",
+        ),
+    }
+
+    for name, graph_sources in graphs.items():
+        graph_sources = assign_colors(graph_sources)
+
+        create_scatter_graph(
+            graph_sources,
+            "Compression ratio",
+            "Throughput",
+            os.path.join(output_dir, f"compressors-{name}.eps"),
+            y_lim=(0, calculate_common_y_lim(graph_sources)),
+            legend_pos="upper right",
         )
 
 

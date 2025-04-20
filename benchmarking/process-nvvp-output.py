@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from io import StringIO
 import os
 import sys
 
@@ -11,6 +10,7 @@ import itertools
 import inspect
 import types
 from pathlib import Path
+from typing import Iterable
 
 import polars as pl
 
@@ -85,19 +85,35 @@ def read_profiler_output_as_df(file: str) -> pl.DataFrame:
     )
 
 
+def duplicate_each(collection: Iterable, repeat_n_times: int) -> list:
+    return [x for x in collection for _ in range(repeat_n_times)]
+
+
+def add_sample_run_column(df: pl.DataFrame, n_samples: int) -> pl.DataFrame:
+    assert df.height % n_samples == 0, "Number of samples is not divisible by n_samples"
+    n_unique_kernels = df.height // n_samples
+    return df.with_columns(
+        pl.Series("sampling_run", list(range(1, n_samples + 1)) * n_unique_kernels),
+    )
+
+
 def convert_ffor_file_to_df(file: str) -> pl.DataFrame:
     params = os.path.basename(file).split("-")
+    n_samples = int(params[9])
 
-    df = read_profiler_output_as_df(file).with_columns(
+    df = read_profiler_output_as_df(file)
+    df = add_sample_run_column(df, n_samples)
+    df = df.with_columns(
         pl.lit(params[0]).alias("encoding"),
         pl.lit(params[1]).alias("data_type"),
         pl.lit(params[2]).alias("kernel"),
         pl.lit(params[3]).alias("unpack_n_vectors"),
         pl.lit(params[4]).alias("unpack_n_values"),
         pl.lit(params[5]).alias("unpacker"),
-        pl.Series("vbw", range(int(params[6]), int(params[7]) + 1)),
+        pl.Series(
+            "vbw", duplicate_each(range(int(params[6]), int(params[7]) + 1), n_samples)
+        ),
         pl.lit(params[8]).alias("n_vecs"),
-        pl.lit(params[9]).alias("sample_run"),
     )
 
     return df
@@ -105,8 +121,11 @@ def convert_ffor_file_to_df(file: str) -> pl.DataFrame:
 
 def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
     params = os.path.basename(file).split("-")
+    n_samples = int(params[13])
 
-    df = read_profiler_output_as_df(file).with_columns(
+    df = read_profiler_output_as_df(file)
+    df = add_sample_run_column(df, n_samples)
+    df = df.with_columns(
         pl.lit(params[0]).alias("encoding"),
         pl.lit(params[2]).alias("data_type"),
         pl.lit(params[3]).alias("kernel"),
@@ -116,9 +135,10 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[7]).alias("patcher"),
         pl.lit(params[8]).alias("start_vbw"),
         pl.lit(params[9]).alias("end_vbw"),
-        pl.Series("ec", range(int(params[10]), int(params[11]) + 1)),
+        pl.Series(
+            "ec", duplicate_each(range(int(params[10]), int(params[11]) + 1), n_samples)
+        ),
         pl.lit(params[12]).alias("n_vecs"),
-        pl.lit(params[13]).alias("sample_run"),
     )
 
     return df
@@ -127,8 +147,11 @@ def convert_alp_ec_file_to_df(file: str) -> pl.DataFrame:
 def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
     n_cols = 10
     params = os.path.basename(file).split("-")
+    n_samples = int(params[13])
 
-    df = read_profiler_output_as_df(file).with_columns(
+    df = read_profiler_output_as_df(file)
+    df = add_sample_run_column(df, n_samples)
+    df = df.with_columns(
         pl.lit("FFOR" if "u" in params[2] else "ALP").alias("encoding"),
         pl.lit(params[2]).alias("data_type"),
         pl.lit(params[3]).alias("kernel"),
@@ -140,9 +163,8 @@ def convert_multi_column_file_to_df(file: str) -> pl.DataFrame:
         pl.lit(params[9]).alias("end_vbw"),
         pl.lit(params[10]).alias("start_ec"),
         pl.lit(params[11]).alias("end_ec"),
-        pl.Series("n_cols", range(1, n_cols + 1)),
+        pl.Series("n_cols", duplicate_each(range(1, n_cols + 1), n_samples)),
         pl.lit(params[12]).alias("n_vecs"),
-        pl.lit(params[13]).alias("sample_run"),
     )
 
     return df
@@ -214,6 +236,7 @@ def process_alp_ec(input_dir: str) -> tuple[str, pl.DataFrame]:
     return "alp-ec.csv", collect_files_into_df(
         input_dir, "alp-ec", convert_alp_ec_file_to_df
     )
+
 
 def process_multi_column(input_dir: str) -> tuple[str, pl.DataFrame]:
     return "multi-column.csv", collect_files_into_df(

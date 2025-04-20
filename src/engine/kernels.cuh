@@ -93,16 +93,18 @@ namespace host {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
-__host__ T *decompress_column(const ColumnT column) {
+__host__ T *decompress_column(const ColumnT column, const uint32_t n_samples) {
   size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   GPUArray<T> device_out(column.n_values);
 
-  device::decompress_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                            ColumnT>
-      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(column,
-                                                          device_out.get());
-  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  for (uint32_t i{0}; i < n_samples; ++i) {
+    device::decompress_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES,
+                              DecompressorT, ColumnT>
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(column,
+                                                            device_out.get());
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  }
 
   T *out = new T[column.n_values];
   device_out.copy_to_host(out);
@@ -111,17 +113,20 @@ __host__ T *decompress_column(const ColumnT column) {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT>
-__host__ bool query_column(const ColumnT column, const T magic_value) {
+__host__ bool query_column(const ColumnT column, const T magic_value,
+                           const uint32_t n_samples) {
   size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   bool result = false;
   GPUArray<bool> device_out(1, &result);
 
-  device::query_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                       ColumnT>
-      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
-          column, device_out.get(), magic_value);
-  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  for (uint32_t i{0}; i < n_samples; ++i) {
+    device::query_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
+                         ColumnT>
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+            column, device_out.get(), magic_value);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  }
 
   device_out.copy_to_host(&result);
   return result;
@@ -129,17 +134,19 @@ __host__ bool query_column(const ColumnT column, const T magic_value) {
 
 template <typename T, unsigned UNPACK_N_VECTORS, unsigned UNPACK_N_VALUES,
           typename DecompressorT, typename ColumnT, unsigned N_REPETITIONS>
-__host__ bool compute_column(const ColumnT column) {
+__host__ bool compute_column(const ColumnT column, const uint32_t n_samples) {
   size_t n_vecs = utils::get_n_vecs_from_size(column.n_values);
   const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS, n_vecs);
   GPUArray<bool> device_out(1);
   bool result;
 
-  device::compute_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
-                         ColumnT, N_REPETITIONS>
-      <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(column,
-                                                          device_out.get(), 0);
-  CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  for (uint32_t i{0}; i < n_samples; ++i) {
+    device::compute_column<T, UNPACK_N_VECTORS, UNPACK_N_VALUES, DecompressorT,
+                           ColumnT, N_REPETITIONS>
+        <<<mapping.n_blocks, mapping.N_THREADS_PER_BLOCK>>>(
+            column, device_out.get(), 0);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
+  }
 
   device_out.copy_to_host(&result);
   return result;

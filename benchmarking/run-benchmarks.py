@@ -11,7 +11,15 @@ import inspect
 import types
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+import time
+
+# With profiler the resolution is higher, requiring fewer n_vecs
+GTX_1060_TOTAL_WARPS = 1280
+TARGET_WAVES = 10
+MAX_CONCURRENT_VECTORS_PER_WARP = 8
+DATA_N_VECS=GTX_1060_TOTAL_WARPS * MAX_CONCURRENT_VECTORS_PER_WARP * TARGET_WAVES
+DATA_N_VECS=512
 
 MICROBENCHMARK_EXECUTABLE = "./bin/test"
 HETEROGENEOUS_PIPELINES_EXECUTABLE = "./bin/heterogeneous-pipelines-experiment"
@@ -184,6 +192,23 @@ NVVP_METRICS = {
 }
 
 
+class Stopwatch:
+    def __init__(self) -> None:
+        self._start: Optional[float] = None
+        self._end: Optional[float] = None
+
+    def start(self):
+        assert self._start is None, "Stopwatch already started"
+        self._start = time.perf_counter()
+        return self
+
+    def stop(self) -> float:
+        assert self._start is not None, "Stopwatch not started"
+        assert self._end is None, "Stopwatch already stopped"
+        self._end = time.perf_counter()
+        return self._end - self._start
+
+
 def has_root_privileges() -> bool:
     return os.geteuid() == 0
 
@@ -220,36 +245,34 @@ def get_benchmarking_functions() -> list[tuple[str, types.FunctionType]]:
 def does_file_exist(file_path: str) -> bool:
     return os.path.isfile(file_path)
 
-def execute_command(command: str, file_out: str, save_stderr: bool = False):
-    for n in range(1, args.number_sampling_runs + 1):
-        out = f"{file_out}-{n}"
+def execute_command(command: str, out: str, save_stderr: bool = False):
+    if args.only_new_runs and does_file_exist(out):
+        logging.debug(f"Skipping command, output file exists already: {out}")
+        return
 
-        if args.only_new_runs and does_file_exist(out):
-            logging.debug(f"Skipping command, output file exists already: {out}")
-            continue
+    if args.dry_run:
+        print(command, file=sys.stderr)
+        return
 
-        if args.dry_run:
-            print(n, command, file=sys.stderr)
-            continue
+    stopwatch: Stopwatch = Stopwatch().start()
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    logging.info(f"Executed in {stopwatch.stop():.03f}s: {command}")
 
-        logging.info(f"Executing {n}: {command}")
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        logging.critical(f"STDOUT: {result.stdout}")
+        logging.critical(f"STDERR: {result.stderr}")
+        logging.critical(f"Exited with code {result.returncode}: {command}")
 
-        if result.returncode != 0:
-            logging.critical(f"STDOUT: {result.stdout}")
-            logging.critical(f"STDERR: {result.stderr}")
-            logging.critical(f"Exited with code {result.returncode}: {command}")
+        if args.exit_non_zero_exit_code:
+            exit(0)
+        return
 
-            if args.exit_non_zero_exit_code:
-                exit(0)
-            continue
-
-        if out:
-            with open(out, "w") as f:
-                if save_stderr:
-                    f.write(result.stderr)
-                else:
-                    f.write(result.stdout)
+    if out:
+        with open(out, "w") as f:
+            if save_stderr:
+                f.write(result.stderr)
+            else:
+                f.write(result.stdout)
 
 
 
@@ -286,9 +309,9 @@ def convert_list_to_str(values: list[Any]) -> list[str]:
     return list(map(str, values))
 
 
-def bench_ffor(output_dir: str, data_n_vecs: int, profiler):
+def bench_ffor(output_dir: str, profiler):
     for data_type, kernel, n_vecs, n_vals, unpacker in itertools.product(
-        FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
+            FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[-2:]
     ):
         # For switch cace only single vec and single value are supported
         if unpacker == UNPACKERS[2] and (n_vecs != 1 or n_vals != 1):
@@ -312,19 +335,19 @@ def bench_ffor(output_dir: str, data_n_vecs: int, profiler):
             output_dir,
             "ffor-"
             + "-".join(map(format_file_parameter, parameters))
-            + f"-{vbw_start}-{vbw_end}-{data_n_vecs}",
+            + f"-{vbw_start}-{vbw_end}-{DATA_N_VECS}-{args.number_sampling_runs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"none {vbw_start} {vbw_end} 0 0 {data_n_vecs} 0",
+            + f"none {vbw_start} {vbw_end} 0 0 {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
         )
 
 
-def bench_alp_ec(output_dir: str, data_n_vecs: int, profiler):
+def bench_alp_ec(output_dir: str, profiler):
     for data_type, kernel, n_vecs, n_vals, unpacker, patcher in itertools.product(
         ALP_TYPES,
         KERNELS,
@@ -356,19 +379,19 @@ def bench_alp_ec(output_dir: str, data_n_vecs: int, profiler):
             output_dir,
             "alp-ec-"
             + "-".join(map(format_file_parameter, parameters))
-            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{data_n_vecs}",
+            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{DATA_N_VECS}-{args.number_sampling_runs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {data_n_vecs} 0",
+            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
         )
 
 
-def bench_multi_column(output_dir: str, data_n_vecs: int, profiler):
+def bench_multi_column(output_dir: str, profiler):
     kernel = "query-multi-column"
 
     # Test ffor multicolumn
@@ -393,14 +416,14 @@ def bench_multi_column(output_dir: str, data_n_vecs: int, profiler):
             output_dir,
             "multi-column-"
             + "-".join(map(format_file_parameter, parameters))
-            + f"-{vbw_start}-{vbw_end}-0-0-{data_n_vecs}",
+            + f"-{vbw_start}-{vbw_end}-0-0-{DATA_N_VECS}-{args.number_sampling_runs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"{vbw_start} {vbw_end} 0 0 {data_n_vecs} 0",
+            + f"{vbw_start} {vbw_end} 0 0 {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
         )
 
@@ -436,19 +459,19 @@ def bench_multi_column(output_dir: str, data_n_vecs: int, profiler):
             output_dir,
             "multi-column-"
             + "-".join(map(format_file_parameter, parameters))
-            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{data_n_vecs}",
+            + f"-{vbw_start}-{vbw_end}-{ec_start}-{ec_end}-{DATA_N_VECS}-{args.number_sampling_runs}",
         )
         profiler.benchmark_command(
             MICROBENCHMARK_EXECUTABLE
             + " "
             + " ".join(parameters)
             + " "
-            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {data_n_vecs} 0",
+            + f"{vbw_start} {vbw_end} {ec_start} {ec_end} {DATA_N_VECS} {args.number_sampling_runs} 0",
             out=out,
         )
 
 
-def bench_hp_experiment(output_dir: str, _: int, profiler):
+def bench_hp_experiment(output_dir: str, profiler):
     out = os.path.join(output_dir, "heterogeneous-pipelines-experiment")
     profiler.benchmark_command(
         HETEROGENEOUS_PIPELINES_EXECUTABLE,
@@ -456,7 +479,7 @@ def bench_hp_experiment(output_dir: str, _: int, profiler):
     )
 
 
-def bench_ilp_experiment(output_dir: str, _: int, profiler):
+def bench_ilp_experiment(output_dir: str, profiler):
     out = os.path.join(output_dir, "ilp-experiment")
     profiler.benchmark_command(
         ILP_EXECUTABLE,
@@ -467,7 +490,7 @@ def bench_ilp_experiment(output_dir: str, _: int, profiler):
 def main(args):
     assert has_root_privileges()
     assert directory_exists(args.output_dir)
-    args.benchmarking_function(args.output_dir, args.n_vecs, get_profiler(args))
+    args.benchmarking_function(args.output_dir, get_profiler(args))
 
 
 if __name__ == "__main__":
@@ -495,17 +518,10 @@ if __name__ == "__main__":
         choices=["ncu", "nvvp"],
     )
     parser.add_argument(
-        "-nv",
-        "--n-vecs",
-        type=int,
-        default=125 * 1000 + 8,  # 500 MB, 8 is to make it divisible by 16
-        help="N-vecs",
-    )
-    parser.add_argument(
         "-nsr",
         "--number-sampling-runs",
         type=int,
-        default=1,
+        default=5,
         help="Executes commands multiple times"
     )
     parser.add_argument(
@@ -550,8 +566,8 @@ if __name__ == "__main__":
     )
 
     if args.benchmarking_function == "all":
-        args.benchmarking_function = lambda out_dir, n_vecs, profiler: list(
-            func(out_dir, n_vecs, profiler) for func in benchmarking_functions.values()
+        args.benchmarking_function = lambda out_dir, profiler: list(
+            func(out_dir, profiler) for func in benchmarking_functions.values()
         )
     else:
         args.benchmarking_function = benchmarking_functions[args.benchmarking_function]

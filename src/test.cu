@@ -21,6 +21,7 @@ struct ProgramParameters {
   data::ValueRange<vbw_t> bit_width_range;
   data::ValueRange<uint16_t> ec_range;
   size_t n_values;
+  uint32_t n_samples;
   enums::Print print_option;
 };
 
@@ -36,10 +37,11 @@ struct CLIArgs {
   uint16_t start_ec;
   uint16_t end_ec;
   size_t n_vecs;
+  uint32_t n_samples;
   uint32_t print_debug;
 
   CLIArgs(const int argc, char **argv) {
-    constexpr int32_t CORRECT_ARG_COUNT = 13;
+    constexpr int32_t CORRECT_ARG_COUNT = 14;
     if (argc != CORRECT_ARG_COUNT) {
       throw std::invalid_argument("Wrong arg count.\n");
     }
@@ -56,6 +58,7 @@ struct CLIArgs {
     start_ec = std::stoul(argv[++argcounter]);
     end_ec = std::stoul(argv[++argcounter]);
     n_vecs = std::stoul(argv[++argcounter]);
+    n_samples = std::stoul(argv[++argcounter]);
     print_debug = std::stoul(argv[++argcounter]);
   }
 
@@ -70,6 +73,7 @@ struct CLIArgs {
         data::ValueRange<vbw_t>(start_vbw, end_vbw),
         data::ValueRange<uint16_t>(start_ec, end_ec),
         n_vecs * consts::VALUES_PER_VECTOR,
+        n_samples,
         static_cast<enums::Print>(print_debug),
     };
   }
@@ -84,7 +88,7 @@ decompress_column(const ColumnT column, const ProgramParameters params) {
   const T *out =
       bindings::decompress_column<T, typename ColumnT::DeviceColumnT>(
           column_device, params.unpack_n_vecs, params.unpack_n_vals,
-          params.unpacker, params.patcher);
+          params.unpacker, params.patcher, params.n_samples);
   flsgpu::host::free_column(column_device);
 
   const T *correct_out = data::bindings::decompress(column);
@@ -102,7 +106,7 @@ query_column(const ColumnT column, const ProgramParameters params,
   const bool answer =
       bindings::query_column<T, typename ColumnT::DeviceColumnT>(
           column_device, params.unpack_n_vecs, params.unpack_n_vals,
-          params.unpacker, params.patcher, magic_value);
+          params.unpacker, params.patcher, magic_value, params.n_samples);
   flsgpu::host::free_column(column_device);
 
   // Weird hack to avoid refactor_
@@ -115,11 +119,10 @@ query_column(const ColumnT column, const ProgramParameters params,
 template <typename T, typename ColumnT>
 verification::ExecutionResult<T>
 query_multi_column(const ColumnT column, const ProgramParameters params,
-             const bool query_result, const T magic_value) {
-  const bool answer =
-      bindings::query_multi_column<T, ColumnT>(
-          column, params.unpack_n_vecs, params.unpack_n_vals,
-          params.unpacker, params.patcher, magic_value);
+                   const bool query_result, const T magic_value) {
+  const bool answer = bindings::query_multi_column<T, ColumnT>(
+      column, params.unpack_n_vecs, params.unpack_n_vals, params.unpacker,
+      params.patcher, magic_value, params.n_samples);
 
   // Weird hack to avoid refactor_
   T a = query_result ? 1.0 : 0.0;
@@ -137,7 +140,8 @@ execute_kernel(const ColumnT column, const ProgramParameters params,
   } else if (params.kernel == enums::Kernel::Query) {
     return query_column<T, ColumnT>(column, params, query_result, magic_value);
   } else if (params.kernel == enums::Kernel::QueryMultiColumn) {
-    return query_multi_column<T, ColumnT>(column, params, query_result, magic_value);
+    return query_multi_column<T, ColumnT>(column, params, query_result,
+                                          magic_value);
   } else {
     throw std::invalid_argument("Kernel not implemented yet.\n");
   }
@@ -151,10 +155,10 @@ execute_ffor(const ProgramParameters params) {
 
   for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max;
        ++vbw) {
-		auto vbw_range = data::ValueRange<vbw_t>(vbw);
-		if (params.kernel == enums::Kernel::QueryMultiColumn) {
-			vbw_range = params.bit_width_range;
-		}
+    auto vbw_range = data::ValueRange<vbw_t>(vbw);
+    if (params.kernel == enums::Kernel::QueryMultiColumn) {
+      vbw_range = params.bit_width_range;
+    }
     bool query_result = false;
     T magic_value = consts::as<T>::MAGIC_NUMBER;
     flsgpu::host::FFORColumn<T> column;
@@ -162,30 +166,29 @@ execute_ffor(const ProgramParameters params) {
     if (params.kernel == enums::Kernel::Query) {
       auto [_query_result, _column] =
           data::columns::generate_binary_ffor_column<T>(
-              params.n_values, vbw_range,
-              params.unpack_n_vecs);
+              params.n_values, vbw_range, params.unpack_n_vecs);
       query_result = _query_result;
       column = _column;
     } else {
       column = data::columns::generate_random_ffor_column<T>(
-          params.n_values, vbw_range,
-          data::ValueRange<T>(0, 100), params.unpack_n_vecs);
+          params.n_values, vbw_range, data::ValueRange<T>(0, 100),
+          params.unpack_n_vecs);
     }
 
-		if (params.kernel == enums::Kernel::QueryMultiColumn) {
-			// We do not want query multicolumn to ever find a full lane of the
-			// value to query to limit write bandwidth
-			magic_value = std::numeric_limits<T>::max();
-		}
+    if (params.kernel == enums::Kernel::QueryMultiColumn) {
+      // We do not want query multicolumn to ever find a full lane of the
+      // value to query to limit write bandwidth
+      magic_value = std::numeric_limits<T>::max();
+    }
 
     results.push_back(execute_kernel<T, flsgpu::host::FFORColumn<T>>(
         column, params, query_result, magic_value));
 
     flsgpu::host::free_column(column);
 
-		if (params.kernel == enums::Kernel::QueryMultiColumn) {
-			break;
-		}
+    if (params.kernel == enums::Kernel::QueryMultiColumn) {
+      break;
+    }
   }
 
   return results;
@@ -197,16 +200,16 @@ execute_alp(const ProgramParameters params) {
   using UINT_T = typename utils::same_width_uint<T>::type;
   auto results = std::vector<verification::ExecutionResult<T>>();
 
-  //for (vbw_t vbw{params.bit_width_range.min}; vbw <= params.bit_width_range.max; ++vbw) {
-	{ 
+  // for (vbw_t vbw{params.bit_width_range.min}; vbw <=
+  // params.bit_width_range.max; ++vbw) {
+  {
     bool query_result = false;
     T magic_value = consts::as<T>::MAGIC_NUMBER;
 
     auto column = data::columns::generate_alp_column<T>(
-        params.n_values, params.bit_width_range,
-        data::ValueRange<uint16_t>(0), params.unpack_n_vecs);
-    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max;
-         ++ec) {
+        params.n_values, params.bit_width_range, data::ValueRange<uint16_t>(0),
+        params.unpack_n_vecs);
+    for (uint16_t ec{params.ec_range.min}; ec <= params.ec_range.max; ++ec) {
       column = data::columns::modify_alp_exception_count(column, ec);
 
       if (params.kernel == enums::Kernel::Query) {

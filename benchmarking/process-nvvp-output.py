@@ -62,9 +62,12 @@ def parse_duration(line: str) -> int:
     if unit == "u":
         multiplier = 1000
     elif unit == "m":
-        multiplier = 1000000
+        multiplier = 1000 * 1000
     else:
-        raise Exception(f"Could not parse {duration}, unknown unit: {unit}.")
+        if duration[-2].isnumeric() and duration[-1] == "s":
+            multiplier = 1000 * 1000 * 1000
+        else:
+            raise Exception(f"Could not parse {duration}, unknown unit: {unit}.")
 
     value_float: float = float(duration[:-2])
 

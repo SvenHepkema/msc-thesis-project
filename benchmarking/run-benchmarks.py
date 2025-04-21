@@ -354,7 +354,7 @@ def convert_list_to_str(values: list[Any]) -> list[str]:
 
 def bench_ffor(output_dir: str, profiler):
     for data_type, kernel, n_vecs, n_vals, unpacker in itertools.product(
-        FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS[-2:]
+        FLS_TYPES, KERNELS, UNPACK_N_VECS, UNPACK_N_VALS, UNPACKERS
     ):
         # For switch cace only single vec and single value are supported
         if unpacker == UNPACKERS[2] and (n_vecs != 1 or n_vals != 1):

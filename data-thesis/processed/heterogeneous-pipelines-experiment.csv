@@ -1,0 +1,8 @@
+kernel_index,duration_ns,first_kernel,second_kernel,sample_run
+0,88427000,ARITHMETIC_32,NONE,experiment
+1,379300000,ARITHMETIC_64,NONE,experiment
+2,108180000,MEMORY,NONE,experiment
+3,188690000,ARITHMETIC_32,ARITHMETIC_32,experiment
+4,108210000,ARITHMETIC_32,MEMORY,experiment
+5,115330000,MEMORY,ARITHMETIC_32,experiment
+6,214590000,MEMORY,MEMORY,experiment

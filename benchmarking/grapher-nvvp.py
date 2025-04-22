@@ -555,7 +555,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
         "throughput",
     )
 
-    source_sets = [
+    ffor_source_sets = [
         SourceSet(
             f"FFOR-{data_type}",
             define_graph(
@@ -582,7 +582,9 @@ def plot_multi_column(input_dir: str, output_dir: str):
             "u32",
             "u64",
         ]
-    ] + [
+    ]
+
+    alp_source_sets = [
         SourceSet(
             f"ALP-{unpacker}-{data_type}",
             define_graph(
@@ -619,22 +621,35 @@ def plot_multi_column(input_dir: str, output_dir: str):
         if not (unpacker == "old_fls" and data_type == "f64")
     ]
 
-    y_lim = calculate_common_y_lim(
-        itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+    ffor_y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, ffor_source_sets))
+    )
+    alp_y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, alp_source_sets))
     )
 
-    for source_set in source_sets:
-        sources = assign_colors(source_set.sources, source_set.colors)
+    for source_sets, y_lim in zip(
+        [
+            ffor_source_sets,
+            alp_source_sets,
+        ],
+        [
+            ffor_y_lim,
+            alp_y_lim,
+        ],
+    ):
+        for source_set in source_sets:
+            sources = assign_colors(source_set.sources, source_set.colors)
 
-        create_multi_bar_graph(
-            sources,
-            list(map(str, range(1, n_cols + 1))),
-            "Number of columns",
-            "Throughput (vectors/ns/column)",
-            os.path.join(output_dir, f"multi-column-{source_set.file_name}.eps"),
-            y_lim=(0, y_lim),
-            title=source_set.title,
-        )
+            create_multi_bar_graph(
+                sources,
+                list(map(str, range(1, n_cols + 1))),
+                "Number of columns",
+                "Throughput (vectors/ns/column)",
+                os.path.join(output_dir, f"multi-column-{source_set.file_name}.eps"),
+                y_lim=(0, y_lim),
+                title=source_set.title,
+            )
 
 
 def plot_compressors(input_dir: str, output_dir: str):

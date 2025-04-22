@@ -85,7 +85,7 @@ def create_scatter_graph(
     x_label: str,
     y_label: str,
     out: str,
-    y_lim: tuple[int|float, int|float] | None = None,
+    y_lim: tuple[int | float, int | float] | None = None,
     octal_grid: bool = False,
     figsize: tuple[int, int] = (5, 5),
     legend_pos: str = "best",
@@ -249,7 +249,7 @@ def define_graph(
 
 
 @dataclass
-class GraphDefinition:
+class SourceSet:
     file_name: str
     sources: list[GroupedDataSource]
     title: Optional[str] = None
@@ -274,8 +274,10 @@ def assign_colors(
 
     return sources
 
+
 def convert_str_to_label(label: str) -> str:
     return label.replace("_", " ").title()
+
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
@@ -292,48 +294,142 @@ def plot_ffor(input_dir: str, output_dir: str):
         "throughput",
     )
 
-    storage_types = [
+    stateful_storage_types = [
         "cache",
         "local",
         "shared",
         "register",
         "register_branchless",
     ]
-    stateful_graphs = [
-        GraphDefinition(
-            f"stateful-b{buffer_size}-v{n_vec}-{data_type}",
-            define_graph(
-                sources,
-                [
-                    data_type,
-                    "query",
-                    n_vec,
+    source_sets = (
+        [
+            SourceSet(
+                f"32-switch-vs-1-switch-v1-u32",
+                define_graph(
+                    sources,
                     [
-                        (
-                            (f"stateful_{storage_type}" if buffer_size == 1 else "")
-                            if storage_type == "cache"
-                            else f"stateful_{storage_type}_{buffer_size}"
-                        )
-                        for storage_type in storage_types
+                        "u32",
+                        "query",
+                        1,
+                        [
+                            "old_fls",
+                            "switch_case",
+                        ],
                     ],
-                ],
-                lambda x: convert_str_to_label(" ".join(x[3].split("_")[1:-1])),
-            ),
-            title=f"Buffer size: {buffer_size}, concurrent vectors: {n_vec}",
-            colors=range(0 if buffer_size == 1 else 1, len(storage_types)),
-        )
-        for buffer_size, n_vec, data_type in itertools.product(
-            [1, 2, 4],
-            [1, 4],
-            ["u32", "u64"],
-        )
-    ]
-
-    y_lim = calculate_common_y_lim(
-        itertools.chain.from_iterable(map(lambda x: x.sources, stateful_graphs))
+                    lambda x: (
+                        "FastLanesOnGPU"
+                        if x[3] == "old_fls"
+                        else "One value decoding switch"
+                    ),
+                ),
+                title=f"u32, Concurrent Vectors: 1",
+                colors=range(0, 2),
+            )
+        ]
+        + [
+            SourceSet(
+                f"old-fls-vs-stateless-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        data_type,
+                        kernel,
+                        n_vec,
+                        [
+                            "old_fls" if n_vec == 1 and data_type == "u32" else "",
+                            "switch_case" if n_vec == 1 and data_type == "u32" else "",
+                            "stateless",
+                        ],
+                    ],
+                    lambda x: (
+                        "FastLanesOnGPU"
+                        if x[3] == "old_fls"
+                        else (
+                            "One value decoding switch"
+                            if x[3] == "switch_case"
+                            else "Stateless"
+                        )
+                    ),
+                ),
+                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                colors=range(0 if n_vec == 1 and data_type == "u32" else 2, 3),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query", "decompress"], [1, 4], ["u32"]
+            )
+        ]
+        + [
+            SourceSet(
+                f"stateful-b{buffer_size}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        data_type,
+                        "query",
+                        n_vec,
+                        [
+                            (
+                                (f"stateful_{storage_type}" if buffer_size == 1 else "")
+                                if storage_type == "cache"
+                                else f"stateful_{storage_type}_{buffer_size}"
+                            )
+                            for storage_type in stateful_storage_types
+                        ],
+                    ],
+                    lambda x: convert_str_to_label(" ".join(x[3].split("_")[1:-1])),
+                ),
+                title=f"{data_type}, Concurrent Vectors: {n_vec}, Buffer Size: {buffer_size}",
+                colors=range(0 if buffer_size == 1 else 1, len(stateful_storage_types)),
+            )
+            for buffer_size, n_vec, data_type in itertools.product(
+                [1, 2, 4],
+                [1, 4],
+                ["u32", "u64"],
+            )
+        ]
+        + [
+            SourceSet(
+                f"all-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        data_type,
+                        kernel,
+                        n_vec,
+                        [
+                            "old_fls" if n_vec == 1 and data_type == "u32" else "",
+                            "stateless",
+                            "stateless_branchless",
+                            "stateful_register_branchless_2",
+                            "stateful_branchless",
+                        ],
+                    ],
+                    lambda x: (
+                        "FastLanesOnGPU"
+                        if x[3] == "old_fls"
+                        else (
+                            convert_str_to_label(
+                                convert_str_to_label(x[3])
+                                if x[3] != "stateful_register_branchless_2"
+                                else "Stateful"
+                            )
+                        )
+                    ),
+                ),
+                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                colors=range(0 if n_vec == 1 and data_type == "u32" else 1, 5),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query", "decompress"], [1, 4], ["u32", "u64"]
+            )
+        ]
     )
 
-    for definition in stateful_graphs:
+    y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+    )
+
+    for definition in source_sets:
         sources = assign_colors(definition.sources, definition.colors)
 
         create_scatter_graph(

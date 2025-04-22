@@ -4,13 +4,14 @@ from collections.abc import Callable
 import os
 import sys
 
+import itertools
 import argparse
 import logging
 import copy
 
 import inspect
 import types
-from typing import Any
+from typing import Any, Iterable, Optional
 from pathlib import Path
 
 import polars as pl
@@ -30,13 +31,13 @@ COLOR_SET = [
     "tab:blue",
     "tab:orange",
     "tab:red",
+    "tab:green",
+    "tab:pink",
     "tab:purple",
     "tab:brown",
-    "tab:pink",
-    "tab:gray",
     "tab:olive",
+    "tab:gray",
     "tab:cyan",
-    "tab:green",
 ]
 
 
@@ -84,12 +85,13 @@ def create_scatter_graph(
     x_label: str,
     y_label: str,
     out: str,
-    y_lim: tuple[int, int] | None = None,
+    y_lim: tuple[int|float, int|float] | None = None,
     octal_grid: bool = False,
     figsize: tuple[int, int] = (5, 5),
     legend_pos: str = "best",
     add_lines: bool = False,
     x_axis_percentage: bool = False,
+    title: Optional[str] = None,
 ):
     fig, ax = plt.subplots(figsize=figsize)
     x_min = min(data_sources[0].x_data)
@@ -117,13 +119,16 @@ def create_scatter_graph(
     ax.set_xticks(range(math.floor(x_min), math.ceil(x_max)), minor=True)
     ax.tick_params(axis="x", which="minor", length=4, labelbottom=False)
     if octal_grid:
-        ax.set_xticks(range(math.floor(x_min), math.ceil(x_max), 8))
+        ax.set_xticks(range(math.floor(x_min), math.ceil(x_max) + 1, 8))
 
     ax.grid(which="major", linestyle="--", linewidth=0.1)
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_ylim(y_lim)
+
+    if title:
+        ax.set_title(title)
 
     ax.legend(loc=legend_pos)
 
@@ -185,7 +190,9 @@ def average_samples(df: pl.DataFrame, columns_to_avg: list[str]) -> pl.DataFrame
     dropped_columns = ["kernel_index", "sample_run"]
     reference_columns = [col for col in df.columns if col not in dropped_columns]
     group_by_cols = [
-        col for col in df.columns if col not in columns_to_avg and col not in dropped_columns
+        col
+        for col in df.columns
+        if col not in columns_to_avg and col not in dropped_columns
     ]
 
     df = df.group_by(group_by_cols, maintain_order=True).agg(
@@ -231,63 +238,112 @@ def define_graph(
         sources,
     )
 
-    labelled = map(
-        lambda x: copy.copy(x.set_label(label_func(x.group_by_column_values))), filtered
+    labelled = list(
+        map(
+            lambda x: copy.copy(x.set_label(label_func(x.group_by_column_values))),
+            filtered,
+        )
     )
 
-    return sorted(list(labelled), key=lambda x: x.label)
+    return sorted(labelled, key=lambda x: x.label)
 
 
-def calculate_common_y_lim(sources: list[DataSource | GroupedDataSource]) -> float:
-    return max([max(source.y_data) for source in sources]) * 1.1
+@dataclass
+class GraphDefinition:
+    file_name: str
+    sources: list[GroupedDataSource]
+    title: Optional[str] = None
+    colors: Optional[Iterable[int]] = None
+
+
+def calculate_common_y_lim(sources: Iterable[DataSource | GroupedDataSource]) -> float:
+    all_y_data = itertools.chain.from_iterable(map(lambda x: x.y_data, sources))
+    return max(all_y_data) * 1.1
 
 
 def assign_colors(
-    sources: list[DataSource | GroupedDataSource],
-) -> list[DataSource | GroupedDataSource]:
-    for i, source in enumerate(sources):
-        source.color = i
+    sources: Iterable[DataSource | GroupedDataSource],
+    colors: Optional[Iterable[int]] = None,
+) -> Iterable[DataSource | GroupedDataSource]:
+    if colors:
+        for c, source in zip(colors, sources):
+            source.color = c
+    else:
+        for c, source in enumerate(sources):
+            source.color = c
 
     return sources
 
+def convert_str_to_label(label: str) -> str:
+    return label.replace("_", " ").title()
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (pl.col("duration_ns") / 1000).alias("duration_us"),
+        (pl.col("n_vecs") / (pl.col("duration_ns") / 1000)).alias("throughput"),
     )
 
     sources = create_grouped_data_sources(
         df,
         ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
         "vbw",
-        "duration_us",
+        "throughput",
     )
 
-    graphs = {
-        "stateless": define_graph(
-            sources, ["u32", "query", 1, "stateless"], lambda x: x[3]
-        ),
-        "switch_vs_stateful_branchless": define_graph(
-            sources,
-            ["u32", "query", 1, ["switch_case", "stateful_branchless"]],
-            lambda x: x[3],
-        ),
-        "stateful_branchless_u32-vs-u64": define_graph(
-            sources, [["u32", "u64"], "query", 1, "stateful_branchless"], lambda x: x[0]
-        ),
-    }
+    storage_types = [
+        "cache",
+        "local",
+        "shared",
+        "register",
+        "register_branchless",
+    ]
+    stateful_graphs = [
+        GraphDefinition(
+            f"stateful-b{buffer_size}-v{n_vec}-{data_type}",
+            define_graph(
+                sources,
+                [
+                    data_type,
+                    "query",
+                    n_vec,
+                    [
+                        (
+                            (f"stateful_{storage_type}" if buffer_size == 1 else "")
+                            if storage_type == "cache"
+                            else f"stateful_{storage_type}_{buffer_size}"
+                        )
+                        for storage_type in storage_types
+                    ],
+                ],
+                lambda x: convert_str_to_label(" ".join(x[3].split("_")[1:-1])),
+            ),
+            title=f"Buffer size: {buffer_size}, concurrent vectors: {n_vec}",
+            colors=range(0 if buffer_size == 1 else 1, len(storage_types)),
+        )
+        for buffer_size, n_vec, data_type in itertools.product(
+            [1, 2, 4],
+            [1, 4],
+            ["u32", "u64"],
+        )
+    ]
 
-    for name, graph_sources in graphs.items():
-        graph_sources = assign_colors(graph_sources)
+    y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, stateful_graphs))
+    )
+
+    for definition in stateful_graphs:
+        sources = assign_colors(definition.sources, definition.colors)
 
         create_scatter_graph(
-            graph_sources,
+            sources,
             "Value bit width",
-            "Duration (us)",
-            os.path.join(output_dir, f"ffor-{name}.eps"),
-            y_lim=(0, calculate_common_y_lim(graph_sources)),
+            "Throughput (vecs/us)",
+            os.path.join(output_dir, f"ffor-{definition.file_name}.eps"),
+            y_lim=(0, y_lim),
+            octal_grid=True,
+            title=definition.title,
         )
 
 

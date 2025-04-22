@@ -429,17 +429,17 @@ def plot_ffor(input_dir: str, output_dir: str):
         itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
     )
 
-    for definition in source_sets:
-        sources = assign_colors(definition.sources, definition.colors)
+    for source_set in source_sets:
+        sources = assign_colors(source_set.sources, source_set.colors)
 
         create_scatter_graph(
             sources,
             "Value bit width",
             "Throughput (vecs/us)",
-            os.path.join(output_dir, f"ffor-{definition.file_name}.eps"),
+            os.path.join(output_dir, f"ffor-{source_set.file_name}.eps"),
             y_lim=(0, y_lim),
             octal_grid=True,
-            title=definition.title,
+            title=source_set.title,
         )
 
 
@@ -448,50 +448,85 @@ def plot_alp_ec(input_dir: str, output_dir: str):
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (pl.col("duration_ns") / 1000).alias("duration_us"),
+        (pl.col("n_vecs") / (pl.col("duration_ns") / 1000)).alias("throughput"),
     )
 
     sources = create_grouped_data_sources(
         df,
         ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
         "ec",
-        "duration_us",
+        "throughput",
     )
 
-    graphs = {
-        "stateless": define_graph(
-            sources,
-            [
-                "f32",
-                "query",
-                1,
-                "stateless",
-                "stateless",
-            ],
-            lambda x: x[3],
-        ),
-        "stateful_branchless_prefetch_all_f32-vs-f64": define_graph(
-            sources,
-            [
-                ["f32", "f64"],
-                "query",
-                1,
-                "stateful_branchless",
-                "prefetch_all",
-            ],
-            lambda x: x[0],
-        ),
-    }
+    alp_unpacker = "stateful_branchless"
+    source_sets = (
+        [
+            SourceSet(
+                f"alp-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        data_type,
+                        kernel,
+                        n_vec,
+                        alp_unpacker,
+                        [
+                            "stateless",
+                            "stateful",
+                        ],
+                    ],
+                    lambda x: convert_str_to_label(x[4]),
+                ),
+                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                colors=range(0, 2),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query"], [1, 4], ["f32", "f64"]
+            )
+        ] + [
+            SourceSet(
+                f"galp-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        data_type,
+                        kernel,
+                        n_vec,
+                        alp_unpacker,
+                        [
+                            "naive",
+                            "naive_branchless",
+                            "prefetch_position",
+                            "prefetch_all",
+                            "prefetch_all_branchless",
+                        ],
+                    ],
+                    lambda x: convert_str_to_label(x[4]),
+                ),
+                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                colors=range(0, 5),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query"], [1, 4], ["f32", "f64"]
+            )
+        ] 
+    )
 
-    for name, graph_sources in graphs.items():
-        graph_sources = assign_colors(graph_sources)
+    y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+    )
+
+
+    for source_set in source_sets:
+        sources = assign_colors(source_set.sources, source_set.colors)
 
         create_scatter_graph(
-            graph_sources,
+            sources,
             "Exception count",
-            "Duration (us)",
-            os.path.join(output_dir, f"alp-ec-{name}.eps"),
-            y_lim=(0, calculate_common_y_lim(graph_sources)),
-            legend_pos="lower right",
+            "Throughput (vecs/us)",
+            os.path.join(output_dir, f"alp-ec-{source_set.file_name}.eps"),
+            y_lim=(0, y_lim),
+            title=source_set.title,
         )
 
 

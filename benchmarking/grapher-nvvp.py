@@ -182,9 +182,11 @@ def reorder_columns(df: pl.DataFrame, reference_columns: list[str]) -> pl.DataFr
 
 
 def average_samples(df: pl.DataFrame, columns_to_avg: list[str]) -> pl.DataFrame:
-    df = df.drop("sample_run")
-    reference_columns = [col for col in df.columns if col != "sample_run"]
-    group_by_cols = [col for col in df.columns if col not in columns_to_avg]
+    dropped_columns = ["kernel_index", "sample_run"]
+    reference_columns = [col for col in df.columns if col not in dropped_columns]
+    group_by_cols = [
+        col for col in df.columns if col not in columns_to_avg and col not in dropped_columns
+    ]
 
     df = df.group_by(group_by_cols, maintain_order=True).agg(
         [pl.col(col).mean().alias(col) for col in columns_to_avg]
@@ -253,14 +255,14 @@ def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (pl.col("duration_ns") / 1000).alias("duration (us)"),
+        (pl.col("duration_ns") / 1000).alias("duration_us"),
     )
 
     sources = create_grouped_data_sources(
         df,
         ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
         "vbw",
-        "duration (us)",
+        "duration_us",
     )
 
     graphs = {
@@ -293,14 +295,14 @@ def plot_alp_ec(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "alp-ec.csv"))
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (pl.col("duration_ns") / 1000).alias("duration (us)"),
+        (pl.col("duration_ns") / 1000).alias("duration_us"),
     )
 
     sources = create_grouped_data_sources(
         df,
         ["data_type", "kernel", "unpack_n_vectors", "unpacker", "patcher"],
         "ec",
-        "duration (us)",
+        "duration_us",
     )
 
     graphs = {
@@ -456,7 +458,7 @@ def plot_ilp_experiment(input_dir: str, output_dir: str):
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (TOTAL_PTRS_CHASED / pl.col("duration_ns")).alias("throughput"),
-        (pl.col("duration_ns") / 1000).alias("duration (us)"),
+        (pl.col("duration_ns") / 1000).alias("duration_us"),
         (pl.col("threads/block") / MAX_THREAD_BLOCK_SIZE).alias("occupancy"),
     )
 
@@ -465,7 +467,7 @@ def plot_ilp_experiment(input_dir: str, output_dir: str):
             f"{label_data[0][0]} concurrent ptrs/warp",
             i,
             label_data[1].get_column("occupancy").to_list(),
-            label_data[1].get_column("duration (us)").to_list(),
+            label_data[1].get_column("duration_us").to_list(),
         )
         for i, label_data in enumerate(df.group_by(["ilp"], maintain_order=True))
     ]

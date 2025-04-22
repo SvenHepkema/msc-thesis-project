@@ -571,9 +571,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                     ],
                     "none",
                 ],
-                lambda x: format_str_to_label(
-                    f"{format_unpacker_to_label(x[3])} {x[2]}v"
-                ),
+                lambda x: f"{format_unpacker_to_label(x[3])} {x[2]}v",
             ),
             title=f"Multicolumn FFOR {data_type}",
             colors=range(0, 6),
@@ -600,9 +598,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                         "prefetch_all_branchless",
                     ],
                 ],
-                lambda x: format_str_to_label(
-                    f"{format_unpacker_to_label(x[4])} {x[2]}v"
-                ),
+                lambda x: f"{format_unpacker_to_label(x[4])} {x[2]}v",
             ),
             title=f"Multicolumn ALP {format_unpacker_to_label(unpacker)} {data_type}",
             colors=range(0, 6) if unpacker != "old_fls" else [0, 2],

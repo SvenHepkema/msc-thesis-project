@@ -192,6 +192,7 @@ def create_boxplot_graph(
     out: str,
     y_lim: tuple[int, int] | None = None,
     title: Optional[str] = None,
+    x_label_rotation: int=0,
 ):
     fig, ax = plt.subplots(figsize=(12, 7))
     ax.boxplot(
@@ -199,6 +200,9 @@ def create_boxplot_graph(
         labels=list(map(lambda x: x.label, data_sources)),
     )
 
+    for label in ax.get_xticklabels():
+        label.set_rotation(x_label_rotation)   
+        label.set_horizontalalignment('right')  
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_ylim(y_lim)
@@ -245,7 +249,7 @@ def create_latex_table(
     num_rows = len(row_labels)
 
     if vertical_column_names:
-        column_labels = [f"\\rotatebox{{70}}{{{label}}}" for label in column_labels]
+        column_labels = [f"\\rotatebox{{90}}{{{label}}}" for label in column_labels]
 
     average_formatter = lambda x: f"\\textbf{{{x}}}"
     label_formatter = lambda x: x.replace("_", r"\_")
@@ -752,6 +756,21 @@ def plot_compressors(input_dir: str, output_dir: str):
             "avg_exceptions_per_vector": pl.Float64,
         },
     ).sort("file")
+    rename_map = {
+        "Thrust": "Thrust",
+        "ALP": "ALP",
+        "GALP": "GALP",
+        "Bitcomp": "nv-Bitcomp",
+        "BitcompSparse": "nv-BitcompSparse",
+        "zstd": "nv-zstd",
+        "LZ4": "nv-LZ4",
+        "Snappy": "nv-Snappy",
+        "Deflate": "nv-Deflate",
+        "GDeflate": "nv-GDeflate",
+    }
+    df = df.with_columns(
+        pl.col("compressor").replace(rename_map).alias("compressor")
+    )
     df = average_samples(
         df,
         [
@@ -897,6 +916,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 label,
                 os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
                 y_lim=(0, 80) if measurement == "compression_ratio" else None,
+                x_label_rotation=45,
             )
 
             create_latex_table(

@@ -748,29 +748,37 @@ def plot_compressors(input_dir: str, output_dir: str):
     )
 
     # Create avg bits/value exception count table
-    alp_df = df.filter(
-        (pl.col("compressor") == "ALP") & (pl.col("kernel") == "decompression")
-    )
-    galp_df = df.filter(
-        (pl.col("compressor") == "GALP") & (pl.col("kernel") == "decompression")
-    )
-    create_latex_table(
-        [
-            alp_df.get_column("avg_bits_per_value").to_list(),
-            alp_df.get_column("avg_exceptions_per_vector").to_list(),
-            alp_df.get_column("compression_ratio").to_list(),
-            galp_df.get_column("compression_ratio").to_list(),
-        ],
-        [
-            "Avg. bits / value",
-            "Avg. exceptions / vector",
-            "CR ALP",
-            "CR GALP",
-        ],
-        alp_df.get_column("file").to_list(),
-        os.path.join(output_dir, f"compressors-table-alp-compression-parameters.tex"),
-        lambda x: [f"{v:.2f}" for v in x],
-    )
+    for data_type in ["f32", "f64"]:
+        alp_df = df.filter(
+            (pl.col("compressor") == "ALP")
+            & (pl.col("kernel") == "decompression")
+            & (pl.col("data_type") == data_type)
+        )
+        galp_df = df.filter(
+            (pl.col("compressor") == "GALP")
+            & (pl.col("kernel") == "decompression")
+            & (pl.col("data_type") == data_type)
+        )
+        create_latex_table(
+            [
+                alp_df.get_column("avg_bits_per_value").to_list(),
+                alp_df.get_column("avg_exceptions_per_vector").to_list(),
+                alp_df.get_column("compression_ratio").to_list(),
+                galp_df.get_column("compression_ratio").to_list(),
+            ],
+            [
+                "Avg. bits / value",
+                "Avg. exceptions / vector",
+                "CR ALP",
+                "CR GALP",
+            ],
+            alp_df.get_column("file").to_list(),
+            os.path.join(
+                output_dir,
+                f"compressors-table-alp-compression-parameters-{data_type}.tex",
+            ),
+            lambda x: [f"{v:.2f}" for v in x],
+        )
 
     df = df.with_columns(
         (

@@ -185,6 +185,29 @@ def create_multi_bar_graph(
     plt.close(fig)
 
 
+def create_boxplot_graph(
+    data_sources: list[DataSource | GroupedDataSource],
+    x_label: str,
+    y_label: str,
+    out: str,
+    y_lim: tuple[int, int] | None = None,
+    title: Optional[str] = None,
+):
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.boxplot(
+        x=list(map(lambda s: s.y_data, data_sources)),
+        labels=list(map(lambda x: x.label, data_sources)),
+    )
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_ylim(y_lim)
+
+    ax.set_title(title)
+    fig.savefig(out, dpi=300, format="eps", bbox_inches="tight")
+    plt.close(fig)
+
+
 def reorder_columns(df: pl.DataFrame, reference_columns: list[str]) -> pl.DataFrame:
     ordered_columns = [col for col in reference_columns if col in df.columns]
     return df.select(ordered_columns)
@@ -260,9 +283,9 @@ class SourceSet:
     colors: Optional[Iterable[int]] = None
 
 
-def calculate_common_y_lim(sources: Iterable[DataSource | GroupedDataSource]) -> float:
-    all_y_data = itertools.chain.from_iterable(map(lambda x: x.y_data, sources))
-    return max(all_y_data) * 1.1
+def calculate_common_y_lim(sources: Iterable[DataSource | GroupedDataSource], top_n: int=1) -> float:
+    all_y_data = list(itertools.chain.from_iterable(map(lambda x: x.y_data, sources)))
+    return sorted(all_y_data)[-min(len(all_y_data), top_n)] * 1.1
 
 
 def assign_colors(
@@ -660,7 +683,9 @@ def plot_compressors(input_dir: str, output_dir: str):
         ],
     )
     df = df.with_columns(
-        (pl.col("n_bytes") / pl.col("duration_ms")).alias("throughput")
+        (
+            (pl.col("n_bytes") / (1024 * 1024 * 1024)) / (pl.col("duration_ms") / 1000)
+        ).alias("throughput")
     )
 
     sources = create_grouped_data_sources(
@@ -670,38 +695,95 @@ def plot_compressors(input_dir: str, output_dir: str):
         "throughput",
     )
 
-    graphs = {
-        "scatter-compression-vs-throughput-f32": define_graph(
-            sources,
+    source_sets = [
+        SourceSet(
+            f"scatter-{kernel}-{data_type}",
+            define_graph(
+                sources,
+                [
+                    kernel,
+                    [],
+                    data_type,
+                ],
+                lambda x: f"{x[1]}",
+            ),
+        )
+        for kernel, data_type in itertools.product(
             [
+                "decompression",
                 "decompression_query",
-                [],
-                "f32",
             ],
-            lambda x: f"{x[1]}",
-        ),
-        "scatter-compression-vs-throughput-f64": define_graph(
-            sources,
             [
-                "decompression_query",
-                [],
+                "f32",
                 "f64",
             ],
-            lambda x: f"{x[1]}",
-        ),
-    }
+        )
+    ]
 
-    for name, graph_sources in graphs.items():
-        graph_sources = assign_colors(graph_sources)
+    for source_set in source_sets:
+        sources = assign_colors(source_set.sources, source_set.colors)
 
         create_scatter_graph(
-            graph_sources,
+            sources,
             "Compression ratio",
             "Throughput",
-            os.path.join(output_dir, f"compressors-{name}.eps"),
-            y_lim=(0, calculate_common_y_lim(graph_sources)),
+            os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
+            y_lim=(0, calculate_common_y_lim(sources)),
             legend_pos="upper right",
         )
+
+    for label, measurement in zip(
+        [
+            "Compression Ratio",
+            "Throughput (GB/s)",
+        ],
+        [
+            "compression_ratio",
+            "throughput",
+        ],
+    ):
+        sources = create_grouped_data_sources(
+            df,
+            ["kernel", "compressor", "data_type"],
+            "compressor",
+            measurement,
+        )
+
+        source_sets = [
+            SourceSet(
+                f"boxplot-{measurement}-{kernel}-{data_type}",
+                define_graph(
+                    sources,
+                    [
+                        kernel,
+                        [],
+                        data_type,
+                    ],
+                    lambda x: f"{x[1]}",
+                ),
+            )
+            for kernel, data_type in itertools.product(
+                [
+                    "decompression",
+                    "decompression_query",
+                ],
+                [
+                    "f32",
+                    "f64",
+                ],
+            )
+        ]
+
+        for source_set in source_sets:
+            sources = assign_colors(source_set.sources, source_set.colors)
+
+            create_boxplot_graph(
+                sources,
+                "Compressor",
+                label,
+                os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
+                y_lim=(0, 80) if measurement == "compression_ratio" else None,
+            )
 
 
 def plot_ilp_experiment(input_dir: str, output_dir: str):

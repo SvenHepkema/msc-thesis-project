@@ -109,7 +109,7 @@ def read_compressors_output_as_df(file: str) -> pl.DataFrame:
         ) = lines[
             0
         ].split(",")
-        line_counter += 1
+        line_counter += 2 # One warmup run
 
     kernel, compressor, file, _, n_bytes, duration_ms, compression_ratio = lines[
         line_counter

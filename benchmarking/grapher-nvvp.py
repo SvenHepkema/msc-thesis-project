@@ -208,6 +208,62 @@ def create_boxplot_graph(
     plt.close(fig)
 
 
+def format_row_colors(
+    values: list[Any], format_value: Callable[[Any], str]
+) -> list[str]:
+    formatted_values = list(map(format_value, values))
+    top_indices = sorted(range(len(values)), key=lambda i: values[i], reverse=True)
+
+    first = top_indices[0]
+    second = top_indices[1]
+
+    formatted_values[first] = (
+        f"\\cellcolor{{green!18}}\\textbf{{{format_value(values[first])}}}"
+    )
+    formatted_values[second] = (
+        f"\\cellcolor{{yellow!15}}\\textbf{{{format_value(values[second])}}}"
+    )
+
+    return formatted_values
+
+
+def create_latex_table(
+    columns: list[list[int]],
+    column_labels: list[str],
+    row_labels: list[str],
+    out: str,
+    format_row: Callable[[list[Any]], list[str]],
+    vertical_column_names: Optional[bool] = False,
+) -> None:
+    assert len(columns) == len(column_labels), "Each column must have a label"
+    assert all(
+        len(col) == len(row_labels) for col in columns
+    ), "All columns must have the same number of rows"
+
+    num_columns = len(columns)
+    num_rows = len(row_labels)
+
+    if vertical_column_names:
+        column_labels = [f"\\rotatebox{{70}}{{{label}}}" for label in column_labels]
+
+    with open(out, "w") as f:
+        f.write("\\begin{tabular}{l" + "c" * num_columns + "}\n")
+        f.write("\\toprule\n")
+
+        header = " & ".join([""] + column_labels) + " \\\\\n"
+        f.write(header)
+        f.write("\\midrule\n")
+
+        for i in range(num_rows):
+            row = [row_labels[i].replace("_", r"\_")] + format_row(
+                [columns[j][i] for j in range(num_columns)]
+            )
+            f.write(" & ".join(row) + " \\\\\n")
+
+        f.write("\\bottomrule\n")
+        f.write("\\end{tabular}\n")
+
+
 def reorder_columns(df: pl.DataFrame, reference_columns: list[str]) -> pl.DataFrame:
     ordered_columns = [col for col in reference_columns if col in df.columns]
     return df.select(ordered_columns)
@@ -283,7 +339,9 @@ class SourceSet:
     colors: Optional[Iterable[int]] = None
 
 
-def calculate_common_y_lim(sources: Iterable[DataSource | GroupedDataSource], top_n: int=1) -> float:
+def calculate_common_y_lim(
+    sources: Iterable[DataSource | GroupedDataSource], top_n: int = 1
+) -> float:
     all_y_data = list(itertools.chain.from_iterable(map(lambda x: x.y_data, sources)))
     return sorted(all_y_data)[-min(len(all_y_data), top_n)] * 1.1
 
@@ -672,7 +730,13 @@ def plot_multi_column(input_dir: str, output_dir: str):
 
 
 def plot_compressors(input_dir: str, output_dir: str):
-    df = pl.read_csv(os.path.join(input_dir, "compressors.csv"))
+    df = pl.read_csv(
+        os.path.join(input_dir, "compressors.csv"),
+        schema_overrides={
+            "avg_bits_per_value": pl.Float64,
+            "avg_exceptions_per_vector": pl.Float64,
+        },
+    ).sort("file")
     df = average_samples(
         df,
         [
@@ -682,6 +746,32 @@ def plot_compressors(input_dir: str, output_dir: str):
             "compression_ratio",
         ],
     )
+
+    # Create avg bits/value exception count table
+    alp_df = df.filter(
+        (pl.col("compressor") == "ALP") & (pl.col("kernel") == "decompression")
+    )
+    galp_df = df.filter(
+        (pl.col("compressor") == "GALP") & (pl.col("kernel") == "decompression")
+    )
+    create_latex_table(
+        [
+            alp_df.get_column("avg_bits_per_value").to_list(),
+            alp_df.get_column("avg_exceptions_per_vector").to_list(),
+            alp_df.get_column("compression_ratio").to_list(),
+            galp_df.get_column("compression_ratio").to_list(),
+        ],
+        [
+            "Avg. bits / value",
+            "Avg. exceptions / vector",
+            "CR ALP",
+            "CR GALP",
+        ],
+        alp_df.get_column("file").to_list(),
+        os.path.join(output_dir, f"compressors-table-alp-compression-parameters.tex"),
+        lambda x: [f"{v:.2f}" for v in x],
+    )
+
     df = df.with_columns(
         (
             (pl.col("n_bytes") / (1024 * 1024 * 1024)) / (pl.col("duration_ms") / 1000)
@@ -745,7 +835,7 @@ def plot_compressors(input_dir: str, output_dir: str):
         sources = create_grouped_data_sources(
             df,
             ["kernel", "compressor", "data_type"],
-            "compressor",
+            "file",
             measurement,
         )
 
@@ -783,6 +873,17 @@ def plot_compressors(input_dir: str, output_dir: str):
                 label,
                 os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
                 y_lim=(0, 80) if measurement == "compression_ratio" else None,
+            )
+
+            create_latex_table(
+                [s.y_data for s in sources],
+                [s.group_by_column_values[1] for s in sources],
+                sources[0].x_data,
+                os.path.join(
+                    output_dir, f"compressors-table-{source_set.file_name}.tex"
+                ),
+                lambda x: format_row_colors(x, lambda y: f"{y:.2f}"),
+                vertical_column_names=True,
             )
 
 

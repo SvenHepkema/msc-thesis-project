@@ -194,8 +194,8 @@ benchmark_hwc(const enums_nvcomp::ComparisonType comparison_type,
   double compression_ratio = d_compressed_buffer.get_compression_ratio();
 
   constexpr int32_t UNPACK_N_VECTORS = 1;
-  const ThreadblockMapping<T> mapping(utils::get_n_vecs_from_size(value_count),
-                                      UNPACK_N_VECTORS);
+  const ThreadblockMapping<T> mapping(UNPACK_N_VECTORS,
+                                      utils::get_n_vecs_from_size(value_count));
 
   CudaStopwatch stopwatch = CudaStopwatch();
   stopwatch.start();
@@ -217,6 +217,9 @@ benchmark_hwc(const enums_nvcomp::ComparisonType comparison_type,
   if (comparison_type == enums_nvcomp::ComparisonType::DECOMPRESSION) {
     kernel_successful = check_if_device_buffers_are_equal<uint8_t>(
         d_output_buffer, d_input_buffer.get(), size_in_bytes);
+  } else if (comparison_type ==
+             enums_nvcomp::ComparisonType::DECOMPRESSION_QUERY) {
+    d_query_result.copy_to_host(&kernel_successful);
   }
 
   CUDA_SAFE_CALL(cudaFree(d_output_buffer));

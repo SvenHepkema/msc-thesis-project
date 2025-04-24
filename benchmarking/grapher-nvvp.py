@@ -233,7 +233,8 @@ def create_latex_table(
     row_labels: list[str],
     out: str,
     format_row: Callable[[list[Any]], list[str]],
-    vertical_column_names: Optional[bool] = False,
+    add_averages: bool = False,
+    vertical_column_names: bool = False,
 ) -> None:
     assert len(columns) == len(column_labels), "Each column must have a label"
     assert all(
@@ -246,16 +247,30 @@ def create_latex_table(
     if vertical_column_names:
         column_labels = [f"\\rotatebox{{70}}{{{label}}}" for label in column_labels]
 
+    average_formatter = lambda x: f"\\textbf{{{x}}}"
+    label_formatter = lambda x: x.replace("_", r"\_")
+    column_label_formatter = lambda x: f"\\textbf{{{label_formatter(x)}}}"
+    row_label_formatter = lambda x: label_formatter(x)
+
     with open(out, "w") as f:
         f.write("\\begin{tabular}{l" + "c" * num_columns + "}\n")
         f.write("\\toprule\n")
 
-        header = " & ".join([""] + column_labels) + " \\\\\n"
+        header = (
+            " & ".join([""] + [column_label_formatter(l) for l in column_labels])
+            + " \\\\\n"
+        )
         f.write(header)
         f.write("\\midrule\n")
 
+        if add_averages:
+            averages = list(map(lambda c: sum(c) / len(c), columns))
+            row = [r"\textbf{Average}"] + [average_formatter(a) for a in format_row(averages)]
+            f.write(" & ".join(row) + " \\\\\n")
+            f.write("\\midrule\n")
+
         for i in range(num_rows):
-            row = [row_labels[i].replace("_", r"\_")] + format_row(
+            row = [row_label_formatter(row_labels[i])] + format_row(
                 [columns[j][i] for j in range(num_columns)]
             )
             f.write(" & ".join(row) + " \\\\\n")
@@ -778,6 +793,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 f"compressors-table-alp-compression-parameters-{data_type}.tex",
             ),
             lambda x: [f"{v:.2f}" for v in x],
+            add_averages=True,
         )
 
     df = df.with_columns(
@@ -892,6 +908,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 ),
                 lambda x: format_row_colors(x, lambda y: f"{y:.2f}"),
                 vertical_column_names=True,
+                add_averages=True,
             )
 
 

@@ -59,17 +59,20 @@ template <typename T> void execute_benchmark(CLIArgs args) {
   const T value_to_search_for = *reinterpret_cast<T *>(&u);
 
   BenchmarkResult result;
-  if (args.comparison_type ==
-          enums_nvcomp::ComparisonType::DECOMPRESSION_QUERY &&
-      args.decompressor_enum == enums_nvcomp::THRUST) {
-    result = benchmark_thrust<T>(data, count, value_to_search_for);
-  } else if (args.decompressor_enum == enums_nvcomp::ALP ||
-             args.decompressor_enum == enums_nvcomp::GALP) {
-    result = benchmark_alp<T>(args.comparison_type, args.decompressor_enum,
-                              data, count, value_to_search_for);
-  } else {
-    result = benchmark_hwc<T>(args.comparison_type, args.decompressor_enum,
-                              data, count, value_to_search_for);
+  for (int i{0}; i < 2; ++i) {
+    // One warmup run to load correct modules
+    if (args.comparison_type ==
+            enums_nvcomp::ComparisonType::DECOMPRESSION_QUERY &&
+        args.decompressor_enum == enums_nvcomp::THRUST) {
+      result = benchmark_thrust<T>(data, count, value_to_search_for);
+    } else if (args.decompressor_enum == enums_nvcomp::ALP ||
+               args.decompressor_enum == enums_nvcomp::GALP) {
+      result = benchmark_alp<T>(args.comparison_type, args.decompressor_enum,
+                                data, count, value_to_search_for);
+    } else {
+      result = benchmark_hwc<T>(args.comparison_type, args.decompressor_enum,
+                                data, count, value_to_search_for);
+    }
   }
 
   result.log_result(args.comparison_type, args.decompressor_enum,

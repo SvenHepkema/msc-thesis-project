@@ -859,7 +859,7 @@ def plot_compressors(input_dir: str, output_dir: str):
         create_scatter_graph(
             sources,
             "Compression ratio",
-            "Throughput",
+            "Throughput (GB/s)",
             os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
             y_lim=(0, calculate_common_y_lim(sources)),
             legend_pos="upper right",
@@ -917,6 +917,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
                 y_lim=(0, 80) if measurement == "compression_ratio" else None,
                 x_label_rotation=45,
+                title=f"{'Compression ratio' if measurement == 'compression_ratio' else 'Throughput'} per decompressor for {'single' if sources[0].group_by_column_values[2] == 'f32' else 'double'} precision floating-point datasets.",
             )
 
             create_latex_table(

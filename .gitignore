@@ -5,4 +5,5 @@ compile_commands.json
 data-input/
 data-benchmark/
 data-thesis/graphs/
+data-thesis/output/
 src/generated-bindings/*.cu

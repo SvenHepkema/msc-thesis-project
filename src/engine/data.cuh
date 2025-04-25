@@ -220,15 +220,12 @@ std::pair<T *, size_t> read_file_as(const std::string path,
   if (values_in_file < count) {
     size_t n_filled_values = values_in_file;
     size_t n_empty_values_column = count - n_filled_values;
-    while (n_empty_values_column > 0) {
+    while (n_empty_values_column != 0) {
+      size_t n_values_to_copy = std::min(n_empty_values_column, values_in_file);
       std::memcpy(column + n_filled_values, column,
-                  std::min(n_empty_values_column, values_in_file));
-      n_filled_values += values_in_file;
-
-      if (n_empty_values_column < values_in_file) {
-        break;
-      }
-      n_empty_values_column -= values_in_file;
+                  n_values_to_copy * sizeof(T));
+      n_filled_values += n_values_to_copy;
+      n_empty_values_column -= n_values_to_copy;
     }
   }
 

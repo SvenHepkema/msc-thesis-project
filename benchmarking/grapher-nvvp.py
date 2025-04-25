@@ -14,6 +14,7 @@ import types
 from typing import Any, Iterable, Optional
 from pathlib import Path
 
+import statistics
 import polars as pl
 import numpy as np
 import matplotlib
@@ -192,17 +193,19 @@ def create_boxplot_graph(
     out: str,
     y_lim: tuple[int, int] | None = None,
     title: Optional[str] = None,
-    x_label_rotation: int=0,
+    x_label_rotation: int = 0,
+    show_means: bool = False,
 ):
     fig, ax = plt.subplots(figsize=(12, 7))
     ax.boxplot(
         x=list(map(lambda s: s.y_data, data_sources)),
         labels=list(map(lambda x: x.label, data_sources)),
+        showmeans=show_means,
     )
 
     for label in ax.get_xticklabels():
-        label.set_rotation(x_label_rotation)   
-        label.set_horizontalalignment('right')  
+        label.set_rotation(x_label_rotation)
+        label.set_horizontalalignment("right")
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_ylim(y_lim)
@@ -238,6 +241,7 @@ def create_latex_table(
     out: str,
     format_row: Callable[[list[Any]], list[str]],
     add_averages: bool = False,
+    add_medians: bool = False,
     vertical_column_names: bool = False,
 ) -> None:
     assert len(columns) == len(column_labels), "Each column must have a label"
@@ -268,9 +272,18 @@ def create_latex_table(
         f.write("\\midrule\n")
 
         if add_averages:
-            averages = list(map(lambda c: sum(c) / len(c), columns))
-            row = [r"\textbf{Average}"] + [average_formatter(a) for a in format_row(averages)]
+            averages = list(map(statistics.mean, columns))
+            row = [r"\textbf{Average}"] + [
+                average_formatter(a) for a in format_row(averages)
+            ]
             f.write(" & ".join(row) + " \\\\\n")
+        if add_medians:
+            averages = list(map(statistics.median, columns))
+            row = [r"\textbf{Median}"] + [
+                average_formatter(a) for a in format_row(averages)
+            ]
+            f.write(" & ".join(row) + " \\\\\n")
+        if add_averages or add_medians:
             f.write("\\midrule\n")
 
         for i in range(num_rows):
@@ -768,9 +781,7 @@ def plot_compressors(input_dir: str, output_dir: str):
         "Deflate": "nv-Deflate",
         "GDeflate": "nv-GDeflate",
     }
-    df = df.with_columns(
-        pl.col("compressor").replace(rename_map).alias("compressor")
-    )
+    df = df.with_columns(pl.col("compressor").replace(rename_map).alias("compressor"))
     df = average_samples(
         df,
         [
@@ -813,6 +824,7 @@ def plot_compressors(input_dir: str, output_dir: str):
             ),
             lambda x: [f"{v:.2f}" for v in x],
             add_averages=True,
+            add_medians=True,
         )
 
     df = df.with_columns(
@@ -918,6 +930,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 y_lim=(0, 80) if measurement == "compression_ratio" else None,
                 x_label_rotation=45,
                 title=f"{'Compression ratio' if measurement == 'compression_ratio' else 'Throughput'} per decompressor for {'single' if sources[0].group_by_column_values[2] == 'f32' else 'double'} precision floating-point datasets.",
+                show_means=True,
             )
 
             create_latex_table(
@@ -930,6 +943,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 lambda x: format_row_colors(x, lambda y: f"{y:.2f}"),
                 vertical_column_names=True,
                 add_averages=True,
+                add_medians=True,
             )
 
 

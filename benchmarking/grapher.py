@@ -86,6 +86,7 @@ def create_scatter_graph(
     x_label: str,
     y_label: str,
     out: str,
+    x_lim: tuple[int | float, int | float] | None = None,
     y_lim: tuple[int | float, int | float] | None = None,
     octal_grid: bool = False,
     figsize: tuple[int, int] = (5, 5),
@@ -126,6 +127,7 @@ def create_scatter_graph(
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
+    ax.set_xlim(x_lim)
     ax.set_ylim(y_lim)
 
     if title:
@@ -407,7 +409,6 @@ def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
-        (pl.col("duration_ns") / 1000).alias("duration_us"),
         (pl.col("n_vecs") / (pl.col("duration_ns") / 1000)).alias("throughput"),
     )
 
@@ -443,7 +444,7 @@ def plot_ffor(input_dir: str, output_dir: str):
                     lambda x: (
                         "FastLanesOnGPU"
                         if x[3] == "old_fls"
-                        else "One value decoding switch"
+                        else "Single value decoding switch"
                     ),
                 ),
                 title=f"u32, Concurrent Vectors: 1",
@@ -469,7 +470,7 @@ def plot_ffor(input_dir: str, output_dir: str):
                         "FastLanesOnGPU"
                         if x[3] == "old_fls"
                         else (
-                            "One value decoding switch"
+                            "Single value decoding switch"
                             if x[3] == "switch_case"
                             else "Stateless"
                         )
@@ -762,6 +763,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
 
 
 def plot_compressors(input_dir: str, output_dir: str):
+    compression_ratio_axis_limit = 12
     df = pl.read_csv(
         os.path.join(input_dir, "compressors.csv"),
         schema_overrides={
@@ -812,7 +814,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 galp_df.get_column("compression_ratio").to_list(),
             ],
             [
-                "Avg. bits / value",
+                "Avg. bitwidth / value",
                 "Avg. exceptions / vector",
                 "CR ALP",
                 "CR GALP",
@@ -874,7 +876,9 @@ def plot_compressors(input_dir: str, output_dir: str):
             "Throughput (GB/s)",
             os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
             y_lim=(0, calculate_common_y_lim(sources)),
-            legend_pos="upper right",
+            legend_pos="best",
+            figsize=(9,9),
+            x_lim=(0,compression_ratio_axis_limit)
         )
 
     for label, measurement in zip(
@@ -927,7 +931,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 "Compressor",
                 label,
                 os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
-                y_lim=(0, 80) if measurement == "compression_ratio" else None,
+                y_lim=(0, compression_ratio_axis_limit) if measurement == "compression_ratio" else None,
                 x_label_rotation=45,
                 title=f"{'Compression ratio' if measurement == 'compression_ratio' else 'Throughput'} per decompressor for {'single' if sources[0].group_by_column_values[2] == 'f32' else 'double'} precision floating-point datasets.",
             )

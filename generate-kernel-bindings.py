@@ -65,7 +65,11 @@ UNPACKERS = [
     "StatefulRegisterBranchless4",
     "StatefulBranchless",
 ]
-MULTI_COLUMN_UNPACKERS = [UNPACKERS[1], UNPACKERS[13], UNPACKERS[16], UNPACKERS[18]]
+MULTI_COLUMN_UNPACKERS = [
+    UNPACKERS[1],
+    UNPACKERS[16],
+    UNPACKERS[18],
+]
 
 PATCHERS = [
     "None",
@@ -80,7 +84,7 @@ PATCHERS = [
 ]
 MULTI_COLUMN_PATCHERS = [
     PATCHERS[0],
-    PATCHERS[1],
+    PATCHERS[3],
     PATCHERS[4],
     PATCHERS[5],
     PATCHERS[7],
@@ -258,10 +262,7 @@ def get_if_statement_check_wrapper(
     )
 
     is_filtered = (
-        unnessary_filter or 
-        switch_case_filter or 
-        multi_column_filter or 
-        old_fls_filter
+        unnessary_filter or switch_case_filter or multi_column_filter or old_fls_filter
     )
     if is_filtered:
         return ""

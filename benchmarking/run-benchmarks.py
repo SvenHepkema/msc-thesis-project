@@ -50,8 +50,19 @@ UNPACKERS = [
     "stateful-register-branchless-4",
     "stateful-branchless",
 ]
-MULTI_COLUMN_UNPACKERS = [UNPACKERS[1], UNPACKERS[13], UNPACKERS[16], UNPACKERS[18]]
-ALP_UNPACKERS = [UNPACKERS[1]] + UNPACKERS[3:6] + UNPACKERS[3:6] + UNPACKERS[12:]
+MULTI_COLUMN_UNPACKERS = [
+    UNPACKERS[1],
+    UNPACKERS[16],
+    UNPACKERS[18],
+]
+ALP_UNPACKERS = [
+    UNPACKERS[1],
+    UNPACKERS[3],
+    UNPACKERS[4],
+    UNPACKERS[5],
+    UNPACKERS[16],
+    UNPACKERS[18],
+]
 
 PATCHERS = [
     "none",
@@ -66,7 +77,7 @@ PATCHERS = [
 ]
 MULTI_COLUMN_PATCHERS = [
     PATCHERS[0],
-    PATCHERS[1],
+    PATCHERS[3],
     PATCHERS[4],
     PATCHERS[5],
     PATCHERS[7],
@@ -520,9 +531,13 @@ def bench_multi_column(output_dir: str, profiler):
 
 def bench_compressors(output_dir: str, profiler):
     compressor_n_vecs = 25600
+    float_files = get_all_files_in_dir("data-input/floats/public-bi")
+    """
     float_files = get_all_files_in_dir(
         "data-input/floats/alp-dataset"
     ) + get_all_files_in_dir("data-input/floats/fc-bench")
+    ) + get_all_files_in_dir("data-input/floats/public-bi")
+    """
     double_files = get_all_files_in_dir(
         "data-input/doubles/alp-dataset"
     ) + get_all_files_in_dir("data-input/doubles/fc-bench")

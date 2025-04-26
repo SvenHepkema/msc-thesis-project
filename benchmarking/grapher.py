@@ -450,7 +450,9 @@ def reorder_and_relabel(
 
     # First sort on label to reorder "unpacker 1v" and "unpacker 4v"
     reordered_on_label_sources = sorted(sources, key=lambda x: x.label)
-    reordered_sources = sorted(reordered_on_label_sources, key=lambda x: get_index(x.label))
+    reordered_sources = sorted(
+        reordered_on_label_sources, key=lambda x: get_index(x.label)
+    )
 
     reordered_and_relabeled_sources = list(
         map(
@@ -466,8 +468,10 @@ def reorder_and_relabel(
 
     return reordered_and_relabeled_sources
 
+
 def format_concurrent_vectors(n_vec) -> str:
     return "Single vector" if n_vec == 1 else "Multivector (4)"
+
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
@@ -852,6 +856,12 @@ def plot_compressors(input_dir: str, output_dir: str):
             "avg_exceptions_per_vector": pl.Float64,
         },
     ).sort("file")
+    df = df.with_columns(
+        (
+            ((pl.col("n_bytes") / pl.col("compression_ratio")) * 8)
+            / (pl.col("n_vecs") * VECTOR_SIZE)
+        ).alias("paper_bits_per_value")
+    )
     rename_map = {
         "Thrust": "Thrust",
         "ALP": "ALP",
@@ -870,6 +880,7 @@ def plot_compressors(input_dir: str, output_dir: str):
         [
             "duration_ms",
             "avg_bits_per_value",
+            "paper_bits_per_value",
             "avg_exceptions_per_vector",
             "compression_ratio",
         ],
@@ -891,14 +902,18 @@ def plot_compressors(input_dir: str, output_dir: str):
             [
                 alp_df.get_column("avg_bits_per_value").to_list(),
                 alp_df.get_column("avg_exceptions_per_vector").to_list(),
+                alp_df.get_column("paper_bits_per_value").to_list(),
+                galp_df.get_column("paper_bits_per_value").to_list(),
                 alp_df.get_column("compression_ratio").to_list(),
                 galp_df.get_column("compression_ratio").to_list(),
             ],
             [
-                "Avg. bitwidth / value",
+                "Avg. value bit width",
                 "Avg. exceptions / vector",
-                "CR ALP",
-                "CR GALP",
+                "Avg. bits / value ALP",
+                "Avg. bits / value GALP",
+                "Compression ratio ALP",
+                "Compression ratio GALP",
             ],
             alp_df.get_column("file").to_list(),
             os.path.join(
@@ -906,6 +921,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 f"compressors-table-alp-compression-parameters-{data_type}.tex",
             ),
             lambda x: [f"{v:.2f}" for v in x],
+            vertical_column_names=True,
             add_averages=True,
             add_medians=True,
         )

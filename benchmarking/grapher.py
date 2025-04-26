@@ -41,6 +41,32 @@ COLOR_SET = [
     "tab:cyan",
 ]
 
+UNPACKERS_ORDER_AND_NAMES = {
+    "old_fls": "FastLanesOnGPU",
+    "switch_case": "Single Value Switch",
+    "stateless": "Static",
+    "stateful_cache": "Streaming No Buffer",
+}
+STATEFUL_STORAGE_TYPES = {
+    "local": "Local",
+    "shared": "Shared",
+    "register": "Switch Registers",
+    "register_branchless": "Rotate Registers",
+}
+for s, b in itertools.product(STATEFUL_STORAGE_TYPES.items(), [1, 2, 4]):
+    UNPACKERS_ORDER_AND_NAMES[f"stateful_{s[0]}_{b}"] = f"Streaming {s[1]} Buffer"
+
+UNPACKERS_ORDER_AND_NAMES["stateful_branchless"] = "Streaming Branchless"
+
+PATCHERS_ORDER_AND_NAMES = {
+    "stateless": "ALP Static",
+    "stateful": "ALP Streaming",
+    "naive": "GALP Streaming",
+    "naive_branchless": "GALP Streaming Branchless",
+    "prefetch_all": "GALP Streaming Buffer",
+    "prefetch_all_branchless": "GALP Streaming Buffer Branchless",
+}
+
 
 def directory_exists(path: str) -> bool:
     return Path(path).is_dir()
@@ -147,7 +173,7 @@ def create_multi_bar_graph(
     out: str,
     y_lim: tuple[int, int] | None = None,
     title: Optional[str] = None,
-    figsize: tuple[int, int] =(12, 7)
+    figsize: tuple[int, int] = (12, 7),
 ):
     n_bars = len(data_sources)
     n_groups = len(data_sources[0].x_data)
@@ -231,7 +257,7 @@ def format_row_colors(
         f"\\cellcolor{{green!18}}\\textbf{{{format_value(values[first])}}}"
     )
     formatted_values[second] = (
-        f"\\cellcolor{{yellow!15}}\\textbf{{{format_value(values[second])}}}"
+        f"\\cellcolor{{yellow!10}}\\textbf{{{format_value(values[second])}}}"
     )
 
     return formatted_values
@@ -399,12 +425,49 @@ def format_str_to_label(label: str) -> str:
     return label.replace("_", " ").title()
 
 
-def format_unpacker_to_label(unpacker: str) -> str:
-    if unpacker == "old_fls":
-        return "FastLanesOnGPU"
+def replace_label(label: str, name_and_order_map: dict[str, str]) -> str:
+    # Sort on lenght of substring to avoid short substring
+    # replacing long ones first
+    for key, value in sorted(
+        name_and_order_map.items(),
+        key=lambda x: len(x[0]),
+        reverse=True,
+    ):
+        if key in label:
+            return label.replace(key, value)
+    return label
 
-    return format_str_to_label(unpacker)
 
+def reorder_and_relabel(
+    sources: list[DataSource | GroupedDataSource],
+    name_and_order_map: dict[str, str],
+) -> list[DataSource | GroupedDataSource]:
+    def get_index(label: str) -> int:
+        for i, key in enumerate(name_and_order_map.keys()):
+            if key in label:
+                return i
+        raise Exception("No key found in source label")
+
+    # First sort on label to reorder "unpacker 1v" and "unpacker 4v"
+    reorder_on_label_sources = sorted(sources, key=lambda x: x.label)
+    reordered_sources = sorted(sources, key=lambda x: get_index(x.label))
+
+    reordered_and_relabeled_sources = list(
+        map(
+            lambda x: x.set_label(
+                replace_label(
+                    x.label,
+                    name_and_order_map,
+                )
+            ),
+            reordered_sources,
+        )
+    )
+
+    return reordered_and_relabeled_sources
+
+def format_concurrent_vectors(n_vec) -> str:
+    return "Single vector" if n_vec == 1 else "Multivector (4)"
 
 def plot_ffor(input_dir: str, output_dir: str):
     df = pl.read_csv(os.path.join(input_dir, "ffor.csv"))
@@ -442,13 +505,9 @@ def plot_ffor(input_dir: str, output_dir: str):
                             "switch_case",
                         ],
                     ],
-                    lambda x: (
-                        "FastLanesOnGPU"
-                        if x[3] == "old_fls"
-                        else "Single value decoding switch"
-                    ),
+                    lambda x: x[3],
                 ),
-                title=f"u32, Concurrent Vectors: 1",
+                title=f"u32, {format_concurrent_vectors(1)}",
                 colors=range(0, 2),
             )
         ]
@@ -467,17 +526,9 @@ def plot_ffor(input_dir: str, output_dir: str):
                             "stateless",
                         ],
                     ],
-                    lambda x: (
-                        "FastLanesOnGPU"
-                        if x[3] == "old_fls"
-                        else (
-                            "Single value decoding switch"
-                            if x[3] == "switch_case"
-                            else "Stateless"
-                        )
-                    ),
+                    lambda x: x[3],
                 ),
-                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
                 colors=range(0 if n_vec == 1 and data_type == "u32" else 2, 3),
             )
             for kernel, n_vec, data_type in itertools.product(
@@ -502,9 +553,9 @@ def plot_ffor(input_dir: str, output_dir: str):
                             for storage_type in stateful_storage_types
                         ],
                     ],
-                    lambda x: format_str_to_label(" ".join(x[3].split("_")[1:-1])),
+                    lambda x: x[3],
                 ),
-                title=f"{data_type}, Concurrent Vectors: {n_vec}, Buffer Size: {buffer_size}",
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}, Buffer Size: {buffer_size}",
                 colors=range(0 if buffer_size == 1 else 1, len(stateful_storage_types)),
             )
             for buffer_size, n_vec, data_type in itertools.product(
@@ -529,19 +580,9 @@ def plot_ffor(input_dir: str, output_dir: str):
                             "stateful_branchless",
                         ],
                     ],
-                    lambda x: (
-                        "FastLanesOnGPU"
-                        if x[3] == "old_fls"
-                        else (
-                            format_str_to_label(
-                                format_str_to_label(x[3])
-                                if x[3] != "stateful_register_branchless_2"
-                                else "Stateful"
-                            )
-                        )
-                    ),
+                    lambda x: x[3],
                 ),
-                title=f"{data_type}, Concurrent Vectors: {n_vec}",
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
                 colors=range(0 if n_vec == 1 and data_type == "u32" else 1, 5),
             )
             for kernel, n_vec, data_type in itertools.product(
@@ -556,6 +597,7 @@ def plot_ffor(input_dir: str, output_dir: str):
 
     for source_set in source_sets:
         sources = assign_colors(source_set.sources, source_set.colors)
+        sources = reorder_and_relabel(sources, UNPACKERS_ORDER_AND_NAMES)
 
         create_scatter_graph(
             sources,
@@ -584,77 +626,80 @@ def plot_alp_ec(input_dir: str, output_dir: str):
     )
 
     alp_unpacker = "stateful_branchless"
-    source_sets = [
-        SourceSet(
-            f"alp-{kernel}-v{n_vec}-{data_type}",
-            define_graph(
-                sources,
-                [
-                    data_type,
-                    kernel,
-                    n_vec,
-                    alp_unpacker,
+    source_sets = (
+        [
+            SourceSet(
+                f"alp-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
                     [
-                        "stateless",
-                        "stateful",
+                        data_type,
+                        kernel,
+                        n_vec,
+                        alp_unpacker,
+                        [
+                            "stateless",
+                            "stateful",
+                        ],
                     ],
-                ],
-                lambda x: format_str_to_label(x[4]),
-            ),
-            title=f"{data_type}, Concurrent Vectors: {n_vec}",
-            colors=range(0, 2),
-        )
-        for kernel, n_vec, data_type in itertools.product(
-            ["query"], [1, 4], ["f32", "f64"]
-        )
-    ] + [
-        SourceSet(
-            f"galp-{kernel}-v{n_vec}-{data_type}",
-            define_graph(
-                sources,
-                [
-                    data_type,
-                    kernel,
-                    n_vec,
-                    alp_unpacker,
+                    lambda x: x[4],
+                ),
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
+                colors=range(0, 2),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query"], [1, 4], ["f32", "f64"]
+            )
+        ]
+        + [
+            SourceSet(
+                f"galp-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
                     [
-                        "naive",
-                        "naive_branchless",
+                        data_type,
+                        kernel,
+                        n_vec,
+                        alp_unpacker,
+                        [
+                            "naive",
+                            "naive_branchless",
+                        ],
                     ],
-                ],
-                lambda x: format_str_to_label(x[4]),
-            ),
-            title=f"{data_type}, Concurrent Vectors: {n_vec}",
-            colors=range(0, 2),
-        )
-        for kernel, n_vec, data_type in itertools.product(
-            ["query"], [1, 4], ["f32", "f64"]
-        )
-    ] + [
-        SourceSet(
-            f"galp-buffers-{kernel}-v{n_vec}-{data_type}",
-            define_graph(
-                sources,
-                [
-                    data_type,
-                    kernel,
-                    n_vec,
-                    alp_unpacker,
+                    lambda x: x[4],
+                ),
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
+                colors=range(0, 2),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query"], [1, 4], ["f32", "f64"]
+            )
+        ]
+        + [
+            SourceSet(
+                f"galp-buffers-{kernel}-v{n_vec}-{data_type}",
+                define_graph(
+                    sources,
                     [
-                        "prefetch_position",
-                        "prefetch_all",
-                        "prefetch_all_branchless",
+                        data_type,
+                        kernel,
+                        n_vec,
+                        alp_unpacker,
+                        [
+                            "prefetch_all",
+                            "prefetch_all_branchless",
+                        ],
                     ],
-                ],
-                lambda x: format_str_to_label(x[4]),
-            ),
-            title=f"{data_type}, Concurrent Vectors: {n_vec}",
-            colors=range(0, 3),
-        )
-        for kernel, n_vec, data_type in itertools.product(
-            ["query"], [1, 4], ["f32", "f64"]
-        )
-    ]
+                    lambda x: x[4],
+                ),
+                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
+                colors=range(0, 3),
+            )
+            for kernel, n_vec, data_type in itertools.product(
+                ["query"], [1, 4], ["f32", "f64"]
+            )
+        ]
+    )
 
     y_lim = calculate_common_y_lim(
         itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
@@ -662,6 +707,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
 
     for source_set in source_sets:
         sources = assign_colors(source_set.sources, source_set.colors)
+        sources = reorder_and_relabel(sources, PATCHERS_ORDER_AND_NAMES)
 
         create_scatter_graph(
             sources,
@@ -706,7 +752,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                     ],
                     "none",
                 ],
-                lambda x: f"{format_unpacker_to_label(x[3])} {x[2]}v",
+                lambda x: f"{x[3]} {x[2]}v",
             ),
             title=f"{data_type}",
             colors=range(0, 6),
@@ -733,10 +779,18 @@ def plot_multi_column(input_dir: str, output_dir: str):
                         "prefetch_all_branchless",
                     ],
                 ],
-                lambda x: f"{format_unpacker_to_label(x[4])} {x[2]}v",
+                lambda x: f"{x[4]} {x[2]}v",
             ),
-            title=f"{format_unpacker_to_label(unpacker)} {data_type}",
-            colors=range(0, 6) if unpacker != "old_fls" else [0, 2],
+            title=f"{replace_label(unpacker, UNPACKERS_ORDER_AND_NAMES)} {data_type}",
+            colors=(
+                range(0, 6)
+                if unpacker != "old_fls"
+                else [
+                    0,
+                    2,
+                    4,
+                ]
+            ),
         )
         for unpacker, data_type in itertools.product(
             [
@@ -759,7 +813,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
         itertools.chain.from_iterable(map(lambda x: x.sources, alp_source_sets))
     )
 
-    for source_sets, y_lim in zip(
+    for source_sets, y_lim, name_and_order_map in zip(
         [
             ffor_source_sets,
             alp_source_sets,
@@ -768,9 +822,14 @@ def plot_multi_column(input_dir: str, output_dir: str):
             ffor_y_lim,
             alp_y_lim,
         ],
+        [
+            UNPACKERS_ORDER_AND_NAMES,
+            PATCHERS_ORDER_AND_NAMES,
+        ],
     ):
         for source_set in source_sets:
             sources = assign_colors(source_set.sources, source_set.colors)
+            sources = reorder_and_relabel(sources, name_and_order_map)
 
             create_multi_bar_graph(
                 sources,
@@ -899,8 +958,8 @@ def plot_compressors(input_dir: str, output_dir: str):
             os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
             y_lim=(0, calculate_common_y_lim(sources)),
             legend_pos="best",
-            figsize=(9,9),
-            x_lim=(0,compression_ratio_axis_limit)
+            figsize=(9, 9),
+            x_lim=(0, compression_ratio_axis_limit),
         )
 
     for label, measurement in zip(
@@ -953,7 +1012,11 @@ def plot_compressors(input_dir: str, output_dir: str):
                 "Compressor",
                 label,
                 os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
-                y_lim=(0, compression_ratio_axis_limit) if measurement == "compression_ratio" else None,
+                y_lim=(
+                    (0, compression_ratio_axis_limit)
+                    if measurement == "compression_ratio"
+                    else None
+                ),
                 x_label_rotation=45,
                 title=f"{'Compression ratio' if measurement == 'compression_ratio' else 'Throughput'} per decompressor for {'single' if sources[0].group_by_column_values[2] == 'f32' else 'double'} precision floating-point datasets.",
             )
@@ -1051,14 +1114,6 @@ if __name__ == "__main__":
         "output_dir",
         type=str,
         help="directory_to_write_results_to",
-    )
-    parser.add_argument(
-        "-dr",
-        "--dry-run",
-        type=bool,
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help="Dry run",
     )
 
     parser.add_argument(

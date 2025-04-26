@@ -147,12 +147,13 @@ def create_multi_bar_graph(
     out: str,
     y_lim: tuple[int, int] | None = None,
     title: Optional[str] = None,
+    figsize: tuple[int, int] =(12, 7)
 ):
     n_bars = len(data_sources)
     n_groups = len(data_sources[0].x_data)
     assert all(len(x.x_data) == n_groups for x in data_sources)
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=figsize)
     bar_width = 0.8 / n_bars
     indices = np.arange(n_groups)
     for i, source in enumerate(data_sources):
@@ -480,7 +481,7 @@ def plot_ffor(input_dir: str, output_dir: str):
                 colors=range(0 if n_vec == 1 and data_type == "u32" else 2, 3),
             )
             for kernel, n_vec, data_type in itertools.product(
-                ["query", "decompress"], [1, 4], ["u32"]
+                ["query", "decompress"], [1, 4], ["u32", "u64"]
             )
         ]
         + [
@@ -524,7 +525,6 @@ def plot_ffor(input_dir: str, output_dir: str):
                         [
                             "old_fls" if n_vec == 1 and data_type == "u32" else "",
                             "stateless",
-                            "stateless_branchless",
                             "stateful_register_branchless_2",
                             "stateful_branchless",
                         ],
@@ -687,7 +687,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 ],
                 lambda x: f"{format_unpacker_to_label(x[3])} {x[2]}v",
             ),
-            title=f"Multicolumn FFOR {data_type}",
+            title=f"{data_type}",
             colors=range(0, 6),
         )
         for data_type in [
@@ -714,7 +714,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 ],
                 lambda x: f"{format_unpacker_to_label(x[4])} {x[2]}v",
             ),
-            title=f"Multicolumn ALP {format_unpacker_to_label(unpacker)} {data_type}",
+            title=f"{format_unpacker_to_label(unpacker)} {data_type}",
             colors=range(0, 6) if unpacker != "old_fls" else [0, 2],
         )
         for unpacker, data_type in itertools.product(
@@ -759,6 +759,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 os.path.join(output_dir, f"multi-column-{source_set.file_name}.eps"),
                 y_lim=(0, y_lim),
                 title=source_set.title,
+                figsize=(12, 6),
             )
 
 

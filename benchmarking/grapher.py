@@ -245,10 +245,14 @@ def create_boxplot_graph(
 
 
 def format_row_colors(
-    values: list[Any], format_value: Callable[[Any], str]
+    values: list[Any],
+    format_value: Callable[[Any], str],
+    lower_is_better: bool = False,
 ) -> list[str]:
     formatted_values = list(map(format_value, values))
-    top_indices = sorted(range(len(values)), key=lambda i: values[i], reverse=True)
+    top_indices = sorted(
+        range(len(values)), key=lambda i: values[i], reverse=not lower_is_better
+    )
 
     first = top_indices[0]
     second = top_indices[1]
@@ -982,10 +986,12 @@ def plot_compressors(input_dir: str, output_dir: str):
         [
             "Compression Ratio",
             "Throughput (GB/s)",
+            "Bits / value",
         ],
         [
             "compression_ratio",
             "throughput",
+            "paper_bits_per_value",
         ],
     ):
         sources = create_grouped_data_sources(
@@ -1044,7 +1050,11 @@ def plot_compressors(input_dir: str, output_dir: str):
                 os.path.join(
                     output_dir, f"compressors-table-{source_set.file_name}.tex"
                 ),
-                lambda x: format_row_colors(x, lambda y: f"{y:.2f}"),
+                lambda x: format_row_colors(
+                    x,
+                    lambda y: f"{y:.2f}",
+                    lower_is_better=measurement == "paper_bits_per_value",
+                ),
                 vertical_column_names=True,
                 add_averages=True,
                 add_medians=True,

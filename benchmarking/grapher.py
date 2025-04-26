@@ -449,8 +449,8 @@ def reorder_and_relabel(
         raise Exception("No key found in source label")
 
     # First sort on label to reorder "unpacker 1v" and "unpacker 4v"
-    reorder_on_label_sources = sorted(sources, key=lambda x: x.label)
-    reordered_sources = sorted(sources, key=lambda x: get_index(x.label))
+    reordered_on_label_sources = sorted(sources, key=lambda x: x.label)
+    reordered_sources = sorted(reordered_on_label_sources, key=lambda x: get_index(x.label))
 
     reordered_and_relabeled_sources = list(
         map(
@@ -669,7 +669,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
                     lambda x: x[4],
                 ),
                 title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
-                colors=range(0, 2),
+                colors=range(2, 4),
             )
             for kernel, n_vec, data_type in itertools.product(
                 ["query"], [1, 4], ["f32", "f64"]
@@ -693,7 +693,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
                     lambda x: x[4],
                 ),
                 title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
-                colors=range(0, 3),
+                colors=range(4, 6),
             )
             for kernel, n_vec, data_type in itertools.product(
                 ["query"], [1, 4], ["f32", "f64"]

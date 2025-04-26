@@ -1026,6 +1026,10 @@ def plot_compressors(input_dir: str, output_dir: str):
             )
         ]
 
+        y_lim = calculate_common_y_lim(
+            itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+        )
+
         for source_set in source_sets:
             sources = assign_colors(source_set.sources, source_set.colors)
 
@@ -1037,7 +1041,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                 y_lim=(
                     (0, compression_ratio_axis_limit)
                     if measurement == "compression_ratio"
-                    else None
+                    else (0, y_lim)
                 ),
                 x_label_rotation=45,
                 title=f"{'Compression ratio' if measurement == 'compression_ratio' else 'Throughput'} per decompressor for {'single' if sources[0].group_by_column_values[2] == 'f32' else 'double'} precision floating-point datasets.",

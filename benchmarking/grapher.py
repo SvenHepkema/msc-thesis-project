@@ -620,6 +620,27 @@ def plot_alp_ec(input_dir: str, output_dir: str):
                     [
                         "naive",
                         "naive_branchless",
+                    ],
+                ],
+                lambda x: format_str_to_label(x[4]),
+            ),
+            title=f"{data_type}, Concurrent Vectors: {n_vec}",
+            colors=range(0, 2),
+        )
+        for kernel, n_vec, data_type in itertools.product(
+            ["query"], [1, 4], ["f32", "f64"]
+        )
+    ] + [
+        SourceSet(
+            f"galp-buffers-{kernel}-v{n_vec}-{data_type}",
+            define_graph(
+                sources,
+                [
+                    data_type,
+                    kernel,
+                    n_vec,
+                    alp_unpacker,
+                    [
                         "prefetch_position",
                         "prefetch_all",
                         "prefetch_all_branchless",
@@ -628,7 +649,7 @@ def plot_alp_ec(input_dir: str, output_dir: str):
                 lambda x: format_str_to_label(x[4]),
             ),
             title=f"{data_type}, Concurrent Vectors: {n_vec}",
-            colors=range(0, 5),
+            colors=range(0, 3),
         )
         for kernel, n_vec, data_type in itertools.product(
             ["query"], [1, 4], ["f32", "f64"]

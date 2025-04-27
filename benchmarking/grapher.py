@@ -56,15 +56,15 @@ STATEFUL_STORAGE_TYPES = {
 for s, b in itertools.product(STATEFUL_STORAGE_TYPES.items(), [1, 2, 4]):
     UNPACKERS_ORDER_AND_NAMES[f"stateful_{s[0]}_{b}"] = f"Streaming {s[1]} Buffer"
 
-UNPACKERS_ORDER_AND_NAMES["stateful_branchless"] = "Streaming Branchless"
+UNPACKERS_ORDER_AND_NAMES["stateful_branchless"] = "Branchless Streaming"
 
 PATCHERS_ORDER_AND_NAMES = {
     "stateless": "ALP Static",
     "stateful": "ALP Streaming",
     "naive": "GALP Streaming",
-    "naive_branchless": "GALP Streaming Branchless",
+    "naive_branchless": "GALP Branchless Streaming",
     "prefetch_all": "GALP Streaming Buffer",
-    "prefetch_all_branchless": "GALP Streaming Buffer Branchless",
+    "prefetch_all_branchless": "GALP Branchless Streaming Buffer",
 }
 
 COMPRESSORS_ORDER_AND_NAMES = {
@@ -747,7 +747,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (
-            (pl.col("n_vecs") * VECTOR_SIZE * pl.col("n_cols")) / pl.col("duration_ns")
+            (pl.col("n_vecs") * pl.col("n_cols")) / (pl.col("duration_ns") / 1000)
         ).alias("throughput"),
     )
 
@@ -857,7 +857,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 sources,
                 list(map(str, range(1, n_cols + 1))),
                 "Number of columns",
-                "Throughput (vectors/ns/column)",
+                "Throughput (vectors/column/us)",
                 os.path.join(output_dir, f"multi-column-{source_set.file_name}.eps"),
                 y_lim=(0, y_lim),
                 title=source_set.title,

@@ -60,11 +60,11 @@ UNPACKERS_ORDER_AND_NAMES["stateful_branchless"] = "Branchless Streaming"
 
 PATCHERS_ORDER_AND_NAMES = {
     "stateless": "ALP Static",
-    "stateful": "ALP Streaming",
-    "naive": "GALP Streaming",
-    "naive_branchless": "GALP Branchless Streaming",
-    "prefetch_all": "GALP Streaming Buffer",
-    "prefetch_all_branchless": "GALP Branchless Streaming Buffer",
+    "stateful": "ALP",
+    "naive": "GALP",
+    "naive_branchless": "GALP Branchless ",
+    "prefetch_all": "GALP Buffer",
+    "prefetch_all_branchless": "GALP Branchless Buffer",
 }
 
 COMPRESSORS_ORDER_AND_NAMES = {
@@ -803,7 +803,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 ],
                 lambda x: f"{x[4]} {x[2]}v",
             ),
-            title=f"{replace_label(unpacker, UNPACKERS_ORDER_AND_NAMES)} {data_type}",
+            title=f"{replace_label(unpacker, UNPACKERS_ORDER_AND_NAMES)} Decoder, {data_type}",
             colors=(
                 range(0, 6)
                 if unpacker != "old_fls"

@@ -67,6 +67,18 @@ PATCHERS_ORDER_AND_NAMES = {
     "prefetch_all_branchless": "GALP Streaming Buffer Branchless",
 }
 
+COMPRESSORS_ORDER_AND_NAMES = {
+    "ALP": "ALP",
+    "GALP": "GALP",
+    "Thrust": "Thrust",
+    "zstd": "nv-zstd",
+    "LZ4": "nv-LZ4",
+    "Snappy": "nv-Snappy",
+    "Deflate": "nv-Deflate",
+    "GDeflate": "nv-GDeflate",
+    "Bitcomp": "Bitcomp",
+    "BitcompSparse": "BitcompSparse",
+}
 
 def directory_exists(path: str) -> bool:
     return Path(path).is_dir()
@@ -482,140 +494,142 @@ def plot_ffor(input_dir: str, output_dir: str):
     df = average_samples(df, ["duration_ns"])
     df = df.with_columns(
         (pl.col("n_vecs") / (pl.col("duration_ns") / 1000)).alias("throughput"),
+        (pl.col("duration_ns") / 1000).alias("duration_us"),
     )
 
-    sources = create_grouped_data_sources(
-        df,
-        ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
-        "vbw",
-        "throughput",
-    )
-
-    stateful_storage_types = [
-        "cache",
-        "local",
-        "shared",
-        "register",
-        "register_branchless",
-    ]
-    source_sets = (
-        [
-            SourceSet(
-                f"32-switch-vs-1-switch-v1-u32",
-                define_graph(
-                    sources,
-                    [
-                        "u32",
-                        "query",
-                        1,
-                        [
-                            "old_fls",
-                            "switch_case",
-                        ],
-                    ],
-                    lambda x: x[3],
-                ),
-                title=f"u32, {format_concurrent_vectors(1)}",
-                colors=range(0, 2),
-            )
-        ]
-        + [
-            SourceSet(
-                f"old-fls-vs-stateless-{kernel}-v{n_vec}-{data_type}",
-                define_graph(
-                    sources,
-                    [
-                        data_type,
-                        kernel,
-                        n_vec,
-                        [
-                            "old_fls" if n_vec == 1 and data_type == "u32" else "",
-                            "switch_case" if n_vec == 1 and data_type == "u32" else "",
-                            "stateless",
-                        ],
-                    ],
-                    lambda x: x[3],
-                ),
-                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
-                colors=range(0 if n_vec == 1 and data_type == "u32" else 2, 3),
-            )
-            for kernel, n_vec, data_type in itertools.product(
-                ["query", "decompress"], [1, 4], ["u32", "u64"]
-            )
-        ]
-        + [
-            SourceSet(
-                f"stateful-b{buffer_size}-v{n_vec}-{data_type}",
-                define_graph(
-                    sources,
-                    [
-                        data_type,
-                        "query",
-                        n_vec,
-                        [
-                            (
-                                (f"stateful_{storage_type}" if buffer_size == 1 else "")
-                                if storage_type == "cache"
-                                else f"stateful_{storage_type}_{buffer_size}"
-                            )
-                            for storage_type in stateful_storage_types
-                        ],
-                    ],
-                    lambda x: x[3],
-                ),
-                title=f"{data_type}, {format_concurrent_vectors(n_vec)}, Buffer Size: {buffer_size}",
-                colors=range(0 if buffer_size == 1 else 1, len(stateful_storage_types)),
-            )
-            for buffer_size, n_vec, data_type in itertools.product(
-                [1, 2, 4],
-                [1, 4],
-                ["u32", "u64"],
-            )
-        ]
-        + [
-            SourceSet(
-                f"all-{kernel}-v{n_vec}-{data_type}",
-                define_graph(
-                    sources,
-                    [
-                        data_type,
-                        kernel,
-                        n_vec,
-                        [
-                            "old_fls" if n_vec == 1 and data_type == "u32" else "",
-                            "stateless",
-                            "stateful_register_branchless_2",
-                            "stateful_branchless",
-                        ],
-                    ],
-                    lambda x: x[3],
-                ),
-                title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
-                colors=range(0 if n_vec == 1 and data_type == "u32" else 1, 5),
-            )
-            for kernel, n_vec, data_type in itertools.product(
-                ["query", "decompress"], [1, 4], ["u32", "u64"]
-            )
-        ]
-    )
-
-    y_lim = calculate_common_y_lim(
-        itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
-    )
-
-    for source_set in source_sets:
-        sources = assign_colors(source_set.sources, source_set.colors)
-        sources = reorder_and_relabel(sources, UNPACKERS_ORDER_AND_NAMES)
-
-        create_scatter_graph(
-            sources,
-            "Value bit width",
-            "Throughput (vecs/us)",
-            os.path.join(output_dir, f"ffor-{source_set.file_name}.eps"),
-            y_lim=(0, y_lim),
-            octal_grid=True,
-            title=source_set.title,
+    for measurement, label in zip(["throughput", "duration_us",], ["Throughput (vecs/us)", "Execution time (us)",]):
+        sources = create_grouped_data_sources(
+            df,
+            ["data_type", "kernel", "unpack_n_vectors", "unpacker"],
+            "vbw",
+            measurement,
         )
+
+        stateful_storage_types = [
+            "cache",
+            "local",
+            "shared",
+            "register",
+            "register_branchless",
+        ]
+        source_sets = (
+            [
+                SourceSet(
+                    f"32-switch-vs-1-switch-{'duration-' if measurement == 'duration_us' else ''}v1-u32",
+                    define_graph(
+                        sources,
+                        [
+                            "u32",
+                            "query",
+                            1,
+                            [
+                                "old_fls",
+                                "switch_case",
+                            ],
+                        ],
+                        lambda x: x[3],
+                    ),
+                    title=f"u32, {format_concurrent_vectors(1)}",
+                    colors=range(0, 2),
+                )
+            ]
+            + [
+                SourceSet(
+                    f"old-fls-vs-stateless-{'duration-' if measurement == 'duration_us' else ''}{kernel}-v{n_vec}-{data_type}",
+                    define_graph(
+                        sources,
+                        [
+                            data_type,
+                            kernel,
+                            n_vec,
+                            [
+                                "old_fls" if n_vec == 1 and data_type == "u32" else "",
+                                "switch_case" if n_vec == 1 and data_type == "u32" else "",
+                                "stateless",
+                            ],
+                        ],
+                        lambda x: x[3],
+                    ),
+                    title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
+                    colors=range(0 if n_vec == 1 and data_type == "u32" else 2, 3),
+                )
+                for kernel, n_vec, data_type in itertools.product(
+                    ["query", "decompress"], [1, 4], ["u32", "u64"]
+                )
+            ]
+            + [
+                SourceSet(
+                    f"stateful-{'duration-' if measurement == 'duration_us' else ''}b{buffer_size}-v{n_vec}-{data_type}",
+                    define_graph(
+                        sources,
+                        [
+                            data_type,
+                            "query",
+                            n_vec,
+                            [
+                                (
+                                    (f"stateful_{storage_type}" if buffer_size == 1 else "")
+                                    if storage_type == "cache"
+                                    else f"stateful_{storage_type}_{buffer_size}"
+                                )
+                                for storage_type in stateful_storage_types
+                            ],
+                        ],
+                        lambda x: x[3],
+                    ),
+                    title=f"{data_type}, {format_concurrent_vectors(n_vec)}, Buffer Size: {buffer_size}",
+                    colors=range(0 if buffer_size == 1 else 1, len(stateful_storage_types)),
+                )
+                for buffer_size, n_vec, data_type in itertools.product(
+                    [1, 2, 4],
+                    [1, 4],
+                    ["u32", "u64"],
+                )
+            ]
+            + [
+                SourceSet(
+                    f"all-{kernel}-{'duration-' if measurement == 'duration_us' else ''}v{n_vec}-{data_type}",
+                    define_graph(
+                        sources,
+                        [
+                            data_type,
+                            kernel,
+                            n_vec,
+                            [
+                                "old_fls" if n_vec == 1 and data_type == "u32" else "",
+                                "stateless",
+                                "stateful_register_branchless_2",
+                                "stateful_branchless",
+                            ],
+                        ],
+                        lambda x: x[3],
+                    ),
+                    title=f"{data_type}, {format_concurrent_vectors(n_vec)}",
+                    colors=range(0 if n_vec == 1 and data_type == "u32" else 1, 5),
+                )
+                for kernel, n_vec, data_type in itertools.product(
+                    ["query", "decompress"], [1, 4], ["u32", "u64"]
+                )
+            ]
+        )
+
+        y_lim = calculate_common_y_lim(
+            itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+        )
+
+        for source_set in source_sets:
+            sources = assign_colors(source_set.sources, source_set.colors)
+            sources = reorder_and_relabel(sources, UNPACKERS_ORDER_AND_NAMES)
+
+            create_scatter_graph(
+                sources,
+                "Value bit width",
+                label,
+                os.path.join(output_dir, f"ffor-{source_set.file_name}.eps"),
+                y_lim=(0, y_lim if measurement == "throughput" else calculate_common_y_lim(sources)),
+                octal_grid=True,
+                title=source_set.title,
+            )
 
 
 def plot_alp_ec(input_dir: str, output_dir: str):
@@ -763,7 +777,7 @@ def plot_multi_column(input_dir: str, output_dir: str):
                 lambda x: f"{x[3]} {x[2]}v",
             ),
             title=f"{data_type}",
-            colors=range(0, 6),
+            colors=range(0 if data_type == "u32" else 1, 6),
         )
         for data_type in [
             "u32",
@@ -836,8 +850,8 @@ def plot_multi_column(input_dir: str, output_dir: str):
         ],
     ):
         for source_set in source_sets:
-            sources = assign_colors(source_set.sources, source_set.colors)
-            sources = reorder_and_relabel(sources, name_and_order_map)
+            sources = reorder_and_relabel(source_set.sources, name_and_order_map)
+            sources = assign_colors(sources, source_set.colors)
 
             create_multi_bar_graph(
                 sources,
@@ -866,19 +880,6 @@ def plot_compressors(input_dir: str, output_dir: str):
             / (pl.col("n_vecs") * VECTOR_SIZE)
         ).alias("paper_bits_per_value")
     )
-    rename_map = {
-        "Thrust": "Thrust",
-        "ALP": "ALP",
-        "GALP": "GALP",
-        "Bitcomp": "Bitcomp",
-        "BitcompSparse": "BitcompSparse",
-        "zstd": "nv-zstd",
-        "LZ4": "nv-LZ4",
-        "Snappy": "nv-Snappy",
-        "Deflate": "nv-Deflate",
-        "GDeflate": "nv-GDeflate",
-    }
-    df = df.with_columns(pl.col("compressor").replace(rename_map).alias("compressor"))
     df = average_samples(
         df,
         [
@@ -953,7 +954,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                     [],
                     data_type,
                 ],
-                lambda x: f"{x[1]}",
+                lambda x: x[1],
             ),
         )
         for kernel, data_type in itertools.product(
@@ -967,16 +968,20 @@ def plot_compressors(input_dir: str, output_dir: str):
             ],
         )
     ]
+    y_lim = calculate_common_y_lim(
+        itertools.chain.from_iterable(map(lambda x: x.sources, source_sets))
+    )
 
     for source_set in source_sets:
-        sources = assign_colors(source_set.sources, source_set.colors)
+        sources = reorder_and_relabel(source_set.sources, COMPRESSORS_ORDER_AND_NAMES)
+        sources = assign_colors(sources, source_set.colors)
 
         create_scatter_graph(
             sources,
             "Compression ratio",
             "Throughput (GB/s)",
             os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
-            y_lim=(0, calculate_common_y_lim(sources)),
+            y_lim=(0, y_lim),
             legend_pos="best",
             figsize=(9, 9),
             x_lim=(0, compression_ratio_axis_limit),
@@ -1011,7 +1016,7 @@ def plot_compressors(input_dir: str, output_dir: str):
                         [],
                         data_type,
                     ],
-                    lambda x: f"{x[1]}",
+                    lambda x: x[1],
                 ),
             )
             for kernel, data_type in itertools.product(
@@ -1031,7 +1036,8 @@ def plot_compressors(input_dir: str, output_dir: str):
         )
 
         for source_set in source_sets:
-            sources = assign_colors(source_set.sources, source_set.colors)
+            sources = reorder_and_relabel(source_set.sources, COMPRESSORS_ORDER_AND_NAMES)
+            sources = assign_colors(sources, source_set.colors)
 
             create_boxplot_graph(
                 sources,

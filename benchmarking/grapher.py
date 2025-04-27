@@ -69,7 +69,7 @@ PATCHERS_ORDER_AND_NAMES = {
 
 COMPRESSORS_ORDER_AND_NAMES = {
     "ALP": "ALP",
-    "GALP": "GALP",
+    "GALP": "G-ALP",
     "Thrust": "Thrust",
     "zstd": "nv-zstd",
     "LZ4": "nv-LZ4",
@@ -1055,7 +1055,7 @@ def plot_compressors(input_dir: str, output_dir: str):
 
             create_latex_table(
                 [s.y_data for s in sources],
-                [s.group_by_column_values[1] for s in sources],
+                [s.label for s in sources],
                 sources[0].x_data,
                 os.path.join(
                     output_dir, f"compressors-table-{source_set.file_name}.tex"

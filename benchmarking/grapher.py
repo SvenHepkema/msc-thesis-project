@@ -126,6 +126,7 @@ def create_scatter_graph(
     out: str,
     x_lim: tuple[int | float, int | float] | None = None,
     y_lim: tuple[int | float, int | float] | None = None,
+    y_axis_log_scale: bool = False,
     octal_grid: bool = False,
     figsize: tuple[int, int] = (5, 5),
     legend_pos: str = "best",
@@ -153,6 +154,9 @@ def create_scatter_graph(
                 source.y_data,
                 c=COLOR_SET[source.color],
             )
+
+    if y_axis_log_scale:
+        ax.set_yscale('log')
 
     if x_axis_percentage:
         ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
@@ -979,12 +983,13 @@ def plot_compressors(input_dir: str, output_dir: str):
         create_scatter_graph(
             sources,
             "Compression ratio",
-            "Throughput (GB/s)",
+            "Throughput (GB/s) on Log scale",
             os.path.join(output_dir, f"compressors-{source_set.file_name}.eps"),
             y_lim=(0, y_lim),
             legend_pos="best",
             figsize=(9, 9),
             x_lim=(0, compression_ratio_axis_limit),
+            y_axis_log_scale=True,
         )
 
     for label, measurement in zip(
